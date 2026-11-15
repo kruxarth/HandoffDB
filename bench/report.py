@@ -183,13 +183,16 @@ def level2() -> tuple[str, dict]:
     valid = [r for r in rs if not r["rate_limited"] and r["steps"] > 0]
     excluded = len(rs) - len(valid)
     conds = [c for c in L2_ORDER if any(r["condition"] == c for r in valid)]
-    ids = set.intersection(*[{r["id"] for r in valid if r["condition"] == c} for c in conds]) if conds else set()
+    main = [c for c in ("none", "dict", "bearings") if c in conds]
+    ids = set.intersection(*[{r["id"] for r in valid if r["condition"] == c} for c in main]) if main else set()
     by = {c: {r["id"]: r for r in valid if r["condition"] == c} for c in conds}
+    # extra conditions (ablations, pilots) are paired with no memory on their own, smaller task sets
+    sub_ids = {c: (ids if c in main else ids & set(by[c])) for c in conds}
     timeouts = sum(1 for r in valid if r["exit"] == "timeout" and r["id"] in ids)
     escapes = sum(1 for r in valid if r.get("outside_access") and r["id"] in ids)
     model = valid[0]["model"] if valid else "?"
     out = [f"Model: `{model}` via OpenCode 1.18.35, step cap 25, sandboxed (no network except the model API). "
-           f"Paired tasks (a counted run in every condition): {len(ids)}. Runs excluded (rate-limited or the agent never "
+           f"Paired tasks (a counted run in no memory, dictionary and Bearings): {len(ids)}; the code-anchors-only ablation ran on the first tasks only (budget). Runs excluded (rate-limited or the agent never "
            f"started): {excluded} of {len(rs)}. Timeouts counted as failures: {timeouts}. Runs where the agent tried to "
            f"reach outside the sandbox (blocked, counted normally): {escapes}.", "",
            "| Condition | success (all gold files named) | hit (≥1 gold file) | total input tokens, median [IQR] | tokens until first real-fix file opened, median | uncached input | output+reasoning | tool calls | wall s |",
@@ -197,7 +200,7 @@ def level2() -> tuple[str, dict]:
     stats: dict = {"conds": {}, "n": len(ids), "excluded": excluded, "total": len(rs), "timeouts": timeouts,
                    "escapes": escapes, "model": model}
     for c in conds:
-        rr = [by[c][i] for i in sorted(ids)]
+        rr = [by[c][i] for i in sorted(sub_ids[c])]
         if not rr:
             continue
         ti = sorted(r["total_input"] for r in rr)
@@ -207,7 +210,7 @@ def level2() -> tuple[str, dict]:
               "tools": round(statistics.median([r["tool_calls"] for r in rr])),
               "wall": round(statistics.median([r["wall_s"] for r in rr])), "ratio": None, "dsucc": None, "dtok": None}
         if c != "none" and "none" in conds:
-            b = [by["none"][i] for i in sorted(ids)]
+            b = [by["none"][i] for i in sorted(sub_ids[c])]
             st["dsucc"] = paired_diff([x["all"] for x in rr], [y["all"] for y in b])
             st["dtok"] = paired_diff([x["total_input"] for x in rr], [y["total_input"] for y in b])
             st["ratio"] = statistics.median([x["total_input"] / max(1, y["total_input"]) for x, y in zip(rr, b)])
@@ -219,7 +222,7 @@ def level2() -> tuple[str, dict]:
             st["first_gold_ratio"] = statistics.median([x / max(1, y) for x, y in zip(ftg, fb)])
             st["dfirst"] = paired_diff(ftg, fb)
         stats["conds"][c] = st
-        out.append(f"| {L2_LAB[c]} | {fmt(st['succ'])} | {fmt(st['hit'])} | {st['median_in']:,.0f} [{q[0]:,.0f}–{q[2]:,.0f}] | "
+        out.append(f"| {L2_LAB[c]}{'' if c in main else f' (n={len(rr)}, ablation)'} | {fmt(st['succ'])} | {fmt(st['hit'])} | {st['median_in']:,.0f} [{q[0]:,.0f}–{q[2]:,.0f}] | "
                    f"{st['first_gold']:,.0f} ({st['never_gold']} never) | "
                    f"{statistics.median([r['tokens']['input'] for r in rr]):,.0f} | "
                    f"{statistics.median([r['tokens']['output'] + r['tokens']['reasoning'] for r in rr]):,.0f} | "
@@ -229,7 +232,7 @@ def level2() -> tuple[str, dict]:
                 "Δ tokens until first real-fix file (mean, 95% CI) | median per-task ratio |",
                 "|---|---|---|---|---|---|"]
         for c in conds:
-            if c == "none":
+            if c == "none" or c not in stats["conds"]:
                 continue
             st = stats["conds"][c]
             ds, dt = st["dsucc"], st["dtok"]

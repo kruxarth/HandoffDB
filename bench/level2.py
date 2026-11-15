@@ -40,7 +40,7 @@ from bearings.db import Hydra  # noqa: E402
 # oc_auth). Fallback: L2_MODEL=deepseek/deepseek-flash uses the same model through
 # the DeepSeek API (paid, capped by BALANCE_FLOOR).
 MODEL = os.environ.get("L2_MODEL", "opencode/deepseek-v4.1-flash-free")
-BALANCE_FLOOR = 0.25  # USD: stop starting new runs below this DeepSeek balance
+BALANCE_FLOOR = 0.05  # USD: stop starting new runs below this DeepSeek balance
 CUTOFF = "2022-07-01"  # graph/dictionary learn from events before this; sample from after
 SCOPE = ("bench", "django-l2")
 RUNS = ROOT / "runs" / "level2"
