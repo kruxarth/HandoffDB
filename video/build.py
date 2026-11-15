@@ -304,7 +304,7 @@ def build_data() -> dict:
     pk = eng.context_pack(task["text"], repo=ROOT / "data/repos/django", commit=task["base_commit"])
     data["query"] = {"task": task["text"].split("\n")[0], "files": pk.files, "test": pk.test_command, "gold": task["files"],
                      "cypher": "CALL algo.MSpaths({\n  sourceLabel: 'Term',\n  sourceProperty: 'key',\n"
-                               f"  sourceValues: {cypher_strings(pk.entities[:2])[:-1]},\n    ...],\n"
+                               "  sourceValues: [\n" + "".join(f"    {cypher_strings([e])[1:-1]},\n" for e in pk.entities[:3]) + "    ...],\n"
                                "  relTypes: ['POINTS_TO', 'CO_CHANGED'],\n  maxLen: 2, weightProp: 'w',\n"
                                "  pathCount: 20 })\nYIELD path, pathWeight"}
     # idea: a real neighbourhood from the graph: a past fix (before the cutoff) that
