@@ -189,8 +189,9 @@ footer{color:var(--muted);font-size:13px;padding:40px 0 60px}
     <div id="l2warn"></div>
     <div class="grid2">
       <div class="card"><h3>Found every file of the real fix</h3><p class="cap">Share of paired tasks, 95% interval.</p><div id="l2succ"></div></div>
-      <div class="card"><h3>Tokens to locate the files</h3><p class="cap">Median total input tokens per run, bar = interquartile range. Includes the pack's own tokens.</p><div id="l2tok"></div></div>
+      <div class="card"><h3>Tokens until a real-fix file is opened</h3><p class="cap">Median input tokens up to the step where the agent first reads a file the real fix changed. Includes the pack. Runs that never open one count at their full total.</p><div id="l2first"></div></div>
     </div>
+    <div class="card" style="margin-top:16px"><h3>Tokens for the whole run</h3><p class="cap">Median total input tokens per run, line = interquartile range. Includes the pack's own tokens and everything the agent did after finding the file.</p><div id="l2tok"></div></div>
     <div class="card" style="margin-top:16px"><h3>Per condition</h3><p class="cap" id="l2cap"></p><div id="l2table"></div></div>
   </section>
 
@@ -338,11 +339,16 @@ function segmented(el, items, cur, onPick){
   const tk = [0, mx/4, mx/2, 3*mx/4, mx].map(v=>Math.round(v/10000)*10000);
   dotWhisker($('#l2tok'), cs.map(c=>({label:LAB(c), m:L2.conds[c].median_in, lo:L2.conds[c].q1, hi:L2.conds[c].q3, color:COLOR(c), bold:c==='l2:bearings', n:L2.conds[c].n})),
     {min:0, max:tk[4], ticks:tk, fmt:v=>v>=1000?Math.round(v/1000)+'k':String(Math.round(v))});
+  const mf = Math.max(...cs.map(c=>L2.conds[c].first_gold)) * 1.15;
+  const tf = [0, mf/4, mf/2, 3*mf/4, mf].map(v=>Math.round(v/1000)*1000);
+  dotWhisker($('#l2first'), cs.map(c=>({label:LAB(c), m:L2.conds[c].first_gold, color:COLOR(c), bold:c==='l2:bearings', n:L2.conds[c].n})),
+    {min:0, max:tf[4], ticks:tf, fmt:v=>v>=1000?(v/1000).toFixed(v<10000?1:0)+'k':String(Math.round(v))});
   $('#l2cap').innerHTML = L2.cap;
-  $('#l2table').innerHTML = `<table><tr><th>Condition</th><th class="num">all files found</th><th class="num">≥1 file found</th><th class="num">median tokens</th><th class="num">vs no memory (paired)</th><th class="num">tool calls</th><th class="num">wall time</th></tr>`+
+  $('#l2table').innerHTML = `<table><tr><th>Condition</th><th class="num">all files found</th><th class="num">≥1 file found</th><th class="num">Δ success vs no memory</th><th class="num">tokens, whole run</th><th class="num">vs no memory</th><th class="num">tokens until a real-fix file is opened</th><th class="num">vs no memory</th><th class="num">tool calls</th><th class="num">wall time</th></tr>`+
     cs.map(c=>{const r=L2.conds[c]; return `<tr class="${c==='l2:bearings'?'hl':''}"><td><span class="swatch" style="background:${COLOR(c)}"></span>${esc(LAB(c))}</td>
-      <td class="num">${pct(r.succ[0])} <span class="ci">[${pct(r.succ[1])}, ${pct(r.succ[2])}]</span></td><td class="num">${pct(r.hit[0])}</td>
-      <td class="num">${num(r.median_in)}</td><td class="num">${r.ratio!=null?`${r.ratio.toFixed(2)}×`:'—'} ${r.dsucc!=null?`<span class="ci">Δ success ${(r.dsucc[0]>=0?'+':'')}${(r.dsucc[0]*100).toFixed(0)} pts [${(r.dsucc[1]*100).toFixed(0)}, ${(r.dsucc[2]*100).toFixed(0)}]</span>`:''}</td>
+      <td class="num">${pct(r.succ[0])} <span class="ci">[${pct(r.succ[1])}, ${pct(r.succ[2])}]</span></td><td class="num">${pct(r.hit[0])}</td><td class="num">${r.dsucc!=null?`${(r.dsucc[0]>=0?'+':'')}${(r.dsucc[0]*100).toFixed(0)} pts <span class="ci">[${(r.dsucc[1]*100).toFixed(0)}, ${(r.dsucc[2]*100).toFixed(0)}]</span>`:'—'}</td>
+      <td class="num">${num(r.median_in)}</td><td class="num">${r.ratio!=null?`${r.ratio.toFixed(2)}×`:'—'}</td>
+      <td class="num">${num(r.first_gold)}${r.never_gold?` <span class="ci">(${r.never_gold} never)</span>`:''}</td><td class="num">${r.first_gold_ratio!=null?`${r.first_gold_ratio.toFixed(2)}×`:'—'}</td>
       <td class="num">${r.tools}</td><td class="num">${r.wall}s</td></tr>`;}).join('')+`</table>`;
 })();
 

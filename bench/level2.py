@@ -65,7 +65,7 @@ TIMEOUT = 900
 LIMIT_RE = re.compile(r"usage limit|rate.?limit|too many requests|quota|\b429\b", re.I)
 AUTH = None
 
-PROMPT = """You are localizing an issue in this repository (the Django source tree at /work/repo). Read the issue, explore the code as needed, and decide which source files must be edited to fix it. Everything you need is in this repository; do not search outside it. Do not edit any files and do not run the test suite. Finish with one final line in exactly this form:
+PROMPT = """You are localizing an issue in this repository (the Django source tree at /work/repo). Read the issue, explore the code as needed, and decide which source files must be edited to fix it. Everything you need is in this repository; do not search outside it. The upstream fix is not available anywhere, so do not look for it (no release notes, git objects or other versions). As soon as you have identified the files, stop and answer. Do not edit any files and do not run the test suite. Finish with one final line in exactly this form:
 FILES: path/one.py, path/two.py
 (repo-relative paths of the source files to edit, most likely first, at most 5).
 {extra}
@@ -140,6 +140,28 @@ def oc_config(cond: str) -> Path:
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(cfg, indent=2))
     return p
+
+
+def tokens_to_first_gold(path: Path, gold: list[str]) -> int | None:
+    """Total input tokens (uncached + cache read) of the steps up to and including
+    the one in which the agent first reads or searches inside a file of the real
+    fix (the file path appears in a tool call's input). None if it never does."""
+    cum, found = 0, False
+    for line in path.read_text().splitlines():
+        try:
+            e = json.loads(line)
+        except ValueError:
+            continue
+        p = e.get("part", {})
+        if e["type"] == "tool_use" and not found:
+            inp = json.dumps(p.get("state", {}).get("input", {}))
+            found = any(g in inp for g in gold)
+        elif e["type"] == "step_finish":
+            t = p.get("tokens", {})
+            cum += t.get("input", 0) + t.get("cache", {}).get("read", 0)
+            if found:
+                return cum
+    return cum if found else None
 
 
 def parse_events(path: Path) -> dict:
@@ -352,7 +374,8 @@ def run_one(task: dict, cond: str, dic: DictBaseline | None, rep: int = 0) -> di
     leaks = outside_access(ev_path)
     row = {"id": task["id"], "date": task["date"], "condition": cond, "rep": rep, "model": MODEL,
            "exit": code, "attempts": attempts, "wall_s": round(wall, 1), "rate_limited": rate_limited, "gold": task["files"],
-           "dict_pack": pack_text, "sandboxed": True, "outside_access": leaks, **res, **score(res["files"], task["files"])}
+           "dict_pack": pack_text, "sandboxed": True, "outside_access": leaks,
+           "tokens_to_first_gold": tokens_to_first_gold(ev_path, task["files"]), **res, **score(res["files"], task["files"])}
     with _lock, open(RUNS / "results.jsonl", "a") as f:
         f.write(json.dumps(row) + "\n")
     return row

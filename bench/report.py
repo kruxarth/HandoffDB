@@ -192,8 +192,8 @@ def level2() -> tuple[str, dict]:
            f"Paired tasks (a counted run in every condition): {len(ids)}. Runs excluded (rate-limited or the agent never "
            f"started): {excluded} of {len(rs)}. Timeouts counted as failures: {timeouts}. Runs where the agent tried to "
            f"reach outside the sandbox (blocked, counted normally): {escapes}.", "",
-           "| Condition | success (all gold files named) | hit (≥1 gold file) | total input tokens, median [IQR] | uncached input | output+reasoning | tool calls | wall s |",
-           "|---|---|---|---|---|---|---|---|"]
+           "| Condition | success (all gold files named) | hit (≥1 gold file) | total input tokens, median [IQR] | tokens until first real-fix file opened, median | uncached input | output+reasoning | tool calls | wall s |",
+           "|---|---|---|---|---|---|---|---|---|"]
     stats: dict = {"conds": {}, "n": len(ids), "excluded": excluded, "total": len(rs), "timeouts": timeouts,
                    "escapes": escapes, "model": model}
     for c in conds:
@@ -211,21 +211,31 @@ def level2() -> tuple[str, dict]:
             st["dsucc"] = paired_diff([x["all"] for x in rr], [y["all"] for y in b])
             st["dtok"] = paired_diff([x["total_input"] for x in rr], [y["total_input"] for y in b])
             st["ratio"] = statistics.median([x["total_input"] / max(1, y["total_input"]) for x, y in zip(rr, b)])
+        ftg = [r["tokens_to_first_gold"] if r.get("tokens_to_first_gold") is not None else r["total_input"] for r in rr]
+        st["first_gold"] = statistics.median(ftg)
+        st["never_gold"] = sum(1 for r in rr if r.get("tokens_to_first_gold") is None)
+        if c != "none" and "none" in conds:
+            fb = [y["tokens_to_first_gold"] if y.get("tokens_to_first_gold") is not None else y["total_input"] for y in b]
+            st["first_gold_ratio"] = statistics.median([x / max(1, y) for x, y in zip(ftg, fb)])
+            st["dfirst"] = paired_diff(ftg, fb)
         stats["conds"][c] = st
         out.append(f"| {L2_LAB[c]} | {fmt(st['succ'])} | {fmt(st['hit'])} | {st['median_in']:,.0f} [{q[0]:,.0f}–{q[2]:,.0f}] | "
+                   f"{st['first_gold']:,.0f} ({st['never_gold']} never) | "
                    f"{statistics.median([r['tokens']['input'] for r in rr]):,.0f} | "
                    f"{statistics.median([r['tokens']['output'] + r['tokens']['reasoning'] for r in rr]):,.0f} | "
                    f"{st['tools']} | {st['wall']} |")
     if "none" in conds and ids:
-        out += ["", "| Paired difference vs no memory | Δ success | Δ total input tokens (mean, 95% CI) | median per-task ratio |",
-                "|---|---|---|---|"]
+        out += ["", "| Paired difference vs no memory | Δ success | Δ total input tokens (mean, 95% CI) | median per-task ratio | "
+                "Δ tokens until first real-fix file (mean, 95% CI) | median per-task ratio |",
+                "|---|---|---|---|---|---|"]
         for c in conds:
             if c == "none":
                 continue
             st = stats["conds"][c]
             ds, dt = st["dsucc"], st["dtok"]
+            df_ = st["dfirst"]
             out.append(f"| {L2_LAB[c]} | {ds[0]:+.3f} [{ds[1]:+.3f}, {ds[2]:+.3f}] | {dt[0]:+,.0f} [{dt[1]:+,.0f}, {dt[2]:+,.0f}] | "
-                       f"{st['ratio']:.2f} |")
+                       f"{st['ratio']:.2f} | {df_[0]:+,.0f} [{df_[1]:+,.0f}, {df_[2]:+,.0f}] | {st['first_gold_ratio']:.2f} |")
     return "\n".join(out), stats
 
 
@@ -251,6 +261,17 @@ SEED_LONG = {"history": "Seeded from Django's commit history, then learning from
              "tasks": "Learning from the task stream only (a team starting from an empty graph)"}
 
 
+def latency_text(lat: list[float]) -> str:
+    busy = f"During this benchmark (three runs sharing one HydraDB): p50 {lat[len(lat)//2]:.0f} ms, p95 {lat[int(len(lat)*.95)]:.0f} ms."
+    p = RES / "latency.json"
+    if not p.exists():
+        return busy
+    q = json.loads(p.read_text())
+    return (f"Quiet machine, {q['graph_events']:,}-event graph: whole pack p50 {q['context_pack_ms']['p50']:.0f} ms "
+            f"(HydraDB path query {q['hydradb_path_query_ms']['p50']:.0f} ms, code anchors {q['code_anchors_ms']['p50']:.0f} ms). "
+            + busy)
+
+
 def seed_block(seed: str) -> tuple[list[str], dict]:
     path = RES / f"level1_{seed}.jsonl"
     test = rows(path)
@@ -266,8 +287,7 @@ def seed_block(seed: str) -> tuple[list[str], dict]:
     pc = sorted(r["pack_chars"] for r in test)
     w2, l2 = where_differ(test, "bearings", "bearings-1")
     facts = [
-        {"title": "Query latency", "text": f"HydraDB path query + code anchors + scoring: p50 {lat[len(lat)//2]:.0f} ms, "
-                                           f"p95 {lat[int(len(lat)*.95)]:.0f} ms per task, on a laptop, while other benchmarks ran."},
+        {"title": "Query latency", "text": latency_text(lat)},
         {"title": "Second hop", "text": f"Adding the co-changed-file hop changed hit@5 on {w2 + l2} of {len(test)} tasks "
                                         f"({w2} better, {l2} worse). Measured, and close to zero."},
         {"title": "Test command", "text": f"The suggested test command names the module where the real fix's tests live on "
@@ -374,9 +394,10 @@ def dashboard(data: dict, l2: dict) -> None:
                   "delta": f"{r['dsucc'][0] * 100:+.0f} pts success",
                   "dir": "flat" if abs(r["dsucc"][0]) < 0.005 else "up" if r["dsucc"][0] > 0 else "down",
                   "sub": f"median per-task ratio vs no memory · {l2['n']} paired tasks"})
-    elif h:
-        k.append({"label": "Query latency", "value": f"{h['lat_p50']:.0f} ms", "delta": "", "dir": "flat",
-                  "sub": "median, HydraDB path query + anchors"})
+    elif (RES / "latency.json").exists():
+        q = json.loads((RES / "latency.json").read_text())
+        k.append({"label": "Context pack latency", "value": f"{q['context_pack_ms']['p50']:.0f} ms", "delta": "", "dir": "flat",
+                  "sub": f"median on a laptop · HydraDB path query {q['hydradb_path_query_ms']['p50']:.0f} ms"})
     data["kpis"] = k
     data["l1_intro"] = (f"Every SWE-bench task on Django ({sum(1 for _ in open(ROOT / 'data/derived/tasks.jsonl'))} issues, 2015–2023) "
                         "replayed in date order. For each issue Bearings suggests five files using only what it learned "

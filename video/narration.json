@@ -1,10 +1,67 @@
 [
-  {"id": "01", "scene": "problem", "text": "Every time a coding agent starts a task, it explores the repository from scratch. Every search and every file it opens is paid for in tokens."},
-  {"id": "02", "scene": "problem", "text": "And most of that exploration repeats what a teammate's agent already found last week."},
-  {"id": "03", "scene": "idea", "text": "Bearings remembers where past work landed, as a graph in HydraDB."},
-  {"id": "04", "scene": "idea", "text": "Each finished task is written as structure: the words and symbols in it, the files it changed, and the test that verified it."},
-  {"id": "05", "scene": "query", "text": "When a new task arrives, one weighted path query walks from its words to files, and returns a small context pack. Where to start, how to test, and the path that justifies each file."},
-  {"id": "06", "scene": "query", "text": "Links that led to the right file get cheaper. Links that led nowhere get dearer. And Bearings makes no model calls, so the layer itself is free to run."},
-  {"id": "13", "scene": "team", "text": "It is built for teams that share a repository. What one person's agent learns, every agent on the team starts from."},
-  {"id": "14", "scene": "end", "text": "Bearings. Your agents start where your team left off."}
+ {
+  "id": "01",
+  "scene": "problem",
+  "text": "Every time a coding agent starts a task, it explores the repository from scratch. Every search and every file it opens is paid for in tokens."
+ },
+ {
+  "id": "02",
+  "scene": "problem",
+  "text": "And most of that exploration repeats what a teammate's agent already found last week."
+ },
+ {
+  "id": "03",
+  "scene": "idea",
+  "text": "Bearings remembers where past work landed, as a graph in HydraDB."
+ },
+ {
+  "id": "04",
+  "scene": "idea",
+  "text": "Each finished task is written as structure: the words and symbols in it, the files it changed, and the test that verified it."
+ },
+ {
+  "id": "05",
+  "scene": "query",
+  "text": "When a new task arrives, one weighted path query walks from its words to files, and returns a small context pack. Where to start, how to test, and the path that justifies each file."
+ },
+ {
+  "id": "05b",
+  "scene": "query",
+  "text": "It also looks up where the names in the task are defined in today's code, so the pack points to the exact lines to read."
+ },
+ {
+  "id": "06",
+  "scene": "query",
+  "text": "Links that led to the right file get cheaper. Links that led nowhere get dearer. And Bearings makes no model calls, so the layer itself is free to run."
+ },
+ {
+  "id": "07",
+  "scene": "learn",
+  "text": "We replayed every Django issue from SWE-bench in date order. Bearings ranked the real fix first about half the time, ahead of keyword search, and had it in the top five more than three times out of four."
+ },
+ {
+  "id": "08",
+  "scene": "learn",
+  "text": "Starting from an empty graph, it learns as issues arrive, and pulls well ahead of keyword search."
+ },
+ {
+  "id": "11",
+  "scene": "claude",
+  "text": "In Claude Code, on our two demo tasks, the model already knew where to look, so Bearings saved nothing there. It pays off when an agent has to search."
+ },
+ {
+  "id": "12",
+  "scene": "limits",
+  "text": "And we report what did not help. The second hop, through files that change together, barely moves the results."
+ },
+ {
+  "id": "13",
+  "scene": "team",
+  "text": "It is built for teams that share a repository. What one person's agent learns, every agent on the team starts from."
+ },
+ {
+  "id": "14",
+  "scene": "end",
+  "text": "Bearings. Your agents start where your team left off."
+ }
 ]
