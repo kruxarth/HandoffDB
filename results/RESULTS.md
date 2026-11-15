@@ -52,22 +52,28 @@ Measured on the dev split: for each gold source file, is it linked in one hop fr
 
 Measured with DeepSeek through OpenCode. The agent names the files it would edit and stops; success is checked in code against the real fix. Token counts include the context pack.
 
-Model: `opencode/deepseek-v4.1-flash-free` via OpenCode. Paired tasks: 1. Runs excluded (rate limit / crash / timeout): 0 of 6.
+Model: `opencode/deepseek-v4.1-flash-free` via OpenCode. Paired tasks: 1. Runs excluded (rate limit / crash / timeout): 0 of 5.
 
 | Condition | success (all gold files named) | hit (≥1 gold file) | total input tokens, median [IQR] | uncached input | output+reasoning | tool calls | wall s |
 |---|---|---|---|---|---|---|---|
-| No memory | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 66,194 [66,194–66,194] | 11,154 | 808 | 6 | 37 |
-| Dictionary pack in prompt | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 81,975 [81,975–81,975] | 6,583 | 2,264 | 8 | 44 |
-| Bearings (MCP) | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 100,286 [100,286–100,286] | 15,678 | 1,928 | 9 | 48 |
+| No memory | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 72,320 [72,320–72,320] | 6,400 | 1,639 | 9 | 63 |
+| Dictionary pack in prompt | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 21,580 [21,580–21,580] | 5,964 | 298 | 2 | 44 |
+| Bearings (MCP) | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 75,565 [75,565–75,565] | 12,973 | 2,336 | 10 | 67 |
 
 | Paired difference vs no memory | Δ success | Δ total input tokens (mean, 95% CI) | median ratio |
 |---|---|---|---|
-| Dictionary pack in prompt | +0.000 [+0.000, +0.000] | +15,781 [+15,781, +15,781] | 1.24 |
-| Bearings (MCP) | +0.000 [+0.000, +0.000] | +34,092 [+34,092, +34,092] | 1.52 |
+| Dictionary pack in prompt | +0.000 [+0.000, +0.000] | -50,740 [-50,740, -50,740] | 0.30 |
+| Bearings (MCP) | +0.000 [+0.000, +0.000] | +3,245 [+3,245, +3,245] | 1.04 |
 
-## Claude Code demo (one task, not a statistic)
+## Claude Code demo (two tasks, not a statistic)
 
-| Side | total input | uncached input | cache write | cache read | output | turns | tool calls | right files | list-price arithmetic |
-|---|---|---|---|---|---|---|---|---|---|
-| with Bearings (django__django-15863, sonnet) | 185,137 | 12 | 14,971 | 170,154 | 1,348 | 7 | 6 | True | $0.09 |
-| without Bearings (django__django-15863, sonnet) | 108,493 | 6 | 13,647 | 94,840 | 705 | 4 | 3 | True | $0.07 |
+Headless Claude Code (`claude -p`, sonnet), the same task fixed once without and once with Bearings. Usage is Claude Code's own `usage` block from the final result event. Total input = uncached input + cache write + cache read. The dollar column is Claude Code's list-price arithmetic, not measured spend (these runs used a Pro plan). On both tasks Bearings *increased* tokens: the agent made the pack call (plus a tool lookup and a report call over MCP) and still explored about as much.
+
+| Task | Side | total input | vs without | uncached input | cache write | cache read | output | turns | tool calls | right files | list-price arithmetic |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| django__django-15863 | Without Bearings | 108,493 |  | 6 | 13,647 | 94,840 | 705 | 4 | 3 | True | $0.07 |
+| django__django-15863 | Bearings via MCP | 185,137 | +71% | 12 | 14,971 | 170,154 | 1,348 | 7 | 6 | True | $0.09 |
+| django__django-15863 | Bearings via hook | 144,424 | +33% | 8 | 13,374 | 131,042 | 777 | 5 | 4 | True | $0.07 |
+| django__django-16560 | Without Bearings | 253,968 |  | 12 | 21,630 | 232,326 | 2,632 | 6 | 5 | True | $0.14 |
+| django__django-16560 | Bearings via MCP | 295,771 | +16% | 16 | 25,516 | 270,239 | 2,991 | 8 | 7 | True | $0.16 |
+| django__django-16560 | Bearings via hook | 316,110 | +24% | 14 | 25,212 | 290,884 | 3,173 | 8 | 7 | True | $0.16 |

@@ -19,6 +19,7 @@ sys.path.insert(0, str(ROOT / "bench"))
 from summarize import CONDS, ci, paired_diff  # noqa: E402
 
 RES = ROOT / "results"
+SIDE = {"without": "Without Bearings", "with": "Bearings via MCP", "hook": "Bearings via hook"}
 LABEL = {"bm25": "Keyword search (BM25)", "dict": "Dictionary (no graph)", "bearings-1": "Bearings, one hop",
          "bearings": "Bearings, full", "frozen": "Frozen graph"}
 COLOR = {"bearings": "--series-1", "dict": "--series-2", "bearings-1": "--series-3", "frozen": "--series-4",
@@ -95,7 +96,7 @@ def curve(path: Path, metric: str = "hit@5", window: int = 100) -> dict[str, lis
 
 
 def svg_lines(series: dict, title: str, ylab: str, cid: str, ymin=None, ymax=None) -> str:
-    W, H, L, R, T, B = 720, 340, 52, 150, 16, 44
+    W, H, L, R, T, B = 760, 360, 52, 205, 34, 44
     xs = [x for s in series.values() for x, _ in s]
     ys = [y for s in series.values() for _, y in s]
     if not xs:
@@ -116,7 +117,7 @@ def svg_lines(series: dict, title: str, ylab: str, cid: str, ymin=None, ymax=Non
         if xv >= x0:
             parts.append(f'<text x="{sx(xv):.1f}" y="{H - B + 18}" class="tick" text-anchor="middle">{xv}</text>')
     parts.append(f'<text x="{(L + W - R) / 2}" y="{H - 6}" class="axis" text-anchor="middle">tasks learned</text>')
-    parts.append(f'<text x="12" y="{T + 4}" class="axis">{html.escape(ylab)}</text>')
+    parts.append(f'<text x="12" y="{T - 16}" class="axis">{html.escape(ylab)}</text>')
     labels = []
     for c, s in series.items():
         pts = " ".join(f"{sx(x):.1f},{sy(y):.1f}" for x, y in s)
@@ -125,7 +126,7 @@ def svg_lines(series: dict, title: str, ylab: str, cid: str, ymin=None, ymax=Non
         labels.append([sy(s[-1][1]), c, s[-1][1]])
     labels.sort()
     for i in range(1, len(labels)):  # de-collide end labels
-        labels[i][0] = max(labels[i][0], labels[i - 1][0] + 14)
+        labels[i][0] = max(labels[i][0], labels[i - 1][0] + 16)
     for yv, c, v in labels:
         parts.append(f'<text x="{W - R + 8}" y="{yv + 4:.1f}" class="dlabel">{LABEL[c]} {v:.2f}</text>')
     parts.append(f'<line class="xhair" x1="0" x2="0" y1="{T}" y2="{H - B}" visibility="hidden"/>')
@@ -193,7 +194,7 @@ def level2() -> tuple[str, list[dict], dict]:
                    f"{statistics.median([r['tokens']['input'] for r in rr]):,.0f} | "
                    f"{statistics.median([r['tokens']['output'] + r['tokens']['reasoning'] for r in rr]):,.0f} | "
                    f"{statistics.median([r['tool_calls'] for r in rr]):.0f} | {statistics.median([r['wall_s'] for r in rr]):.0f} |")
-    if "none" in conds:
+    if "none" in conds and ids:
         out += ["", "| Paired difference vs no memory | Δ success | Δ total input tokens (mean, 95% CI) | median ratio |", "|---|---|---|---|"]
         for c in conds:
             if c == "none":
@@ -270,16 +271,23 @@ def main() -> None:
     md += ["## Level 2, live agent runs: tokens to locate the right files", "",
            "Measured with DeepSeek through OpenCode. The agent names the files it would edit and stops; success is "
            "checked in code against the real fix. Token counts include the context pack.", "", l2md, ""]
-    demo = sorted((RES / "claude_demo").glob("*.json")) if (RES / "claude_demo").exists() else []
+    demo = [json.loads(p.read_text()) for p in sorted((RES / "claude_demo").glob("*.json"))] \
+        if (RES / "claude_demo").exists() else []
+    demo = sorted((d for d in demo if "side" in d), key=lambda d: (d["task"], list(SIDE).index(d["side"])))
     if demo:
-        md += ["## Claude Code demo (one task, not a statistic)", "",
-               "| Side | total input | uncached input | cache write | cache read | output | turns | tool calls | right files | list-price arithmetic |",
-               "|---|---|---|---|---|---|---|---|---|---|"]
-        for p in demo:
-            d = json.loads(p.read_text())
-            if "side" not in d:
-                continue
-            md.append(f"| {d['side']} Bearings ({d['task']}, {d['model']}) | {d['total_input']:,} | {d['input_tokens']:,} | "
+        md += ["## Claude Code demo (two tasks, not a statistic)", "",
+               "Headless Claude Code (`claude -p`, sonnet), the same task fixed once without and once with Bearings. "
+               "Usage is Claude Code's own `usage` block from the final result event. Total input = uncached input + "
+               "cache write + cache read. The dollar column is Claude Code's list-price arithmetic, not measured spend "
+               "(these runs used a Pro plan). On both tasks Bearings *increased* tokens: the agent made the "
+               "pack call (plus a tool lookup and a report call over MCP) and still explored about as much.", "",
+               "| Task | Side | total input | vs without | uncached input | cache write | cache read | output | turns | tool calls | right files | list-price arithmetic |",
+               "|---|---|---|---|---|---|---|---|---|---|---|---|"]
+        base = {d["task"]: d["total_input"] for d in demo if d["side"] == "without"}
+        for d in demo:
+            rel = (f"{(d['total_input'] / base[d['task']] - 1) * 100:+.0f}%" if d["side"] != "without" and d["task"] in base
+                   else "")
+            md.append(f"| {d['task']} | {SIDE.get(d['side'], d['side'])} | {d['total_input']:,} | {rel} | {d['input_tokens']:,} | "
                       f"{d['cache_creation_input_tokens']:,} | {d['cache_read_input_tokens']:,} | {d['output_tokens']:,} | "
                       f"{d['num_turns']} | {d['tool_calls']} | {d['correct_files']} | ${d['list_price_usd']:.2f} |")
         md.append("")
