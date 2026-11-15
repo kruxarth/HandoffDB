@@ -139,7 +139,13 @@ CLI: `bearings pack "<task>"`, `bearings report "<task>" --changed a.py --test "
 
 **Level 1 conditions** (all on identical issues, all seeing the same events): keyword search (BM25 over past issue texts, a file scores the sum of its issues' scores), dictionary (word → file counts, same entities and same formula as Bearings' first hop), learned graph only, code anchors only, Bearings without the second hop, Bearings, and Bearings with a graph frozen at the first test issue. HydraDB's answer is checked against an in-memory reference implementation of the same query on every issue.
 
-**Level 2.** {{L2_METHOD}}
+**Level 2.** Real SWE-bench Verified issues from after the graph's cutoff (2022-07-01), taken in date order. For each issue an OpenCode agent (DeepSeek V4.1 Flash, the same model throughout) gets the issue text and a history-free snapshot of Django at the issue's commit, explores with shell tools, and names the files it would change. It does not write the fix, so the run measures *locating* the right files, which is the part a context layer can help with.
+
+- **Conditions**, all on identical issues: no memory; a dictionary pack (word → file counts) pasted into the prompt; Bearings' pack pasted into the prompt (the same text the Claude Code hook injects: files, line anchors, a test command); and, on the first issues only, code anchors alone (an ablation dropped later to stay within budget).
+- **Success** = the agent's final answer contains every file the real fix changed. Timeouts count as failures; runs that were rate-limited or never started are excluded and counted in the report.
+- **Tokens** are OpenCode's own usage reports, summed over the run (fresh + cached input), and include the pack. Two token figures are reported. *Whole run*: everything the agent read. *Until a real-fix file is opened*: input tokens up to the step where the agent first reads a file the fix changed. We added the second after the pilot runs showed agents finding the file in a few steps and then spending most of the run double-checking it, which a context pack cannot shorten. It is a post-hoc metric and labelled as such. Runs that never open a real-fix file count at their full total.
+- **Sandbox**: a bubblewrap sandbox with no network except an allow-list proxy to the model API; web search, web fetch and paths outside the snapshot are denied. The prompt also asks the agent to stop once it has identified the files (added after pilots where agents spent 20 steps hunting for the upstream fix in git objects). Both pilots, the run with the MCP tool instead of a pasted pack and the run before the stop line, are committed as `results/level2_pilot_*.jsonl` and excluded from the main table.
+- **Model access**: the runs started on OpenCode's free tier and moved to the DeepSeek API (same model, `deepseek/deepseek-flash`) when the free tier's limit was reached. Each row records the model it used.
 
 **Leaks found and closed.** Early live runs were contaminated, and all of them were discarded:
 1. Worktrees exposed the future fix through `git log --all`. Each run now gets a fresh single-commit snapshot of the repo at the issue's commit (`scripts/snapshot.sh`).
@@ -150,7 +156,20 @@ CLI: `bearings pack "<task>"`, `bearings report "<task>" --changed a.py --test "
 
 **Claude Code demo.** `bench/claude_demo.py` runs one real issue through headless Claude Code (`claude -p`, sonnet, Claude Code 2.1.325) without and with Bearings and prints the usage block side by side. Claude Code reports `input_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`, `output_tokens`, `num_turns` and a list-price `total_cost_usd`.
 
-{{DEMO_TABLE}}
+| Issue | Run | total input tokens | vs first run without | turns | right files |
+|---|---|---|---|---|---|
+| django__django-15863 | without Bearings | 108,493 | | 4 | yes |
+| | without Bearings (rerun) | 142,809 | +32% | 5 | yes |
+| | v1, MCP tool | 185,137 | +71% | 7 | yes |
+| | v1, prompt hook | 144,424 | +33% | 5 | yes |
+| | v2, hooks (graph + code anchors) | 144,292 | +33% | 5 | yes |
+| django__django-16560 | without Bearings | 253,968 | | 6 | yes |
+| | without Bearings (rerun) | 304,542 | +20% | 7 | yes |
+| | v1, MCP tool | 295,771 | +16% | 8 | yes |
+| | v1, prompt hook | 316,110 | +24% | 8 | yes |
+| | v2, hooks (graph + code anchors) | 408,458 | +61% | 11 | yes |
+
+Total input = uncached + cache write + cache read, from Claude Code's own usage block (sonnet). Full columns and list-price arithmetic: `results/RESULTS.md`.
 
 Bearings v1 (MCP tool, graph only) and v2 (hooks, graph + code anchors) both cost more than running without it on these two issues, and a second run without Bearings shows ±20–30% run-to-run noise. Both issues name the function to change, and Sonnet went straight to it. In Claude Code every turn re-reads the whole context (~35k tokens here), so a context layer pays off only when it removes turns: on issues where the agent would otherwise search. Two demo issues cannot show that either way; Level 2 measures it.
 
