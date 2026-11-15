@@ -411,14 +411,14 @@ def results_data() -> dict:
     md, st = rep.level2()
     c = st.get("conds", {})
     if c:
-        lab = {"none": "No memory", "dict": "Word table pack", "anchors": "Code anchors only", "bearings": "Bearings"}
+        lab = {"none": "No memory", "dict": "Dictionary pack", "anchors": "Code anchors only", "bearings": "Bearings"}
         colr = {"none": "#6b6a64", "dict": "#e87ba4", "anchors": "#9085e9", "bearings": "#5c9bea"}
         out["live"] = {
-            "title": "Tokens to locate the right files.",
+            "title": "Across forty new issues: no token saving.",
             "sub": f"Live agents (DeepSeek through OpenCode), {st['n']} real issues the graph never saw. Median input tokens per run.",
             "rows": [{"label": lab[k], "value": v["median_in"], "text": f"{v['median_in']:,.0f}", "color": colr[k],
                       "note": f"found every file in {v['succ'][0]:.0%}"} for k, v in c.items() if k in lab],
-            "foot": "Includes the pack's own tokens. Same tasks in every condition; rate-limited runs excluded and counted.",
+            "foot": "Includes the pack's own tokens. Same issues in every condition. In every condition the agent opened a real-fix file after about 7k tokens.",
             "stats": st}
     dd = [json.loads(p.read_text()) for p in sorted((rep.RES / "claude_demo").glob("*.json"))]
     dd = [x for x in dd if "side" in x]
@@ -440,7 +440,8 @@ def results_data() -> dict:
     d2 = (H["bearings"]["hit@5"] - H["bearings-1"]["hit@5"]) * 100
     out["limits"] = {"title": "What did not help, measured.", "items": [
         ("orange", f"The second hop through files that change together: {d2:+.1f} points top-5."),
-        ("orange", f"In Claude Code on two easy demo tasks, Bearings added a turn and saved nothing."),
+        ("orange", "Live agents on 40 new issues: no token saving. The issues already point at the code."),
+        ("orange", "In Claude Code on two demo tasks: no saving either."),
         ("blue", "Seeded from the dataset's own real fixes, in date order, never from the future. Tuned only on earlier issues."),
         ("blue", "Every number is reproducible from committed result files."),
     ]}

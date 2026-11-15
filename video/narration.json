@@ -45,9 +45,19 @@
   "text": "Starting from an empty graph, it learns as issues arrive, and pulls well ahead of keyword search."
  },
  {
+  "id": "09",
+  "scene": "side",
+  "text": "Here is one new issue. With the pack, the agent went to the right lines and was done in ten tool calls instead of nineteen."
+ },
+ {
+  "id": "10",
+  "scene": "live",
+  "text": "Across forty new issues, though, it saved nothing. Those issues already point at the code, so the agent finds the file in its first step either way."
+ },
+ {
   "id": "11",
   "scene": "claude",
-  "text": "In Claude Code, on our two demo tasks, the model already knew where to look, so Bearings saved nothing there. It pays off when an agent has to search."
+  "text": "Claude Code told the same story on our two demo tasks. Where Bearings wins is ranking: which file to open first, and learning from an empty start."
  },
  {
   "id": "12",

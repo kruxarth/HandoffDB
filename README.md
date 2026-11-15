@@ -9,7 +9,7 @@ Bearings is a learned context layer for coding agents, stored as a graph in self
 - **It starts on day one.** A repo's merged history (issue-fixing commits or merged PRs) seeds the graph before any agent has run.
 - **It makes no model calls.** Entity extraction, routing and code anchors are plain code. The layer is free to run and needs no API key.
 
-Bearings does not cache answers and does not make repeated prompts free. The agent still does the work; the saving is the exploration it skips on tasks that are different but touch the same code.
+Bearings does not cache answers and does not make repeated prompts free. The agent still does the work; what Bearings adds is a ranked starting point. **What we can show:** it ranks the real fix first more often than keyword search, and learns fast from an empty start (Level 1). **What we could not show:** a token saving for live agents. On SWE-bench Verified issues the agent finds the file in its first step anyway, with or without a pack (Level 2).
 
 ## Results
 
