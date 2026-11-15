@@ -403,7 +403,7 @@ def dashboard(data: dict, l2: dict) -> None:
         r = c["bearings"]
         k.append({"label": "Live agents: right files named", "value": f"{r['succ'][0]:.0%}",
                   "delta": f"{r['dsucc'][0] * 100:+.1f} pts",
-                  "dir": "flat" if abs(r["dsucc"][0]) < 0.005 else "up" if r["dsucc"][0] > 0 else "down",
+                  "dir": "up" if r["dsucc"][1] > 0 else "down" if r["dsucc"][2] < 0 else "flat",  # coloured only if the CI excludes 0
                   "sub": f"vs {c['none']['succ'][0]:.1%} with no memory · tokens flat (median ratio {r['ratio']:.2f}) · {l2['n']} issues"})
     elif (RES / "latency.json").exists():
         q = json.loads((RES / "latency.json").read_text())
