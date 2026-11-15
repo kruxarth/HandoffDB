@@ -34,6 +34,7 @@ from .db import Hydra, cypher_strings
 from .entities import extract, node_id, path_candidates
 
 SCALE = 1000.0
+META_ID = node_id("meta", "stats")
 LN_SCALE = math.log(SCALE)
 
 
@@ -112,6 +113,8 @@ class Bearings:
         self._df_loaded: set[str] = set()
         self._edges_loaded: set[str] = set()
         self._co_loaded: set[str] = set()
+        self._missing: set[str] = set()
+        self._tested_loaded: set[str] = set()
         self._init_pending()
 
     # ------------------------------------------------------------------ write
@@ -193,6 +196,8 @@ class Bearings:
                         self.co[a][b] += 1
             self._pend_co.update(src_files)
         for f in src_files:
+            if cmds:
+                self._tests_of(f)
             for c in cmds:
                 self.tested[f][c] += 1
                 self._pend_edges[("TESTED_BY", node_id("file", f), node_id("cmd", c))] = {"n": self.tested[f][c]}
@@ -239,6 +244,8 @@ class Bearings:
                  [{"id": node_id("file", f), "path": f, "changes": self.changes[f], "kind": "file"} for f in sorted(self._pend_files)])
         db.batch("UNWIND $rows AS row MERGE (n {id: row.id}) SET n:Task, n.key = row.key, n.date = row.date, n.passed = row.passed, n.source = row.source",
                  self._pend_tasks)
+        db.batch("UNWIND $rows AS row MERGE (n {id: row.id}) SET n:Meta, n.n_events = row.n",
+                 [{"id": META_ID, "n": self.n_events}])
         db.batch("UNWIND $rows AS row MERGE (n {id: row.id}) SET n:TestCmd, n.cmd = row.cmd",
                  [{"id": node_id("cmd", c), "cmd": c} for c in sorted(self._pend_cmds)])
         for rel, pairs in self._pend_prov.items():
@@ -336,7 +343,7 @@ class Bearings:
         # entities that literally name a file get a direct structural boost
         for t in extract(text):
             for f in path_candidates(t):
-                if f in self.files and is_source(f):
+                if is_source(f) and self._known_file(f):
                     scores[f] += 2.0
                     evidence[f].append((2.0, t, f"the task names {f}"))
         ranked = sorted(scores.items(), key=lambda kv: (-kv[1], kv[0]))[:k]
@@ -345,7 +352,7 @@ class Bearings:
             pack.files.append({"path": f, "score": s, "why": [e[2] for e in ev[:3]], "terms": [e[1] for e in ev]})
         cmds: dict[str, float] = defaultdict(float)
         for f in pack.files[:3]:
-            tests = self.tested.get(f["path"], {})
+            tests = self._tests_of(f["path"])
             total = sum(tests.values()) or 1
             for c, n in tests.items():
                 cmds[c] += n / total * f["score"]
@@ -382,7 +389,9 @@ class Bearings:
             cands.sort(key=lambda c: (c[0], c[1], c[2]))
             for w, ln, _, term, files in cands[: self.p.paths_per_term]:
                 nodes = [tnode] + [{"id": node_id("file", f), "props": {"path": f}} for f in files]
-                rels = [{"type": "POINTS_TO"}] + ([{"type": "CO_CHANGED"}] if ln == 2 else [])
+                rels = [{"type": "POINTS_TO", "props": {"n": self.n[(term, files[0])]}}]
+                if ln == 2:
+                    rels.append({"type": "CO_CHANGED", "props": {"n": self.co[files[0]][files[1]]}})
                 out.append(({"nodes": nodes, "rels": rels}, w))
         return out
 
@@ -399,6 +408,28 @@ class Bearings:
         for t, df in self._pool.map(get, todo):
             self.df[t] = df
             self._df_loaded.add(t)
+
+    def _known_file(self, path: str) -> bool:
+        if path in self.files:
+            return True
+        if not self._lazy or path in self._missing:
+            return False
+        rows = self.db.query("MATCH (f:File {id: $id}) RETURN f.path AS p", {"id": node_id("file", path)})
+        if rows:
+            self.files.add(path)
+            return True
+        self._missing.add(path)
+        return False
+
+    def _tests_of(self, path: str) -> dict[str, int]:
+        if self._lazy and path not in self._tested_loaded:
+            for cmd, n in self.db.query("MATCH (f {id: $id})-[r:TESTED_BY]->(c) RETURN c.cmd AS cmd, r.n AS n",
+                                        {"id": node_id("file", path)}):
+                if cmd:
+                    self.tested[path][cmd] = n or 0
+                    self._exists.add(("TESTED_BY", node_id("file", path), node_id("cmd", cmd)))
+            self._tested_loaded.add(path)
+        return self.tested.get(path, {})
 
     def _hydrate_for_write(self, terms: list[str], files: list[str]) -> None:
         if not self._lazy:
@@ -435,14 +466,12 @@ class Bearings:
         db = self.db
         if not full:
             self._lazy = True
-            for (path,) in db.query("MATCH (f:File) RETURN f.path AS path", page_size=4096):
-                self.files.add(path)
-            for path, cmd, n in db.query("MATCH (f:File)-[r:TESTED_BY]->(c) RETURN f.path AS p, c.cmd AS cmd, r.n AS n", page_size=4096):
-                if path and cmd:
-                    self.tested[path][cmd] = n or 0
-                    self._exists.add(("TESTED_BY", node_id("file", path), node_id("cmd", cmd)))
-            rows = db.query("MATCH (t:Task) RETURN count(*) AS n")
-            self.n_events = rows[0][0] if rows else 0
+            rows = db.query("MATCH (m:Meta {id: $id}) RETURN m.n_events AS n", {"id": META_ID})
+            if rows and rows[0][0]:
+                self.n_events = rows[0][0]
+            else:
+                rows = db.query("MATCH (t:Task) RETURN count(*) AS n")
+                self.n_events = rows[0][0] if rows else 0
             return
         for tid, key, df in db.query("MATCH (t:Term) RETURN t.id AS id, t.key AS key, t.df AS df", page_size=4096):
             self.df[key] = df or 0
@@ -470,14 +499,20 @@ class Bearings:
         self.n_events = rows[0][0] if rows else 0
 
 
+KIND = {"sym": "symbol", "word": "word", "path": "path", "mod": "module", "err": "error"}
+
+
 def explain(path: dict) -> str:
-    nodes = path["nodes"]
-    parts = []
-    for n in nodes:
-        p = n["props"]
-        parts.append(p.get("key") or p.get("path") or str(n["id"]))
-    rels = [r["type"] for r in path["rels"]]
-    s = parts[0]
-    for r, n in zip(rels, parts[1:]):
-        s += f" -{r}-> {n}"
+    """Human-readable reason, from the path HydraDB returned."""
+    nodes, rels = path["nodes"], path["rels"]
+    key = nodes[0]["props"].get("key", "?")
+    kind, _, name = key.partition(":")
+    files = [n["props"].get("path", "?") for n in nodes[1:]]
+    n1 = rels[0].get("props", {}).get("n")
+    s = f"{KIND.get(kind, kind)} '{name}' -> {files[0]}"
+    if n1:
+        s += f" (together in {n1} past change{'s' if n1 != 1 else ''})"
+    if len(rels) > 1:
+        n2 = rels[1].get("props", {}).get("n")
+        s += f" -> co-changed with {files[1]}" + (f" ({n2}x)" if n2 else "")
     return s

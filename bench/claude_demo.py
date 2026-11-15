@@ -49,7 +49,9 @@ def mcp_config(with_bearings: bool) -> Path:
             "command": "uv",
             "args": ["run", "--quiet", "--directory", str(ROOT), "bearings-mcp"],
             "env": {"BEARINGS_TEAM": "bench", "BEARINGS_REPO": "django-l2",
-                    "BEARINGS_LOG": str(OUT / "mcp_calls.jsonl")},
+                    "BEARINGS_LOG": str(OUT / "mcp_calls.jsonl"),
+                    # the demo shares the Level 2 graph: never write to it
+                    "BEARINGS_READONLY": "1"},
         }
     p = OUT / ("mcp_with.json" if with_bearings else "mcp_without.json")
     p.write_text(json.dumps(cfg, indent=2))
@@ -69,7 +71,7 @@ def run_side(task: dict, side: str, model: str) -> dict:
            "--strict-mcp-config", "--mcp-config", str(mcp_config(with_b)),
            "--allowedTools", *tools.split(" "), "--max-turns", "60"]
     venv = ROOT / "runs" / "demo-venv" / "bin"
-    env = dict(__import__("os").environ, PATH=f"{venv}:{__import__('os').environ['PATH']}")
+    env = dict(__import__("os").environ, PATH=f"{venv}:{__import__('os').environ['PATH']}", PYTHONPATH=str(wt))
     t0 = time.time()
     log = OUT / f"{task['id']}.{side}.stream.jsonl"
     with open(log, "w") as f:

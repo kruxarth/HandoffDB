@@ -1,0 +1,35 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+  "agent": {
+    "locate": {
+      "description": "Find the files to edit for an issue; never edits.",
+      "mode": "primary",
+      "steps": 25,
+      "permission": {
+        "edit": "deny",
+        "bash": "allow",
+        "webfetch": "deny"
+      }
+    }
+  },
+  "mcp": {
+    "bearings": {
+      "type": "local",
+      "command": [
+        "uv",
+        "run",
+        "--quiet",
+        "--directory",
+        "<home>/coding/hackathon/hydradb-hackathon/bearings",
+        "bearings-mcp"
+      ],
+      "environment": {
+        "BEARINGS_TEAM": "bench",
+        "BEARINGS_REPO": "django-l2",
+        "BEARINGS_LOG": "<home>/coding/hackathon/hydradb-hackathon/bearings/runs/level2/mcp_calls.jsonl",
+        "BEARINGS_READONLY": "1"
+      },
+      "enabled": true
+    }
+  }
+}

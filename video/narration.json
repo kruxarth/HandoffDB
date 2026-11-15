@@ -1,0 +1,10 @@
+[
+  {"id": "01", "scene": "problem", "text": "Every time a coding agent starts a task, it explores the repository from scratch. Every search and every file it opens is paid for in tokens."},
+  {"id": "02", "scene": "problem", "text": "And most of that exploration repeats what a teammate's agent already found last week."},
+  {"id": "03", "scene": "idea", "text": "Bearings remembers where past work landed, as a graph in HydraDB."},
+  {"id": "04", "scene": "idea", "text": "Each finished task is written as structure: the words and symbols in it, the files it changed, and the test that verified it."},
+  {"id": "05", "scene": "query", "text": "When a new task arrives, one weighted path query walks from its words to files, and returns a small context pack. Where to start, how to test, and the path that justifies each file."},
+  {"id": "06", "scene": "query", "text": "Links that led to the right file get cheaper. Links that led nowhere get dearer. And Bearings makes no model calls, so the layer itself is free to run."},
+  {"id": "13", "scene": "team", "text": "It is built for teams that share a repository. What one person's agent learns, every agent on the team starts from."},
+  {"id": "14", "scene": "end", "text": "Bearings. Your agents start where your team left off."}
+]

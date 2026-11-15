@@ -68,6 +68,7 @@ def main() -> None:
     ap.add_argument("--hop-penalty", type=float, default=Params.hop_penalty)
     ap.add_argument("--beta", type=float, default=Params.beta)
     ap.add_argument("--tenant", default="bench")
+    ap.add_argument("--no-frozen", action="store_true", help="skip frozen here (run bench/level1_frozen.py)")
     args = ap.parse_args()
 
     tasks = load("tasks.jsonl")
@@ -88,6 +89,8 @@ def main() -> None:
     bm25, dic = BM25Baseline(), DictBaseline()
     frozen_built = False
 
+    from concurrent.futures import ThreadPoolExecutor
+    pool = ThreadPoolExecutor(2)
     out = open(args.out, "w")
     learned_tasks = 0
     learned_events = 0
@@ -95,7 +98,7 @@ def main() -> None:
     for ev in events:
         is_test = ev["kind"] == "task" and ev["date"] >= TEST_FROM
         if ev["kind"] == "task":
-            if is_test and not frozen_built:
+            if is_test and not frozen_built and not args.no_frozen:
                 frozen_built = True  # frozen = live state at the first test task
                 # replay everything learned so far into the frozen scope
                 for past in events:
@@ -106,12 +109,15 @@ def main() -> None:
             row = {"id": ev["id"], "date": ev["date"], "split": "test" if is_test else "dev",
                    "verified": ev["verified"], "lite": ev["lite"], "learned_tasks": learned_tasks,
                    "learned_events": learned_events, "gold": ev["files"]}
-            q0 = time.time()
-            p_full = live.context_pack(ev["text"], k=5, hops=2)
-            row["latency_full_ms"] = round((time.time() - q0) * 1000, 1)
-            q0 = time.time()
-            p_one = live.context_pack(ev["text"], k=5, hops=1)
-            row["latency_one_ms"] = round((time.time() - q0) * 1000, 1)
+            live.flush()
+
+            def timed(h):
+                q0 = time.time()
+                p = live.context_pack(ev["text"], k=5, hops=h)
+                return p, round((time.time() - q0) * 1000, 1)
+            f_full, f_one = pool.submit(timed, 2), pool.submit(timed, 1)
+            p_full, row["latency_full_ms"] = f_full.result()
+            p_one, row["latency_one_ms"] = f_one.result()
             ranks = {
                 "bm25": bm25.rank(ev["text"]),
                 "dict": dic.rank(ev["text"]),

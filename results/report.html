@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bearings results</title>
+<style>
+.viz-root{color-scheme:light;--surface-1:#fcfcfb;--text-primary:#0b0b0b;--text-secondary:#52514e;--grid:#e4e3df;
+--series-1:#2a78d6;--series-2:#eb6834;--series-3:#1baf7a;--series-4:#eda100;--series-5:#e87ba4}
+@media (prefers-color-scheme: dark){:root:where(:not([data-theme="light"])) .viz-root{color-scheme:dark;--surface-1:#1a1a19;
+--text-primary:#f0efec;--text-secondary:#c3c2b7;--grid:#34332f;--series-1:#3987e5;--series-2:#d95926;--series-3:#199e70;--series-4:#c98500;--series-5:#d55181}}
+body{margin:0;font:15px/1.5 system-ui,sans-serif}
+.viz-root{background:var(--surface-1);color:var(--text-primary);min-height:100vh;padding:24px 32px;max-width:980px;margin:auto}
+h1{font-size:26px;margin:0 0 4px} h2{font-size:19px;margin:32px 0 6px} .note{color:var(--text-secondary);margin:0 0 8px}
+.chart{width:100%;height:auto;display:block;margin:8px 0 12px}
+.grid{stroke:var(--grid);stroke-width:1} .tick{fill:var(--text-secondary);font-size:11px} .axis{fill:var(--text-secondary);font-size:12px}
+.dlabel{fill:var(--text-primary);font-size:12px} .glabel{fill:var(--text-primary);font-size:13px;font-weight:600}
+.whisker{stroke:var(--text-secondary);stroke-width:1.5} .xhair{stroke:var(--text-secondary);stroke-width:1;stroke-dasharray:3 3}
+#tip{position:fixed;pointer-events:none;background:var(--surface-1);border:1px solid var(--grid);border-radius:6px;padding:6px 8px;font-size:12px;display:none;box-shadow:0 2px 8px #0002}
+textarea{width:100%;min-height:140px;font:13px ui-monospace,monospace;background:transparent;color:inherit;border:1px solid var(--grid);border-radius:6px;padding:8px}
+button,select{font:inherit;padding:6px 12px;border-radius:6px;border:1px solid var(--grid);background:transparent;color:inherit;cursor:pointer}
+.file{margin:10px 0;padding:10px 12px;border:1px solid var(--grid);border-radius:8px} .file code{font-weight:600}
+.why{color:var(--text-secondary);font:12px ui-monospace,monospace;margin-top:4px}
+details pre{white-space:pre-wrap;font-size:12px}
+</style></head>
+<body><div class="viz-root">
+<h1>Bearings</h1>
+<p class="note">A learned context layer for coding agents, stored as a graph in self-hosted HydraDB. Every number below is generated from the result files in this repository.</p>
+<h2>Try a task</h2>
+<p class="note">Paste an issue, or pick a SWE-bench task from after the graph's cutoff. The suggestions come from one weighted path query against HydraDB; each line under a file is the graph path that justifies it.</p>
+<select id="ex"><option value="">Pick an example task...</option></select>
+<textarea id="task" placeholder="Describe the bug or task"></textarea>
+<p><button id="go">Get context pack</button> <span id="meta" class="note"></span></p>
+<div id="out"></div>
+<h2>Level 1: Learning from the task stream only (a team starting from an empty graph)</h2>
+<p class='note'>hit@5 = the real fix touched at least one of the 5 suggested files. Rolling mean over 100 tasks; each task is answered before it is learned.</p>
+<svg viewBox="0 0 720 340" class="chart" role="img" aria-label="hit@5 vs tasks learned (tasks)" data-chart="curve-tasks"><line x1="52" x2="570" y1="296.0" y2="296.0" class="grid"/><text x="44" y="300.0" class="tick" text-anchor="end">0.20</text><line x1="52" x2="570" y1="249.3" y2="249.3" class="grid"/><text x="44" y="253.3" class="tick" text-anchor="end">0.30</text><line x1="52" x2="570" y1="202.7" y2="202.7" class="grid"/><text x="44" y="206.7" class="tick" text-anchor="end">0.40</text><line x1="52" x2="570" y1="156.0" y2="156.0" class="grid"/><text x="44" y="160.0" class="tick" text-anchor="end">0.50</text><line x1="52" x2="570" y1="109.3" y2="109.3" class="grid"/><text x="44" y="113.3" class="tick" text-anchor="end">0.60</text><line x1="52" x2="570" y1="62.7" y2="62.7" class="grid"/><text x="44" y="66.7" class="tick" text-anchor="end">0.70</text><line x1="52" x2="570" y1="16.0" y2="16.0" class="grid"/><text x="44" y="20.0" class="tick" text-anchor="end">0.80</text><text x="52.7" y="314" class="tick" text-anchor="middle">100</text><text x="121.8" y="314" class="tick" text-anchor="middle">200</text><text x="190.8" y="314" class="tick" text-anchor="middle">300</text><text x="259.9" y="314" class="tick" text-anchor="middle">400</text><text x="329.0" y="314" class="tick" text-anchor="middle">500</text><text x="398.0" y="314" class="tick" text-anchor="middle">600</text><text x="467.1" y="314" class="tick" text-anchor="middle">700</text><text x="536.2" y="314" class="tick" text-anchor="middle">800</text><text x="311.0" y="334" class="axis" text-anchor="middle">tasks learned</text><text x="12" y="20" class="axis">hit@5</text><polyline points="52.0,249.3 58.9,240.0 65.8,244.7 72.7,235.3 79.6,226.0 86.5,226.0 93.4,207.3 100.3,188.7 107.3,184.0 114.2,184.0 121.1,179.3 128.0,202.7 134.9,202.7 141.8,193.3 148.7,188.7 155.6,198.0 162.5,207.3 169.4,226.0 176.3,230.7 183.2,212.0 190.1,202.7 197.0,170.0 203.9,165.3 210.9,160.7 217.8,156.0 224.7,151.3 231.6,142.0 238.5,137.3 245.4,128.0 252.3,123.3 259.2,142.0 266.1,137.3 273.0,132.7 279.9,142.0 286.8,151.3 293.7,137.3 300.6,123.3 307.5,128.0 314.5,123.3 321.4,142.0 328.3,118.7 335.2,123.3 342.1,137.3 349.0,137.3 355.9,123.3 362.8,118.7 369.7,118.7 376.6,109.3 383.5,114.0 390.4,100.0 397.3,128.0 404.2,137.3 411.1,132.7 418.1,132.7 425.0,137.3 431.9,132.7 438.8,137.3 445.7,137.3 452.6,128.0 459.5,128.0 466.4,114.0 473.3,109.3 480.2,90.7 487.1,76.7 494.0,72.0 500.9,76.7 507.8,72.0 514.7,67.3 521.7,62.7 528.6,67.3 535.5,53.3 542.4,62.7 549.3,76.7 556.2,76.7 563.1,95.3 570.0,100.0" fill="none" stroke="var(--series-5)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Keyword search (BM25)</title></polyline><polyline points="52.0,277.3 58.9,263.3 65.8,263.3 72.7,258.7 79.6,254.0 86.5,240.0 93.4,226.0 100.3,207.3 107.3,207.3 114.2,198.0 121.1,198.0 128.0,221.3 134.9,216.7 141.8,193.3 148.7,188.7 155.6,202.7 162.5,202.7 169.4,221.3 176.3,221.3 183.2,221.3 190.1,212.0 197.0,179.3 203.9,184.0 210.9,193.3 217.8,184.0 224.7,170.0 231.6,165.3 238.5,160.7 245.4,156.0 252.3,137.3 259.2,146.7 266.1,137.3 273.0,128.0 279.9,137.3 286.8,146.7 293.7,160.7 300.6,156.0 307.5,165.3 314.5,160.7 321.4,170.0 328.3,156.0 335.2,170.0 342.1,188.7 349.0,188.7 355.9,188.7 362.8,170.0 369.7,165.3 376.6,156.0 383.5,160.7 390.4,160.7 397.3,179.3 404.2,184.0 411.1,174.7 418.1,179.3 425.0,165.3 431.9,165.3 438.8,160.7 445.7,151.3 452.6,146.7 459.5,142.0 466.4,142.0 473.3,146.7 480.2,146.7 487.1,128.0 494.0,123.3 500.9,137.3 507.8,142.0 514.7,146.7 521.7,137.3 528.6,137.3 535.5,118.7 542.4,114.0 549.3,95.3 556.2,95.3 563.1,114.0 570.0,104.7" fill="none" stroke="var(--series-2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Dictionary (no graph)</title></polyline><polyline points="52.0,286.7 58.9,272.7 65.8,268.0 72.7,268.0 79.6,254.0 86.5,244.7 93.4,221.3 100.3,202.7 107.3,202.7 114.2,193.3 121.1,193.3 128.0,202.7 134.9,202.7 141.8,174.7 148.7,184.0 155.6,198.0 162.5,207.3 169.4,226.0 176.3,226.0 183.2,235.3 190.1,221.3 197.0,207.3 203.9,202.7 210.9,221.3 217.8,202.7 224.7,188.7 231.6,174.7 238.5,160.7 245.4,156.0 252.3,128.0 259.2,146.7 266.1,132.7 273.0,128.0 279.9,118.7 286.8,123.3 293.7,123.3 300.6,132.7 307.5,151.3 314.5,151.3 321.4,165.3 328.3,137.3 335.2,151.3 342.1,160.7 349.0,170.0 355.9,170.0 362.8,160.7 369.7,165.3 376.6,156.0 383.5,137.3 390.4,142.0 397.3,160.7 404.2,165.3 411.1,165.3 418.1,160.7 425.0,156.0 431.9,151.3 438.8,137.3 445.7,123.3 452.6,132.7 459.5,123.3 466.4,128.0 473.3,128.0 480.2,123.3 487.1,109.3 494.0,104.7 500.9,114.0 507.8,114.0 514.7,123.3 521.7,118.7 528.6,118.7 535.5,109.3 542.4,114.0 549.3,104.7 556.2,114.0 563.1,132.7 570.0,137.3" fill="none" stroke="var(--series-3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Bearings, one hop</title></polyline><polyline points="52.0,282.0 58.9,268.0 65.8,263.3 72.7,263.3 79.6,249.3 86.5,240.0 93.4,216.7 100.3,198.0 107.3,198.0 114.2,188.7 121.1,188.7 128.0,202.7 134.9,202.7 141.8,179.3 148.7,188.7 155.6,202.7 162.5,212.0 169.4,230.7 176.3,226.0 183.2,235.3 190.1,221.3 197.0,198.0 203.9,193.3 210.9,216.7 217.8,198.0 224.7,184.0 231.6,170.0 238.5,156.0 245.4,156.0 252.3,128.0 259.2,146.7 266.1,137.3 273.0,132.7 279.9,118.7 286.8,118.7 293.7,114.0 300.6,123.3 307.5,137.3 314.5,132.7 321.4,146.7 328.3,123.3 335.2,137.3 342.1,146.7 349.0,156.0 355.9,160.7 362.8,156.0 369.7,160.7 376.6,156.0 383.5,142.0 390.4,146.7 397.3,160.7 404.2,165.3 411.1,165.3 418.1,160.7 425.0,151.3 431.9,146.7 438.8,137.3 445.7,123.3 452.6,137.3 459.5,128.0 466.4,137.3 473.3,137.3 480.2,132.7 487.1,118.7 494.0,118.7 500.9,128.0 507.8,123.3 514.7,128.0 521.7,123.3 528.6,114.0 535.5,100.0 542.4,104.7 549.3,95.3 556.2,104.7 563.1,123.3 570.0,128.0" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Bearings, full</title></polyline><polyline points="139.0,221.3 145.9,226.0 152.8,226.0 159.7,235.3 166.7,235.3 173.6,235.3 180.5,240.0 187.4,235.3 194.3,226.0 201.2,230.7 208.1,230.7 215.0,207.3 221.9,207.3 228.8,212.0 235.7,230.7 242.6,235.3 249.5,226.0 256.4,216.7 263.3,221.3 270.3,221.3 277.2,212.0 284.1,230.7 291.0,226.0 297.9,226.0 304.8,221.3 311.7,230.7 318.6,230.7 325.5,230.7 332.4,226.0 339.3,240.0 346.2,258.7 353.1,254.0 360.0,263.3 366.9,268.0 373.9,249.3 380.8,254.0 387.7,254.0 394.6,263.3 401.5,272.7 408.4,258.7 415.3,249.3 422.2,249.3 429.1,254.0 436.0,258.7 442.9,268.0 449.8,263.3 456.7,254.0 463.6,258.7 470.5,268.0 477.5,268.0 484.4,272.7 491.3,268.0 498.2,263.3 505.1,254.0 512.0,258.7 518.9,244.7 525.8,268.0 532.7,249.3 539.6,235.3 546.5,240.0 553.4,244.7 560.3,254.0 567.2,254.0" fill="none" stroke="var(--series-4)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Frozen graph</title></polyline><text x="578" y="104.0" class="dlabel">Keyword search (BM25) 0.62</text><text x="578" y="118.0" class="dlabel">Dictionary (no graph) 0.61</text><text x="578" y="132.0" class="dlabel">Bearings, full 0.56</text><text x="578" y="146.0" class="dlabel">Bearings, one hop 0.54</text><text x="578" y="258.0" class="dlabel">Frozen graph 0.29</text><line class="xhair" x1="0" x2="0" y1="16" y2="296" visibility="hidden"/><rect class="hit" x="52" y="16" width="518" height="280" fill="transparent"/></svg><script type="application/json" id="data-curve-tasks">{"series": {"bm25": [[99, 0.3], [109, 0.32], [119, 0.31], [129, 0.33], [139, 0.35], [149, 0.35], [159, 0.39], [169, 0.43], [179, 0.44], [189, 0.44], [199, 0.45], [209, 0.4], [219, 0.4], [229, 0.42], [239, 0.43], [249, 0.41], [259, 0.39], [269, 0.35], [279, 0.34], [289, 0.38], [299, 0.4], [309, 0.47], [319, 0.48], [329, 0.49], [339, 0.5], [349, 0.51], [359, 0.53], [369, 0.54], [379, 0.56], [389, 0.57], [399, 0.53], [409, 0.54], [419, 0.55], [429, 0.53], [439, 0.51], [449, 0.54], [459, 0.57], [469, 0.56], [479, 0.57], [489, 0.53], [499, 0.58], [509, 0.57], [519, 0.54], [529, 0.54], [539, 0.57], [549, 0.58], [559, 0.58], [569, 0.6], [579, 0.59], [589, 0.62], [599, 0.56], [609, 0.54], [619, 0.55], [629, 0.55], [639, 0.54], [649, 0.55], [659, 0.54], [669, 0.54], [679, 0.56], [689, 0.56], [699, 0.59], [709, 0.6], [719, 0.64], [729, 0.67], [739, 0.68], [749, 0.67], [759, 0.68], [769, 0.69], [779, 0.7], [789, 0.69], [799, 0.72], [809, 0.7], [819, 0.67], [829, 0.67], [839, 0.63], [849, 0.62]], "dict": [[99, 0.24], [109, 0.27], [119, 0.27], [129, 0.28], [139, 0.29], [149, 0.32], [159, 0.35], [169, 0.39], [179, 0.39], [189, 0.41], [199, 0.41], [209, 0.36], [219, 0.37], [229, 0.42], [239, 0.43], [249, 0.4], [259, 0.4], [269, 0.36], [279, 0.36], [289, 0.36], [299, 0.38], [309, 0.45], [319, 0.44], [329, 0.42], [339, 0.44], [349, 0.47], [359, 0.48], [369, 0.49], [379, 0.5], [389, 0.54], [399, 0.52], [409, 0.54], [419, 0.56], [429, 0.54], [439, 0.52], [449, 0.49], [459, 0.5], [469, 0.48], [479, 0.49], [489, 0.47], [499, 0.5], [509, 0.47], [519, 0.43], [529, 0.43], [539, 0.43], [549, 0.47], [559, 0.48], [569, 0.5], [579, 0.49], [589, 0.49], [599, 0.45], [609, 0.44], [619, 0.46], [629, 0.45], [639, 0.48], [649, 0.48], [659, 0.49], [669, 0.51], [679, 0.52], [689, 0.53], [699, 0.53], [709, 0.52], [719, 0.52], [729, 0.56], [739, 0.57], [749, 0.54], [759, 0.53], [769, 0.52], [779, 0.54], [789, 0.54], [799, 0.58], [809, 0.59], [819, 0.63], [829, 0.63], [839, 0.59], [849, 0.61]], "bearings-1": [[99, 0.22], [109, 0.25], [119, 0.26], [129, 0.26], [139, 0.29], [149, 0.31], [159, 0.36], [169, 0.4], [179, 0.4], [189, 0.42], [199, 0.42], [209, 0.4], [219, 0.4], [229, 0.46], [239, 0.44], [249, 0.41], [259, 0.39], [269, 0.35], [279, 0.35], [289, 0.33], [299, 0.36], [309, 0.39], [319, 0.4], [329, 0.36], [339, 0.4], [349, 0.43], [359, 0.46], [369, 0.49], [379, 0.5], [389, 0.56], [399, 0.52], [409, 0.55], [419, 0.56], [429, 0.58], [439, 0.57], [449, 0.57], [459, 0.55], [469, 0.51], [479, 0.51], [489, 0.48], [499, 0.54], [509, 0.51], [519, 0.49], [529, 0.47], [539, 0.47], [549, 0.49], [559, 0.48], [569, 0.5], [579, 0.54], [589, 0.53], [599, 0.49], [609, 0.48], [619, 0.48], [629, 0.49], [639, 0.5], [649, 0.51], [659, 0.54], [669, 0.57], [679, 0.55], [689, 0.57], [699, 0.56], [709, 0.56], [719, 0.57], [729, 0.6], [739, 0.61], [749, 0.59], [759, 0.59], [769, 0.57], [779, 0.58], [789, 0.58], [799, 0.6], [809, 0.59], [819, 0.61], [829, 0.59], [839, 0.55], [849, 0.54]], "bearings": [[99, 0.23], [109, 0.26], [119, 0.27], [129, 0.27], [139, 0.3], [149, 0.32], [159, 0.37], [169, 0.41], [179, 0.41], [189, 0.43], [199, 0.43], [209, 0.4], [219, 0.4], [229, 0.45], [239, 0.43], [249, 0.4], [259, 0.38], [269, 0.34], [279, 0.35], [289, 0.33], [299, 0.36], [309, 0.41], [319, 0.42], [329, 0.37], [339, 0.41], [349, 0.44], [359, 0.47], [369, 0.5], [379, 0.5], [389, 0.56], [399, 0.52], [409, 0.54], [419, 0.55], [429, 0.58], [439, 0.58], [449, 0.59], [459, 0.57], [469, 0.54], [479, 0.55], [489, 0.52], [499, 0.57], [509, 0.54], [519, 0.52], [529, 0.5], [539, 0.49], [549, 0.5], [559, 0.49], [569, 0.5], [579, 0.53], [589, 0.52], [599, 0.49], [609, 0.48], [619, 0.48], [629, 0.49], [639, 0.51], [649, 0.52], [659, 0.54], [669, 0.57], [679, 0.54], [689, 0.56], [699, 0.54], [709, 0.54], [719, 0.55], [729, 0.58], [739, 0.58], [749, 0.56], [759, 0.57], [769, 0.56], [779, 0.57], [789, 0.59], [799, 0.62], [809, 0.61], [819, 0.63], [829, 0.61], [839, 0.57], [849, 0.56]], "frozen": [[225, 0.36], [235, 0.35], [245, 0.35], [255, 0.33], [265, 0.33], [275, 0.33], [285, 0.32], [295, 0.33], [305, 0.35], [315, 0.34], [325, 0.34], [335, 0.39], [345, 0.39], [355, 0.38], [365, 0.34], [375, 0.33], [385, 0.35], [395, 0.37], [405, 0.36], [415, 0.36], [425, 0.38], [435, 0.34], [445, 0.35], [455, 0.35], [465, 0.36], [475, 0.34], [485, 0.34], [495, 0.34], [505, 0.35], [515, 0.32], [525, 0.28], [535, 0.29], [545, 0.27], [555, 0.26], [565, 0.3], [575, 0.29], [585, 0.29], [595, 0.27], [605, 0.25], [615, 0.28], [625, 0.3], [635, 0.3], [645, 0.29], [655, 0.28], [665, 0.26], [675, 0.27], [685, 0.29], [695, 0.28], [705, 0.26], [715, 0.26], [725, 0.25], [735, 0.26], [745, 0.27], [755, 0.29], [765, 0.28], [775, 0.31], [785, 0.26], [795, 0.3], [805, 0.33], [815, 0.32], [825, 0.31], [835, 0.29], [845, 0.29]]}, "labels": {"bm25": "Keyword search (BM25)", "dict": "Dictionary (no graph)", "bearings-1": "Bearings, one hop", "bearings": "Bearings, full", "frozen": "Frozen graph"}, "x0": 99, "x1": 849, "L": 52, "R": 150, "W": 720}</script>
+<svg viewBox="0 0 720 294" class="chart" role="img" aria-label="hit rates by condition"><text x="0" y="24" class="glabel">hit@1, test split n=724</text><text x="202" y="44" class="tick" text-anchor="end">Keyword search (BM25)</text><rect x="210" y="34" width="134.3" height="14" rx="4" fill="var(--series-5)"><title>Keyword search (BM25) hit@1, test split n=724: 0.298 (95% CI 0.265-0.333)</title></rect><line x1="329.3" x2="359.8" y1="41" y2="41" class="whisker"/><text x="365.8" y="45" class="tick">0.30</text><text x="202" y="66" class="tick" text-anchor="end">Dictionary (no graph)</text><rect x="210" y="56" width="114.4" height="14" rx="4" fill="var(--series-2)"><title>Dictionary (no graph) hit@1, test split n=724: 0.254 (95% CI 0.222-0.286)</title></rect><line x1="310.1" x2="338.7" y1="63" y2="63" class="whisker"/><text x="344.7" y="67" class="tick">0.25</text><text x="202" y="88" class="tick" text-anchor="end">Bearings, one hop</text><rect x="210" y="78" width="116.9" height="14" rx="4" fill="var(--series-3)"><title>Bearings, one hop hit@1, test split n=724: 0.260 (95% CI 0.231-0.291)</title></rect><line x1="313.8" x2="341.1" y1="85" y2="85" class="whisker"/><text x="347.1" y="89" class="tick">0.26</text><text x="202" y="110" class="tick" text-anchor="end">Bearings, full</text><rect x="210" y="100" width="116.9" height="14" rx="4" fill="var(--series-1)"><title>Bearings, full hit@1, test split n=724: 0.260 (95% CI 0.231-0.290)</title></rect><line x1="313.8" x2="340.5" y1="107" y2="107" class="whisker"/><text x="346.5" y="111" class="tick">0.26</text><text x="202" y="132" class="tick" text-anchor="end">Frozen graph</text><rect x="210" y="122" width="58.4" height="14" rx="4" fill="var(--series-4)"><title>Frozen graph hit@1, test split n=724: 0.130 (95% CI 0.106-0.155)</title></rect><line x1="257.9" x2="279.6" y1="129" y2="129" class="whisker"/><text x="285.6" y="133" class="tick">0.13</text><text x="0" y="156" class="glabel">hit@5, test split n=724</text><text x="202" y="176" class="tick" text-anchor="end">Keyword search (BM25)</text><rect x="210" y="166" width="248.0" height="14" rx="4" fill="var(--series-5)"><title>Keyword search (BM25) hit@5, test split n=724: 0.551 (95% CI 0.515-0.588)</title></rect><line x1="441.8" x2="474.8" y1="173" y2="173" class="whisker"/><text x="480.8" y="177" class="tick">0.55</text><text x="202" y="198" class="tick" text-anchor="end">Dictionary (no graph)</text><rect x="210" y="188" width="220.6" height="14" rx="4" fill="var(--series-2)"><title>Dictionary (no graph) hit@5, test split n=724: 0.490 (95% CI 0.454-0.528)</title></rect><line x1="414.5" x2="447.4" y1="195" y2="195" class="whisker"/><text x="453.4" y="199" class="tick">0.49</text><text x="202" y="220" class="tick" text-anchor="end">Bearings, one hop</text><rect x="210" y="210" width="225.0" height="14" rx="4" fill="var(--series-3)"><title>Bearings, one hop hit@5, test split n=724: 0.500 (95% CI 0.464-0.536)</title></rect><line x1="418.8" x2="451.2" y1="217" y2="217" class="whisker"/><text x="457.2" y="221" class="tick">0.50</text><text x="202" y="242" class="tick" text-anchor="end">Bearings, full</text><rect x="210" y="232" width="227.5" height="14" rx="4" fill="var(--series-1)"><title>Bearings, full hit@5, test split n=724: 0.506 (95% CI 0.470-0.540)</title></rect><line x1="421.3" x2="453.0" y1="239" y2="239" class="whisker"/><text x="459.0" y="243" class="tick">0.51</text><text x="202" y="264" class="tick" text-anchor="end">Frozen graph</text><rect x="210" y="254" width="141.7" height="14" rx="4" fill="var(--series-4)"><title>Frozen graph hit@5, test split n=724: 0.315 (95% CI 0.280-0.351)</title></rect><line x1="336.2" x2="367.9" y1="261" y2="261" class="whisker"/><text x="373.9" y="265" class="tick">0.31</text><line x1="210.0" x2="210.0" y1="6" y2="274" class="grid"/><text x="210.0" y="288" class="tick" text-anchor="middle">0.00</text><line x1="322.5" x2="322.5" y1="6" y2="274" class="grid"/><text x="322.5" y="288" class="tick" text-anchor="middle">0.25</text><line x1="435.0" x2="435.0" y1="6" y2="274" class="grid"/><text x="435.0" y="288" class="tick" text-anchor="middle">0.50</text><line x1="547.5" x2="547.5" y1="6" y2="274" class="grid"/><text x="547.5" y="288" class="tick" text-anchor="middle">0.75</text><line x1="660.0" x2="660.0" y1="6" y2="274" class="grid"/><text x="660.0" y="288" class="tick" text-anchor="middle">1.00</text></svg>
+<details><summary>All result tables (RESULTS.md)</summary><pre># Results
+
+Generated by `uv run python bench/report.py` from the files in `results/`. Brackets are 95% bootstrap confidence intervals.
+
+## Level 1, Learning from the task stream only (a team starting from an empty graph)
+
+Test split: SWE-bench Django tasks from 2019-07-01 on (n=724). Retrieval only, no model calls.
+
+| Condition | n | hit@1 | hit@3 | hit@5 | recall@5 |
+|---|---|---|---|---|---|
+| Keyword search (BM25) | 724 | 0.298 [0.265, 0.333] | 0.464 [0.428, 0.501] | 0.551 [0.515, 0.588] | 0.487 [0.452, 0.521] |
+| Dictionary (no graph) | 724 | 0.254 [0.222, 0.286] | 0.410 [0.376, 0.445] | 0.490 [0.454, 0.528] | 0.430 [0.396, 0.464] |
+| Bearings, one hop | 724 | 0.260 [0.231, 0.291] | 0.409 [0.373, 0.442] | 0.500 [0.464, 0.536] | 0.445 [0.411, 0.478] |
+| Bearings, full | 724 | 0.260 [0.231, 0.290] | 0.405 [0.369, 0.438] | 0.506 [0.470, 0.540] | 0.450 [0.416, 0.483] |
+| Frozen graph | 724 | 0.130 [0.106, 0.155] | 0.260 [0.228, 0.293] | 0.315 [0.280, 0.351] | 0.270 [0.238, 0.302] |
+
+| Comparison (paired, same tasks) | Δ hit@1 | Δ hit@5 |
+|---|---|---|
+| Bearings, full − Dictionary (no graph) (n=724) | +0.006 [-0.018, +0.030] | +0.015 [-0.014, +0.043] |
+| Bearings, full − Bearings, one hop (n=724) | +0.000 [-0.004, +0.004] | +0.006 [-0.006, +0.017] |
+| Bearings, full − Frozen graph (n=724) | +0.130 [+0.098, +0.163] | +0.191 [+0.153, +0.229] |
+| Bearings, full − Keyword search (BM25) (n=724) | -0.039 [-0.072, -0.008] | -0.046 [-0.080, -0.011] |
+| Dictionary (no graph) − Keyword search (BM25) (n=724) | -0.044 [-0.072, -0.017] | -0.061 [-0.091, -0.033] |
+
+SWE-bench Verified subset (n=199):
+
+| Condition | n | hit@1 | hit@3 | hit@5 | recall@5 |
+|---|---|---|---|---|---|
+| Keyword search (BM25) | 199 | 0.302 [0.241, 0.372] | 0.487 [0.417, 0.558] | 0.593 [0.523, 0.658] | 0.536 [0.470, 0.600] |
+| Dictionary (no graph) | 199 | 0.241 [0.186, 0.302] | 0.392 [0.322, 0.457] | 0.482 [0.412, 0.553] | 0.444 [0.377, 0.510] |
+| Bearings, one hop | 199 | 0.256 [0.201, 0.322] | 0.397 [0.332, 0.467] | 0.487 [0.412, 0.558] | 0.445 [0.374, 0.510] |
+| Bearings, full | 199 | 0.256 [0.201, 0.322] | 0.392 [0.327, 0.462] | 0.477 [0.407, 0.543] | 0.441 [0.373, 0.508] |
+| Frozen graph | 199 | 0.136 [0.090, 0.186] | 0.286 [0.226, 0.347] | 0.342 [0.276, 0.407] | 0.319 [0.257, 0.385] |
+
+- Where Bearings and the dictionary differ at hit@5: Bearings better on 58 tasks, worse on 47.
+- Where the second hop changes hit@5: better on 11 tasks, worse on 7.
+- Query latency (HydraDB path query + scoring): full p50 546 ms, p95 1190 ms; one hop p50 102 ms.
+- Suggested test command names the module the real fix&#x27;s tests live in: 0.327 of tasks.
+- Context pack size: median 1062 characters (≈265 tokens).
+- HydraDB&#x27;s ranking equals the in-memory reference implementation on 659/724 tasks.
+
+## Does the second hop reach files the first hop cannot?
+
+Measured on the dev split: for each gold source file, is it linked in one hop from any of the task&#x27;s entities, only through a CO_CHANGED hop, or not at all?
+
+| Seed | gold source files | 1 hop from a task entity | reachable only by 2nd hop | unreachable | 2nd-hop-only that reached top 5 |
+|---|---|---|---|---|---|
+| history | 215 | 207 | 5 | 3 | 0 |
+| tasks | 215 | 66 | 3 | 146 | 0 |
+
+## Level 2, live agent runs: tokens to locate the right files
+
+Measured with DeepSeek through OpenCode. The agent names the files it would edit and stops; success is checked in code against the real fix. Token counts include the context pack.
+
+Model: `opencode/deepseek-v4.1-flash-free` via OpenCode. Paired tasks: 1. Runs excluded (rate limit / crash / timeout): 0 of 6.
+
+| Condition | success (all gold files named) | hit (≥1 gold file) | total input tokens, median [IQR] | uncached input | output+reasoning | tool calls | wall s |
+|---|---|---|---|---|---|---|---|
+| No memory | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 66,194 [66,194–66,194] | 11,154 | 808 | 6 | 37 |
+| Dictionary pack in prompt | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 81,975 [81,975–81,975] | 6,583 | 2,264 | 8 | 44 |
+| Bearings (MCP) | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 100,286 [100,286–100,286] | 15,678 | 1,928 | 9 | 48 |
+
+| Paired difference vs no memory | Δ success | Δ total input tokens (mean, 95% CI) | median ratio |
+|---|---|---|---|
+| Dictionary pack in prompt | +0.000 [+0.000, +0.000] | +15,781 [+15,781, +15,781] | 1.24 |
+| Bearings (MCP) | +0.000 [+0.000, +0.000] | +34,092 [+34,092, +34,092] | 1.52 |
+
+## Claude Code demo (one task, not a statistic)
+
+| Side | total input | uncached input | cache write | cache read | output | turns | tool calls | right files | list-price arithmetic |
+|---|---|---|---|---|---|---|---|---|---|
+| with Bearings (django__django-15863, sonnet) | 185,137 | 12 | 14,971 | 170,154 | 1,348 | 7 | 6 | True | $0.09 |
+| without Bearings (django__django-15863, sonnet) | 108,493 | 6 | 13,647 | 94,840 | 705 | 4 | 3 | True | $0.07 |
+</pre></details>
+<div id="tip"></div>
+</div>
+<script>
+const tip=document.getElementById('tip');
+document.querySelectorAll('svg[data-chart]').forEach(svg=>{
+  const d=JSON.parse(document.getElementById('data-'+svg.dataset.chart).textContent);
+  const hit=svg.querySelector('.hit'), xh=svg.querySelector('.xhair');
+  hit.addEventListener('mousemove',ev=>{
+    const pt=svg.createSVGPoint(); pt.x=ev.clientX; pt.y=ev.clientY;
+    const p=pt.matrixTransform(svg.getScreenCTM().inverse());
+    const x=d.x0+(p.x-d.L)/(d.W-d.L-d.R)*(d.x1-d.x0);
+    let rows=[], nx=null;
+    for(const [c,s] of Object.entries(d.series)){let best=s[0];for(const q of s){if(Math.abs(q[0]-x)<Math.abs(best[0]-x))best=q;}nx=best[0];rows.push([best[1],d.labels[c]]);}
+    rows.sort((a,b)=>b[0]-a[0]);
+    tip.innerHTML='<b>after '+nx+' tasks</b><br>'+rows.map(r=>r[1]+': '+r[0].toFixed(3)).join('<br>');
+    tip.style.display='block'; tip.style.left=(ev.clientX+14)+'px'; tip.style.top=(ev.clientY+10)+'px';
+    const sx=d.L+(nx-d.x0)/(d.x1-d.x0)*(d.W-d.L-d.R); xh.setAttribute('x1',sx); xh.setAttribute('x2',sx); xh.setAttribute('visibility','visible');
+  });
+  hit.addEventListener('mouseleave',()=>{tip.style.display='none'; xh.setAttribute('visibility','hidden');});
+});
+const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+fetch('/api/examples').then(r=>r.json()).then(ex=>{const sel=document.getElementById('ex');
+  ex.forEach((t,i)=>{const o=document.createElement('option');o.value=i;o.textContent=t.id;sel.appendChild(o);});
+  sel.onchange=()=>{const t=ex[sel.value]; if(t){document.getElementById('task').value=t.text; window._gold=t.gold;}};
+}).catch(()=>{document.getElementById('meta').textContent='(start the server with: uv run bearings-web)';});
+document.getElementById('go').onclick=async()=>{
+  const task=document.getElementById('task').value; if(!task.trim())return;
+  document.getElementById('meta').textContent='querying HydraDB...';
+  const r=await (await fetch('/api/pack?task='+encodeURIComponent(task))).json();
+  const gold=window._gold||[];
+  document.getElementById('meta').textContent=`${r.ms} ms, scope ${r.scope}, ${r.graph_tasks} tasks in graph`+(gold.length?`; real fix touched: ${gold.join(', ')}`:'');
+  document.getElementById('out').innerHTML=r.files.map((f,i)=>`<div class="file"><code>${i+1}. ${esc(f.path)}</code> ${gold.includes(f.path)?' <b>(in the real fix)</b>':''}<span class="note"> score ${f.score}</span>${f.why.map(w=>'<div class="why">'+esc(w)+'</div>').join('')}</div>`).join('')+(r.test_command?`<p>Verify with <code>${esc(r.test_command)}</code></p>`:'');
+};
+</script></body></html>

@@ -30,6 +30,13 @@ def rows(path: Path, split: str | None = "test", subset: str | None = None) -> l
     if not path.exists():
         return []
     rs = [json.loads(line) for line in open(path)]
+    fz = path.with_name(path.stem + "_frozen.jsonl")  # frozen condition run as its own process
+    if fz.exists():
+        frozen = {r["id"]: r for r in map(json.loads, open(fz))}
+        for r in rs:
+            if r["id"] in frozen:
+                r["metrics"]["frozen"] = frozen[r["id"]]["metrics"]
+                r["ranked"]["frozen"] = frozen[r["id"]]["ranked"]
     if split:
         rs = [r for r in rs if r["split"] == split]
     if subset:

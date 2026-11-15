@@ -13,7 +13,6 @@ from __future__ import annotations
 import math
 from collections import defaultdict
 
-from rank_bm25 import BM25Okapi
 
 from .core import is_source
 from .entities import extract, path_candidates
@@ -26,28 +25,73 @@ def _tokens(text: str) -> list[str]:
     return toks
 
 
+class IncrementalBM25:
+    """Exactly rank_bm25.BM25Okapi's scores (k1=1.5, b=0.75, epsilon idf floor),
+    maintained incrementally with postings instead of rebuilt per query."""
+
+    def __init__(self, k1: float = 1.5, b: float = 0.75, epsilon: float = 0.25) -> None:
+        self.k1, self.b, self.eps = k1, b, epsilon
+        self.nd: dict[str, int] = defaultdict(int)
+        self.post: dict[str, list[tuple[int, int]]] = defaultdict(list)
+        self.doc_len: list[int] = []
+        self.total = 0
+
+    def add(self, doc: list[str]) -> None:
+        i = len(self.doc_len)
+        freqs: dict[str, int] = defaultdict(int)
+        for w in doc:
+            freqs[w] += 1
+        for w, f in freqs.items():
+            self.nd[w] += 1
+            self.post[w].append((i, f))
+        self.doc_len.append(len(doc))
+        self.total += len(doc)
+
+    def scores(self, query: list[str]) -> dict[int, float]:
+        n = len(self.doc_len)
+        idf_sum, neg = 0.0, set()
+        idf = {}
+        qs = set(query)
+        for w, f in self.nd.items():
+            v = math.log(n - f + 0.5) - math.log(f + 0.5)
+            idf_sum += v
+            if v < 0:
+                neg.add(w)
+            if w in qs:
+                idf[w] = v
+        eps = self.eps * idf_sum / len(self.nd)
+        for w in list(idf):
+            if w in neg:
+                idf[w] = eps
+        avgdl = self.total / n
+        out: dict[int, float] = defaultdict(float)
+        for q in query:
+            if q not in idf:
+                continue
+            for i, f in self.post[q]:
+                out[i] += idf[q] * (f * (self.k1 + 1) / (f + self.k1 * (1 - self.b + self.b * self.doc_len[i] / avgdl)))
+        return out
+
+
 class BM25Baseline:
     def __init__(self, neighbours: int = 50) -> None:
-        self.docs: list[list[str]] = []
         self.files: list[list[str]] = []
         self.k = neighbours
-        self._index: BM25Okapi | None = None
+        self.index = IncrementalBM25()
 
     def ingest(self, text: str, changed: list[str]) -> None:
         src = [f for f in changed if is_source(f)]
         if not src:
             return
-        self.docs.append(_tokens(text) or ["<empty>"])
+        self.index.add(_tokens(text) or ["<empty>"])
         self.files.append(src)
-        self._index = None
 
     def rank(self, text: str, k: int = 5) -> list[str]:
-        if not self.docs:
+        if not self.files:
             return []
-        if self._index is None:
-            self._index = BM25Okapi(self.docs)
-        scores = self._index.get_scores(_tokens(text) or ["<empty>"])
-        top = sorted(range(len(scores)), key=lambda i: -scores[i])[: self.k]
+        sc = self.index.scores(_tokens(text) or ["<empty>"])
+        top = sorted(sc, key=lambda i: (-sc[i], i))[: self.k]
+        scores = sc
         agg: dict[str, float] = defaultdict(float)
         for i in top:
             if scores[i] <= 0:

@@ -41,6 +41,9 @@ SCOPE = ("bench", "django-l2")
 RUNS = ROOT / "runs" / "level2"
 WORK = ROOT / "runs" / "tmp"
 STEP_CAP = 25
+import threading  # noqa: E402
+_lock = threading.Lock()
+_start_lock = threading.Lock()
 TIMEOUT = 900
 
 PROMPT = """You are localizing an issue in this repository (the Django source tree). Read the issue, explore the code as needed, and decide which source files must be edited to fix it. Do not edit any files and do not run the test suite. Finish with one final line in exactly this form:
@@ -111,7 +114,7 @@ def oc_config(cond: str) -> Path:
             "type": "local",
             "command": ["uv", "run", "--quiet", "--directory", str(ROOT), "bearings-mcp"],
             "environment": {"BEARINGS_TEAM": SCOPE[0], "BEARINGS_REPO": SCOPE[1],
-                            "BEARINGS_LOG": str(RUNS / "mcp_calls.jsonl")},
+                            "BEARINGS_LOG": str(RUNS / "mcp_calls.jsonl"), "BEARINGS_READONLY": "1"},
             "enabled": True,
         }}
     p = ROOT / "bench" / "opencode" / f"{cond}.json"
@@ -175,24 +178,33 @@ def run_one(task: dict, cond: str, dic: DictBaseline | None, rep: int = 0) -> di
         extra = extra.format(pack=pack_text or "  (none)")
     prompt = PROMPT.format(extra=extra, issue=task["text"])
     env = dict(os.environ, **OC_ENV, OPENCODE_CONFIG=str(oc_config(cond)))
-    t0 = time.time()
-    with open(ev_path, "w") as fo, open(ev_path.with_suffix(".err"), "w") as fe:
-        try:
-            proc = subprocess.run(["opencode", "run", "--title", "bench", "--format", "json", "--agent", "locate",
-                                   "-m", MODEL, "--dir", str(wt), prompt],
-                                  stdout=fo, stderr=fe, env=env, timeout=TIMEOUT)
-            code = proc.returncode
-        except subprocess.TimeoutExpired:
-            code = "timeout"
-    wall = time.time() - t0
-    res = parse_events(ev_path)
+    attempts = 0
+    while True:
+        attempts += 1
+        with _start_lock:  # stagger starts: concurrent opencode launches lock its sqlite db
+            time.sleep(5)
+        t0 = time.time()
+        with open(ev_path, "w") as fo, open(ev_path.with_suffix(".err"), "w") as fe:
+            try:
+                proc = subprocess.run(["opencode", "run", "--title", "bench", "--format", "json", "--agent", "locate",
+                                       "-m", MODEL, "--dir", str(wt), prompt],
+                                      stdout=fo, stderr=fe, env=env, timeout=TIMEOUT)
+                code = proc.returncode
+            except subprocess.TimeoutExpired:
+                code = "timeout"
+        wall = time.time() - t0
+        res = parse_events(ev_path)
+        # infrastructure failure before the model ran (e.g. opencode's db locked): retry
+        if code != 0 and res["steps"] == 0 and attempts < 3:
+            continue
+        break
     err_text = ev_path.with_suffix(".err").read_text()[-4000:]
     rate_limited = bool(re.search(r"rate.?limit|429|too many requests|quota", err_text + " ".join(res["errors"]), re.I))
     subprocess.run(["rm", "-rf", str(wt)])
     row = {"id": task["id"], "date": task["date"], "condition": cond, "rep": rep, "model": MODEL,
-           "exit": code, "wall_s": round(wall, 1), "rate_limited": rate_limited, "gold": task["files"],
+           "exit": code, "attempts": attempts, "wall_s": round(wall, 1), "rate_limited": rate_limited, "gold": task["files"],
            "dict_pack": pack_text, **res, **score(res["files"], task["files"])}
-    with open(RUNS / "results.jsonl", "a") as f:
+    with _lock, open(RUNS / "results.jsonl", "a") as f:
         f.write(json.dumps(row) + "\n")
     return row
 
@@ -207,6 +219,7 @@ def main() -> None:
     r.add_argument("--conditions", default="none,dict,bearings")
     r.add_argument("--seed", type=int, default=0)
     r.add_argument("--skip-done", action="store_true")
+    r.add_argument("--parallel", type=int, default=3)
     args = ap.parse_args()
     if args.cmd == "build-graph":
         build_graph()
@@ -224,16 +237,20 @@ def main() -> None:
             r0 = json.loads(line)
             if not r0["rate_limited"] and r0["answered"]:
                 done.add((r0["id"], r0["condition"]))
-    for t in tasks:
-        # rotate condition order per task so time-of-day / rate-limit drift is spread evenly
-        order = conds[tasks.index(t) % len(conds):] + conds[: tasks.index(t) % len(conds)]
-        for c in order:
-            if (t["id"], c) in done:
-                continue
-            row = run_one(t, c, dic)
-            print(f"{t['id']} {c}: hit={row['hit']} all={row['all']} files={row['files']} "
-                  f"in={row['total_input']} out={row['tokens']['output']} tools={row['tool_calls']} "
-                  f"{row['wall_s']}s exit={row['exit']} rl={row['rate_limited']}", flush=True)
+    jobs = [(t, c) for t in tasks for c in conds if (t["id"], c) not in done]
+    # all conditions of one task run at the same time, so time-of-day and
+    # rate-limit drift hit every condition equally
+
+    def job(tc):
+        t, c = tc
+        row = run_one(t, c, dic)
+        print(f"{t['id']} {c}: hit={row['hit']} all={row['all']} files={row['files']} "
+              f"in={row['total_input']} out={row['tokens']['output']} tools={row['tool_calls']} "
+              f"{row['wall_s']}s exit={row['exit']} rl={row['rate_limited']}", flush=True)
+
+    from concurrent.futures import ThreadPoolExecutor
+    with ThreadPoolExecutor(args.parallel) as ex:
+        list(ex.map(job, jobs))
 
 
 if __name__ == "__main__":

@@ -14,22 +14,25 @@ Run: ``uv run --directory /path/to/bearings bearings-mcp``
 from __future__ import annotations
 
 import hashlib
+import logging
 import json
 import os
 import sys
 import time
 from pathlib import Path
 
-from mcp.server.fastmcp import FastMCP
+from mcp.server.mcpserver import MCPServer
 
 from .core import Bearings, Params
 from .db import Hydra
 
+logging.getLogger("httpx").setLevel(logging.WARNING)
 TEAM = os.environ.get("BEARINGS_TEAM", "default-team")
 REPO = os.environ.get("BEARINGS_REPO", Path.cwd().name)
 LOG = os.environ.get("BEARINGS_LOG")  # optional JSONL log of every call
+READONLY = os.environ.get("BEARINGS_READONLY") == "1"  # benchmarks: never write
 
-mcp = FastMCP(
+mcp = MCPServer(
     "bearings",
     instructions=(
         "Bearings remembers where past work in this repository landed. Call get_context_pack "
@@ -64,12 +67,17 @@ def get_context_pack(task: str, max_files: int = 5) -> str:
     """Get a context pack for a coding task in this repository: the few files most likely
     to need changes (learned from earlier tasks by the team), the test command, and the
     path through the graph that justifies each file. Call this first, before searching."""
-    eng = engine()
-    pack = eng.context_pack(task, k=max(1, min(max_files, 10)))
+    t0 = time.time()
+    try:
+        eng = engine()
+        pack = eng.context_pack(task, k=max(1, min(max_files, 10)))
+    except Exception as exc:  # never break the agent's run
+        _log("error", {"task": task[:200], "error": str(exc)[:300], "ms": round((time.time() - t0) * 1000)})
+        return "Bearings is unavailable right now; explore as usual."
     _last_pack[hashlib.sha1(task.encode()).hexdigest()] = pack
     text = pack.render() if pack.files else "Bearings has no learned context for this task yet; explore as usual."
     _log("pack", {"task": task[:200], "files": [f["path"] for f in pack.files], "test": pack.test_command,
-                  "chars": len(text)})
+                  "chars": len(text), "ms": round((time.time() - t0) * 1000)})
     return text
 
 
@@ -85,6 +93,9 @@ def report_task(
     """Record a finished task: the files changed, the files read, the test command that
     verified it, and whether it passed. Links that led to the right files get cheaper;
     links that led nowhere get dearer."""
+    if READONLY:
+        _log("report-ignored", {"task": task[:200], "changed": changed_files})
+        return "Bearings is read-only in this session; nothing was recorded."
     eng = engine()
     tid = task_id or "agent:" + hashlib.sha1(f"{task}{time.time()}".encode()).hexdigest()[:12]
     pack = _last_pack.pop(hashlib.sha1(task.encode()).hexdigest(), None)

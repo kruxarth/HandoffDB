@@ -7,3 +7,5 @@ data/raw/
 data/repos/
 .hydradb/
 runs/tmp/
+runs/demo-venv/
+video/audio/*.part

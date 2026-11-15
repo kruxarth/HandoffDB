@@ -1,0 +1,19 @@
+{
+  "mcpServers": {
+    "bearings": {
+      "command": "uv",
+      "args": [
+        "run",
+        "--quiet",
+        "--directory",
+        "<home>/coding/hackathon/hydradb-hackathon/bearings",
+        "bearings-mcp"
+      ],
+      "env": {
+        "BEARINGS_TEAM": "bench",
+        "BEARINGS_REPO": "django-l2",
+        "BEARINGS_LOG": "<home>/coding/hackathon/hydradb-hackathon/bearings/results/claude_demo/mcp_calls.jsonl"
+      }
+    }
+  }
+}

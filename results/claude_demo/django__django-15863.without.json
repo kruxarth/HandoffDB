@@ -1,0 +1,28 @@
+{
+  "task": "django__django-15863",
+  "side": "without",
+  "model": "sonnet",
+  "claude_code_version": "2.1.325 (Claude Code)",
+  "input_tokens": 6,
+  "cache_creation_input_tokens": 13647,
+  "cache_read_input_tokens": 94840,
+  "output_tokens": 705,
+  "num_turns": 4,
+  "tool_calls": 3,
+  "tools": [
+    "Grep",
+    "Edit",
+    "Bash"
+  ],
+  "list_price_usd": 0.071134,
+  "wall_s": 15.0,
+  "changed_files": [
+    "django/template/defaultfilters.py"
+  ],
+  "gold_files": [
+    "django/template/defaultfilters.py"
+  ],
+  "correct_files": true,
+  "result_text": "CHANGED: django/template/defaultfilters.py",
+  "total_input": 108493
+}
