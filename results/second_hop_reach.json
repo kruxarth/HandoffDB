@@ -1,0 +1,16 @@
+{
+  "history": {
+    "gold": 215,
+    "hop1": 207,
+    "hop2only": 5,
+    "none": 3,
+    "hop2only_in_pack": 0
+  },
+  "tasks": {
+    "gold": 215,
+    "hop1": 66,
+    "hop2only": 3,
+    "none": 146,
+    "hop2only_in_pack": 0
+  }
+}

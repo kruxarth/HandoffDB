@@ -42,9 +42,9 @@ class Params:
     beta: float = 1.0          # miss penalty strength
     hop_penalty: float = 1.5   # extra cost of a CO_CHANGED hop
     co_top_k: int = 8          # CO_CHANGED edges kept per file
-    max_terms: int = 40        # query entities used (rarest first)
+    max_terms: int = 80        # query entities used (rarest first)
     max_df_frac: float = 0.04  # ignore entities in more than this share of tasks
-    paths_per_term: int = 60   # pathCount per entity in MSpaths
+    paths_per_term: int = 20   # pathCount per entity in MSpaths
     hops: int = 2              # 1 = POINTS_TO only, 2 = + CO_CHANGED
     learn_misses: bool = True
     miss_top: int = 5          # suggested-but-wrong files penalised per task
@@ -62,7 +62,10 @@ def is_source(path: str) -> bool:
 
 def test_command(path: str) -> str | None:
     """Django-style: tests/<app>/... -> './tests/runtests.py <app>'; otherwise pytest."""
-    m = re.match(r"tests/([^/]+)/", path)
+    m = re.match(r"tests/(?:regressiontests/|modeltests/)?([^/]+)/", path)
+    if m:
+        return f"./tests/runtests.py {m.group(1)}"
+    m = re.match(r"django/contrib/([^/]+)/tests/", path)
     if m:
         return f"./tests/runtests.py {m.group(1)}"
     if is_test(path):
@@ -90,7 +93,7 @@ class Pack:
 class Bearings:
     """Write and read the context graph for one team/repo scope."""
 
-    def __init__(self, db: Hydra, params: Params | None = None) -> None:
+    def __init__(self, db: Hydra | None, params: Params | None = None) -> None:
         self.db = db
         self.p = params or Params()
         # write-through mirror of the counts stored on the graph; rebuilt by load()
@@ -103,7 +106,12 @@ class Bearings:
         self.co_written: dict[str, set[str]] = defaultdict(set)
         self.tested: dict[str, dict[str, int]] = defaultdict(lambda: defaultdict(int))
         self.files: set[str] = set()
+        self.t_files: dict[str, set[str]] = defaultdict(set)
         self._pool = ThreadPoolExecutor(16)
+        self._lazy = False
+        self._df_loaded: set[str] = set()
+        self._edges_loaded: set[str] = set()
+        self._co_loaded: set[str] = set()
         self._init_pending()
 
     # ------------------------------------------------------------------ write
@@ -137,6 +145,7 @@ class Bearings:
         src_files = [f for f in changed if is_source(f)]
         tests = [f for f in changed if is_test(f)]
         cmds = sorted({c for c in (test_command(t) for t in tests) if c} | ({test_cmd} if test_cmd else set()))
+        self._hydrate_for_write(terms, src_files + [f for f in read if f not in src_files])
         self.n_events += 1
         for t in terms:
             self.df[t] += 1
@@ -161,6 +170,7 @@ class Bearings:
             for f in src_files:
                 if passed:
                     self.n[(t, f)] += 1
+                    self.t_files[t].add(f)
                 else:
                     self.miss[(t, f)] += 1
                     if self.n[(t, f)] == 0:
@@ -205,6 +215,12 @@ class Bearings:
 
     def flush(self) -> int:
         db = self.db
+        if db is None:  # in-memory mode (dev tuning)
+            for a in sorted(self._pend_co):
+                top = sorted(self.co[a].items(), key=lambda kv: (-kv[1], kv[0]))[: self.p.co_top_k]
+                self.co_written[a] = {b for b, _ in top}
+            self._init_pending()
+            return 0
         # rewrite top-K co-change edges of touched files
         for a in sorted(self._pend_co):
             top = sorted(self.co[a].items(), key=lambda kv: (-kv[1], kv[0]))[: self.p.co_top_k]
@@ -262,7 +278,9 @@ class Bearings:
             return 0
         good = set(correct)
         k = 0
-        for f in pack.files[: self.p.miss_top]:
+        top = pack.files[: self.p.miss_top]
+        self._hydrate_for_write(sorted({t for f in top for t in f["terms"]}), [])
+        for f in top:
             if f["path"] in good:
                 continue
             for t in f["terms"]:
@@ -276,27 +294,25 @@ class Bearings:
     # ------------------------------------------------------------------- read
     def select_terms(self, text: str) -> list[str]:
         ents = extract(text)
+        self._hydrate_df(list(ents))
         cap = max(5, int(self.p.max_df_frac * max(1, self.n_events)))
         known = [t for t in ents if 0 < self.df.get(t, 0) <= cap]
         known.sort(key=lambda t: (self.df[t], t))
         return known[: self.p.max_terms]
 
-    def context_pack(self, text: str, k: int = 5, hops: int | None = None) -> Pack:
+    def context_pack(self, text: str, k: int = 5, hops: int | None = None, backend: str | None = None) -> Pack:
+        """Rank files for a task. ``backend='db'`` runs the HydraDB path query;
+        ``'local'`` is an in-memory reference implementation of the same query
+        (used for dev-split tuning and to check the database's answers)."""
         hops = self.p.hops if hops is None else hops
-        if self.pending():
+        backend = backend or ("db" if self.db is not None else "local")
+        if backend == "db" and self.pending():
             self.flush()
         terms = self.select_terms(text)
         pack = Pack(entities=terms)
         if not terms:
             return pack
-        rel = "['POINTS_TO', 'CO_CHANGED']" if hops >= 2 else "['POINTS_TO']"
-        q = (
-            "CALL algo.MSpaths({sourceLabel: 'Term', sourceProperty: 'key', "
-            f"sourceValues: {cypher_strings(terms)}, relTypes: {rel}, relDirection: 'outgoing', "
-            f"maxLen: {hops}, weightProp: 'w', pathCount: {self.p.paths_per_term}, pairwise: false}}) "
-            "YIELD path, pathWeight RETURN path, pathWeight"
-        )
-        rows = self.db.query(q, page_size=4096)
+        rows = self._db_paths(terms, hops) if backend == "db" else self._local_paths(terms, hops)
         n_ev = max(1, self.n_events)
         best: dict[tuple[str, str], tuple[float, dict]] = {}
         for path, weight in rows:
@@ -329,16 +345,105 @@ class Bearings:
             pack.files.append({"path": f, "score": s, "why": [e[2] for e in ev[:3]], "terms": [e[1] for e in ev]})
         cmds: dict[str, float] = defaultdict(float)
         for f in pack.files[:3]:
-            for c, n in self.tested.get(f["path"], {}).items():
-                cmds[c] += n * f["score"]
+            tests = self.tested.get(f["path"], {})
+            total = sum(tests.values()) or 1
+            for c, n in tests.items():
+                cmds[c] += n / total * f["score"]
         if cmds:
             pack.test_command = max(cmds.items(), key=lambda kv: kv[1])[0]
         return pack
 
+    def _db_paths(self, terms: list[str], hops: int) -> list:
+        rel = "['POINTS_TO', 'CO_CHANGED']" if hops >= 2 else "['POINTS_TO']"
+        q = (
+            "CALL algo.MSpaths({sourceLabel: 'Term', sourceProperty: 'key', "
+            f"sourceValues: {cypher_strings(terms)}, relTypes: {rel}, relDirection: 'outgoing', "
+            f"maxLen: {hops}, weightProp: 'w', pathCount: {self.p.paths_per_term}, pairwise: false}}) "
+            "YIELD path, pathWeight RETURN path, pathWeight"
+        )
+        return self.db.query(q, page_size=4096)
+
+    def _local_paths(self, terms: list[str], hops: int) -> list:
+        """Same answer as the MSpaths call, computed from the mirror."""
+        by_term = self.t_files
+        out = []
+        for t in terms:
+            tnode = {"id": node_id("term", t), "props": {"key": t, "df": self.df[t]}}
+            cands = []
+            for f in by_term.get(t, []):
+                w1 = self._w_points(t, f)
+                fid = node_id("file", f)
+                cands.append((w1, 1, [tnode["id"], fid], t, [f]))
+                if hops >= 2:
+                    for g in self.co_written.get(f, ()):
+                        c = self.co[f][g]
+                        w2 = self.p.hop_penalty + math.log((self.changes[f] + 1) / c)
+                        cands.append((w1 + w2, 2, [tnode["id"], fid, node_id("file", g)], t, [f, g]))
+            cands.sort(key=lambda c: (c[0], c[1], c[2]))
+            for w, ln, _, term, files in cands[: self.p.paths_per_term]:
+                nodes = [tnode] + [{"id": node_id("file", f), "props": {"path": f}} for f in files]
+                rels = [{"type": "POINTS_TO"}] + ([{"type": "CO_CHANGED"}] if ln == 2 else [])
+                out.append(({"nodes": nodes, "rels": rels}, w))
+        return out
+
     # ----------------------------------------------------------------- load
-    def load(self) -> None:
-        """Rebuild the in-process mirror from the graph (restart / other writers)."""
+    # ------------------------------------------------------------ lazy mirror
+    def _hydrate_df(self, terms: list[str]) -> None:
+        todo = [t for t in terms if t not in self._df_loaded]
+        if not todo or not self._lazy:
+            return
+
+        def get(t):
+            rows = self.db.query("MATCH (t:Term {id: $id}) RETURN t.df AS df", {"id": node_id("term", t)})
+            return t, (rows[0][0] if rows else 0) or 0
+        for t, df in self._pool.map(get, todo):
+            self.df[t] = df
+            self._df_loaded.add(t)
+
+    def _hydrate_for_write(self, terms: list[str], files: list[str]) -> None:
+        if not self._lazy:
+            return
+        self._hydrate_df(terms)
+        todo = [t for t in terms if t not in self._edges_loaded]
+
+        def edges(t):
+            return t, self.db.query("MATCH (t {id: $id})-[r:POINTS_TO]->(f) RETURN f.path AS p, r.n AS n, r.miss AS m",
+                                    {"id": node_id("term", t)})
+        for t, rows in self._pool.map(edges, todo):
+            for path, n, m in rows:
+                self.n[(t, path)] = n or 0
+                self.t_files[t].add(path)
+                self.miss[(t, path)] = m or 0
+                self._exists.add(("POINTS_TO", node_id("term", t), node_id("file", path)))
+            self._edges_loaded.add(t)
+        for f in files:
+            if f in self._co_loaded:
+                continue
+            rows = self.db.query("MATCH (f:File {id: $id}) RETURN f.changes AS c", {"id": node_id("file", f)})
+            self.changes[f] = (rows[0][0] if rows else 0) or 0
+            for path, n in self.db.query("MATCH (a {id: $id})-[r:CO_CHANGED]->(b) RETURN b.path AS p, r.n AS n",
+                                         {"id": node_id("file", f)}):
+                self.co[f][path] = n or 0
+                self.co_written[f].add(path)
+                self._exists.add(("CO_CHANGED", node_id("file", f), node_id("file", path)))
+            self._co_loaded.add(f)
+
+    def load(self, full: bool = True) -> None:
+        """Rebuild the mirror from the graph. ``full=False`` loads only what reads
+        need (task count, file list, test links); the rest is fetched lazily per
+        entity/file when a task is reported."""
         db = self.db
+        if not full:
+            self._lazy = True
+            for (path,) in db.query("MATCH (f:File) RETURN f.path AS path", page_size=4096):
+                self.files.add(path)
+            for path, cmd, n in db.query("MATCH (f:File)-[r:TESTED_BY]->(c) RETURN f.path AS p, c.cmd AS cmd, r.n AS n", page_size=4096):
+                if path and cmd:
+                    self.tested[path][cmd] = n or 0
+                    self._exists.add(("TESTED_BY", node_id("file", path), node_id("cmd", cmd)))
+            rows = db.query("MATCH (t:Task) RETURN count(*) AS n")
+            self.n_events = rows[0][0] if rows else 0
+            return
         for tid, key, df in db.query("MATCH (t:Term) RETURN t.id AS id, t.key AS key, t.df AS df", page_size=4096):
             self.df[key] = df or 0
         id2term = {node_id("term", k): k for k in self.df}
@@ -350,6 +455,7 @@ class Bearings:
             if s in id2term and d in id2file:
                 self._exists.add(("POINTS_TO", s, d))
                 self.n[(id2term[s], id2file[d])] = n or 0
+                self.t_files[id2term[s]].add(id2file[d])
                 self.miss[(id2term[s], id2file[d])] = m or 0
         for s, d, n in db.query("MATCH (a:File)-[r:CO_CHANGED]->(b) RETURN a.id AS s, b.id AS d, r.n AS n", page_size=4096):
             if s in id2file and d in id2file:

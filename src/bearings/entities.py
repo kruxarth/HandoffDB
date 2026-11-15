@@ -43,7 +43,7 @@ STOP = set(
     http https www com org html github master main commit pull request""".split()
 )
 
-PATH_RE = re.compile(r"(?<![\w./-])((?:[\w-]+/)+[\w-]+\.(?:py|js|html|txt|css|json|cfg|toml))")
+PATH_RE = re.compile(r"(?<![\w.-])(/?(?:[\w-]+/)+[\w-]+\.(?:py|js|html|txt|css|json|cfg|toml))")
 MOD_RE = re.compile(r"\b([a-z_][a-z0-9_]*(?:\.[a-z_][a-z0-9_]*){2,})\b")
 ERR_RE = re.compile(r"\b([A-Z][A-Za-z0-9]*(?:Error|Exception|Warning))\b")
 CAMEL_RE = re.compile(r"\b([A-Z][a-z0-9]+(?:[A-Z][a-z0-9]*)+|[a-z]+(?:[A-Z][a-z0-9]*)+)\b")
@@ -59,6 +59,7 @@ TRAILER_RE = re.compile(
 THANKS_RE = re.compile(r"\bthanks?\b[^.\n]*[.\n]?", re.I)
 TICKET_RE = re.compile(r"\b(?:fixe[sd]|refs?|close[sd])\s+#\d+\s*(?:--)?", re.I)
 URL_RE = re.compile(r"https?://\S+")
+BLOB_RE = re.compile(r"/(?:blob|tree)/[^/\s]+/([\w./-]+\.\w+)")
 
 
 def _stem(w: str) -> str:
@@ -81,11 +82,17 @@ def clean(text: str) -> str:
 
 def extract(text: str) -> dict[str, int]:
     """Return ``{entity_key: count}`` for a task text."""
-    text = clean(text)
     out: dict[str, int] = {}
 
     def add(key: str) -> None:
         out[key] = out.get(key, 0) + 1
+
+    # source links (github .../blob/<ref>/<path>) name files exactly
+    for url in URL_RE.findall(text):
+        m = BLOB_RE.search(url)
+        if m:
+            add("path:" + m.group(1).lower())
+    text = clean(text)
 
     for p in PATH_RE.findall(text):
         # tracebacks give absolute paths; keep from the first package dir on

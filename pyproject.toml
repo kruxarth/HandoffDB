@@ -1,7 +1,7 @@
 [project]
 name = "bearings"
 version = "0.1.0"
-description = "Add your description here"
+description = "A learned context layer for coding agents, on HydraDB"
 readme = "README.md"
 authors = [
     { name = "kruxarth", email = "kruxarth@gmail.com" }
@@ -15,7 +15,9 @@ dependencies = [
 ]
 
 [project.scripts]
-bearings = "bearings:main"
+bearings = "bearings.cli:main"
+bearings-mcp = "bearings.mcp_server:main"
+bearings-web = "bearings.web:main"
 
 [build-system]
 requires = ["uv_build>=0.11.32,<0.12.0"]

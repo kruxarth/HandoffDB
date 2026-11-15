@@ -31,7 +31,7 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
 from bearings.baselines import BM25Baseline, DictBaseline  # noqa: E402
-from bearings.core import Bearings, Params, is_source  # noqa: E402
+from bearings.core import Bearings, Params, is_source, test_command  # noqa: E402
 from bearings.db import Hydra  # noqa: E402
 
 TEST_FROM = "2019-07-01"  # tasks before this date are the dev split (tuning only)
@@ -122,10 +122,11 @@ def main() -> None:
                 ranks["frozen"] = [f["path"] for f in frozen.context_pack(ev["text"], k=5, hops=2).files]
             row["ranked"] = ranks
             row["metrics"] = {c: metrics(r, ev["files"]) for c, r in ranks.items()}
-            gold_tests = {f for f in ev["test_files"]}
+            gold_cmds = {test_command(f) for f in ev["test_files"]} - {None}
             row["test_cmd"] = p_full.test_command
-            row["test_cmd_hit"] = bool(p_full.test_command and any(
-                p_full.test_command.endswith(" " + f.split("/")[1]) for f in gold_tests if f.startswith("tests/")))
+            row["test_cmd_hit"] = p_full.test_command in gold_cmds
+            # the database's answer vs the in-memory reference implementation
+            row["db_matches_reference"] = [f["path"] for f in live.context_pack(ev["text"], k=5, hops=2, backend="local").files] == ranks["bearings"]
             row["pack_chars"] = len(p_full.render())
             out.write(json.dumps(row) + "\n")
             out.flush()
