@@ -1,0 +1,14 @@
+skip_builtins=False tau=0.0  any-real-file-shown=0.778  files shown=5.00  n=126
+skip_builtins=False tau=0.2  any-real-file-shown=0.754  files shown=4.08  n=126
+skip_builtins=False tau=0.3  any-real-file-shown=0.722  files shown=3.53  n=126
+skip_builtins=False tau=0.4  any-real-file-shown=0.675  files shown=2.94  n=126
+skip_builtins=False tau=0.5  any-real-file-shown=0.619  files shown=2.48  n=126
+skip_builtins=False tau=0.6  any-real-file-shown=0.587  files shown=2.11  n=126
+skip_builtins=True  tau=0.0  any-real-file-shown=0.778  files shown=5.00  n=126
+skip_builtins=True  tau=0.2  any-real-file-shown=0.754  files shown=4.07  n=126
+skip_builtins=True  tau=0.3  any-real-file-shown=0.722  files shown=3.52  n=126
+skip_builtins=True  tau=0.4  any-real-file-shown=0.675  files shown=2.94  n=126
+skip_builtins=True  tau=0.5  any-real-file-shown=0.619  files shown=2.48  n=126
+skip_builtins=True  tau=0.6  any-real-file-shown=0.587  files shown=2.11  n=126
+
+[exited with code 0]

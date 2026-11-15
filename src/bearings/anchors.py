@@ -9,6 +9,7 @@ of searching.
 
 from __future__ import annotations
 
+import builtins
 import re
 import subprocess
 from collections import defaultdict
@@ -21,6 +22,12 @@ STOP = {"self", "cls", "None", "True", "False", "print", "return", "import", "fr
         "Django", "django", "Python", "python", "TestCase", "Exception", "object", "kwargs", "args", "str", "int",
         "dict", "list", "len", "isinstance", "super", "setUp", "test", "tests", "models", "Model", "objects",
         "Ticket", "Traceback", "File", "line"}
+
+
+# Python builtins (`max`, `open`, `type`...) show up in tracebacks but name no
+# project code; a class that happens to define `max` is not where the bug is.
+BUILTINS = {n for n in dir(builtins) if not n.startswith("_")}
+SKIP_BUILTINS = True
 
 
 WORD = re.compile(r"(?<![\w/.-])([a-z][a-z0-9]{5,})\b")
@@ -42,7 +49,7 @@ def names(text: str, limit: int = 40) -> list[str]:
     tick = {t.split(".")[-1] for t in tick}
     for m in IDENT.finditer(text):
         w = m.group(1)
-        if w in STOP or w.isupper() and len(w) < 4:
+        if w in STOP or w.isupper() and len(w) < 4 or SKIP_BUILTINS and w in BUILTINS:
             continue
         after = text[m.end():m.end() + 1]
         codey = ("_" in w.strip("_") or re.search(r"[a-z][A-Z]", w) or (w[0].isupper() and any(c.isupper() for c in w[1:]))
