@@ -1,0 +1,8 @@
+40 Level 2 issues (SWE-bench Verified, after the graph's cutoff). Retrieval only.
+
+as written  Bearings               hit@1=0.50 hit@5=0.75
+as written  dictionary             hit@1=0.53 hit@5=0.68
+as written  keyword search (BM25)  hit@1=0.57 hit@5=0.85
+vague       Bearings               hit@1=0.17 hit@5=0.38
+vague       dictionary             hit@1=0.20 hit@5=0.38
+vague       keyword search (BM25)  hit@1=0.30 hit@5=0.53
