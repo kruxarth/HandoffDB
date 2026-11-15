@@ -41,6 +41,7 @@ SCOPE = ("bench", "django-l2")
 RUNS = ROOT / "runs" / "level2"
 WORK = ROOT / "runs" / "tmp"
 STEP_CAP = 25
+MCP_PORT = 8766
 import threading  # noqa: E402
 _lock = threading.Lock()
 _start_lock = threading.Lock()
@@ -107,16 +108,13 @@ def oc_config(cond: str) -> Path:
         "$schema": "https://opencode.ai/config.json",
         "agent": {"locate": {"description": "Find the files to edit for an issue; never edits.",
                              "mode": "primary", "steps": STEP_CAP,
-                             "permission": {"edit": "deny", "bash": "allow", "webfetch": "deny"}}},
+                             "permission": {"edit": "deny", "bash": "allow", "webfetch": "deny", "websearch": "deny",
+                                            "codesearch": "deny"}}},
     }
     if cond == "bearings":
-        cfg["mcp"] = {"bearings": {
-            "type": "local",
-            "command": ["uv", "run", "--quiet", "--directory", str(ROOT), "bearings-mcp"],
-            "environment": {"BEARINGS_TEAM": SCOPE[0], "BEARINGS_REPO": SCOPE[1],
-                            "BEARINGS_LOG": str(RUNS / "mcp_calls.jsonl"), "BEARINGS_READONLY": "1"},
-            "enabled": True,
-        }}
+        # served over HTTP from outside the sandbox (see start_mcp), so the
+        # agent's sandbox never contains the Bearings repo or its data
+        cfg["mcp"] = {"bearings": {"type": "remote", "url": f"http://127.0.0.1:{MCP_PORT}/mcp", "enabled": True}}
     p = ROOT / "bench" / "opencode" / f"{cond}.json"
     p.parent.mkdir(parents=True, exist_ok=True)
     p.write_text(json.dumps(cfg, indent=2))
@@ -164,6 +162,63 @@ def score(pred: list[str], gold: list[str]) -> dict:
     return {"hit": int(bool(p & g)), "all": int(g <= p), "recall": len(p & g) / len(g) if g else 0.0}
 
 
+NET = WORK / "net"
+
+
+def start_net(with_mcp: bool) -> list[subprocess.Popen]:
+    """The sandbox has no network. Outside it: an allow-list HTTPS proxy that
+    only reaches the model provider, and a unix-socket relay to the MCP server."""
+    NET.mkdir(parents=True, exist_ok=True)
+    for f in ("proxy.sock", "mcp.sock"):
+        (NET / f).unlink(missing_ok=True)
+    procs = [subprocess.Popen([sys.executable, str(ROOT / "scripts/netproxy.py"), str(NET / "proxy.sock"),
+                               str(RUNS / "netproxy.jsonl")])]
+    if with_mcp:
+        procs.append(subprocess.Popen(["socat", f"UNIX-LISTEN:{NET / 'mcp.sock'},fork",
+                                       f"TCP:127.0.0.1:{MCP_PORT}"]))
+    for _ in range(50):
+        if (NET / "proxy.sock").exists() and (not with_mcp or (NET / "mcp.sock").exists()):
+            return procs
+        time.sleep(0.1)
+    raise SystemExit("network relays did not start")
+
+
+def start_mcp() -> subprocess.Popen:
+    env = dict(os.environ, BEARINGS_TEAM=SCOPE[0], BEARINGS_REPO=SCOPE[1], BEARINGS_READONLY="1",
+               BEARINGS_LOG=str(RUNS / "mcp_calls.jsonl"))
+    proc = subprocess.Popen(["uv", "run", "--quiet", "--directory", str(ROOT), "bearings-mcp", "--http", str(MCP_PORT)],
+                            env=env, stdout=open(RUNS / "mcp_server.log", "a"), stderr=subprocess.STDOUT)
+    import socket
+    for _ in range(60):
+        try:
+            socket.create_connection(("127.0.0.1", MCP_PORT), timeout=1).close()
+            return proc
+        except OSError:
+            time.sleep(1)
+    raise SystemExit("bearings MCP HTTP server did not start")
+
+
+ESCAPE_RE = re.compile(r"/home/|/root\b|/var/|/opt/|/mnt/|/srv/|\bfind\s+/(?:\s|$)|\.\./\.\./\.\.|~/"
+                       r"|\bcurl\b|\bwget\b|https?://|urllib|requests\.|\bpip\s+(?:download|install)")
+WEB_TOOLS = {"websearch", "webfetch", "codesearch"}
+
+
+def outside_access(ev_path: Path) -> list[str]:
+    """Tool inputs that try to reach outside the sandboxed repo (the sandbox
+    blocks them; this records the attempt)."""
+    bad = []
+    for line in ev_path.read_text().splitlines():
+        try:
+            e = json.loads(line)
+        except ValueError:
+            continue
+        if e.get("type") == "tool_use":
+            inp = json.dumps(e.get("part", {}).get("state", {}).get("input", {}))
+            if e.get("part", {}).get("tool") in WEB_TOOLS or ESCAPE_RE.search(inp):
+                bad.append(inp[:160])
+    return bad
+
+
 def run_one(task: dict, cond: str, dic: DictBaseline | None, rep: int = 0) -> dict:
     out_dir = RUNS / cond
     out_dir.mkdir(parents=True, exist_ok=True)
@@ -177,21 +232,25 @@ def run_one(task: dict, cond: str, dic: DictBaseline | None, rep: int = 0) -> di
         pack_text = "\n".join(f"  {f}" for f in dic.rank(task["text"], k=5))
         extra = extra.format(pack=pack_text or "  (none)")
     prompt = PROMPT.format(extra=extra, issue=task["text"])
-    env = dict(os.environ, **OC_ENV, OPENCODE_CONFIG=str(oc_config(cond)))
+    cfg_path = oc_config(cond)
     attempts = 0
     while True:
         attempts += 1
         with _start_lock:  # stagger starts: concurrent opencode launches lock its sqlite db
             time.sleep(5)
         t0 = time.time()
+        data_dir = WORK / f"ocdata-{cond}-{task['id']}"
+        subprocess.run(["rm", "-rf", str(data_dir)])
         with open(ev_path, "w") as fo, open(ev_path.with_suffix(".err"), "w") as fe:
             try:
-                proc = subprocess.run(["opencode", "run", "--title", "bench", "--format", "json", "--agent", "locate",
-                                       "-m", MODEL, "--dir", str(wt), prompt],
-                                      stdout=fo, stderr=fe, env=env, timeout=TIMEOUT)
+                proc = subprocess.run([str(ROOT / "scripts/sandbox_opencode.sh"), str(wt), str(cfg_path), str(data_dir), str(NET), "--",
+                                       "run", "--title", "bench", "--format", "json", "--agent", "locate",
+                                       "-m", MODEL, "--dir", "/work/repo", prompt],
+                                      stdout=fo, stderr=fe, timeout=TIMEOUT)
                 code = proc.returncode
             except subprocess.TimeoutExpired:
                 code = "timeout"
+        subprocess.run(["rm", "-rf", str(data_dir)])
         wall = time.time() - t0
         res = parse_events(ev_path)
         # infrastructure failure before the model ran (e.g. opencode's db locked): retry
@@ -201,9 +260,10 @@ def run_one(task: dict, cond: str, dic: DictBaseline | None, rep: int = 0) -> di
     err_text = ev_path.with_suffix(".err").read_text()[-4000:]
     rate_limited = bool(re.search(r"rate.?limit|429|too many requests|quota", err_text + " ".join(res["errors"]), re.I))
     subprocess.run(["rm", "-rf", str(wt)])
+    leaks = outside_access(ev_path)
     row = {"id": task["id"], "date": task["date"], "condition": cond, "rep": rep, "model": MODEL,
            "exit": code, "attempts": attempts, "wall_s": round(wall, 1), "rate_limited": rate_limited, "gold": task["files"],
-           "dict_pack": pack_text, **res, **score(res["files"], task["files"])}
+           "dict_pack": pack_text, "sandboxed": True, "outside_access": leaks, **res, **score(res["files"], task["files"])}
     with _lock, open(RUNS / "results.jsonl", "a") as f:
         f.write(json.dumps(row) + "\n")
     return row
@@ -238,6 +298,8 @@ def main() -> None:
             if not r0["rate_limited"] and r0["answered"]:
                 done.add((r0["id"], r0["condition"]))
     jobs = [(t, c) for t in tasks for c in conds if (t["id"], c) not in done]
+    mcp_proc = start_mcp() if "bearings" in conds else None
+    net_procs = start_net("bearings" in conds)
     # all conditions of one task run at the same time, so time-of-day and
     # rate-limit drift hit every condition equally
 
@@ -249,8 +311,14 @@ def main() -> None:
               f"{row['wall_s']}s exit={row['exit']} rl={row['rate_limited']}", flush=True)
 
     from concurrent.futures import ThreadPoolExecutor
-    with ThreadPoolExecutor(args.parallel) as ex:
-        list(ex.map(job, jobs))
+    try:
+        with ThreadPoolExecutor(args.parallel) as ex:
+            list(ex.map(job, jobs))
+    finally:
+        if mcp_proc:
+            mcp_proc.terminate()
+        for p in net_procs:
+            p.terminate()
 
 
 if __name__ == "__main__":

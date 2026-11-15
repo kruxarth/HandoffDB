@@ -12,7 +12,8 @@
       "env": {
         "BEARINGS_TEAM": "bench",
         "BEARINGS_REPO": "django-l2",
-        "BEARINGS_LOG": "<home>/coding/hackathon/hydradb-hackathon/bearings/results/claude_demo/mcp_calls.jsonl"
+        "BEARINGS_LOG": "<home>/coding/hackathon/hydradb-hackathon/bearings/results/claude_demo/mcp_calls.jsonl",
+        "BEARINGS_READONLY": "1"
       }
     }
   }

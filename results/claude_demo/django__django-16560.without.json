@@ -1,0 +1,32 @@
+{
+  "task": "django__django-16560",
+  "side": "without",
+  "model": "sonnet",
+  "claude_code_version": "2.1.325 (Claude Code)",
+  "input_tokens": 12,
+  "cache_creation_input_tokens": 21630,
+  "cache_read_input_tokens": 232326,
+  "output_tokens": 2632,
+  "num_turns": 6,
+  "tool_calls": 5,
+  "tools": [
+    "Read",
+    "Bash",
+    "Bash",
+    "Bash",
+    "Bash"
+  ],
+  "list_price_usd": 0.1360966,
+  "wall_s": 35.2,
+  "changed_files": [
+    "django/contrib/postgres/constraints.py",
+    "django/db/models/constraints.py"
+  ],
+  "gold_files": [
+    "django/contrib/postgres/constraints.py",
+    "django/db/models/constraints.py"
+  ],
+  "correct_files": true,
+  "result_text": "Tests pass (134 run, OK), so I'm wrapping up.\n\nCHANGED: django/db/models/constraints.py, django/contrib/postgres/constraints.py",
+  "total_input": 253968
+}

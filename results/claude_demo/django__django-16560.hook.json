@@ -1,0 +1,34 @@
+{
+  "task": "django__django-16560",
+  "side": "hook",
+  "model": "sonnet",
+  "claude_code_version": "2.1.325 (Claude Code)",
+  "input_tokens": 14,
+  "cache_creation_input_tokens": 25212,
+  "cache_read_input_tokens": 290884,
+  "output_tokens": 3173,
+  "num_turns": 8,
+  "tool_calls": 7,
+  "tools": [
+    "Read",
+    "Grep",
+    "Bash",
+    "Bash",
+    "Bash",
+    "Bash",
+    "Bash"
+  ],
+  "list_price_usd": 0.1616944,
+  "wall_s": 49.7,
+  "changed_files": [
+    "django/contrib/postgres/constraints.py",
+    "django/db/models/constraints.py"
+  ],
+  "gold_files": [
+    "django/contrib/postgres/constraints.py",
+    "django/db/models/constraints.py"
+  ],
+  "correct_files": true,
+  "result_text": "CHANGED: django/db/models/constraints.py, django/contrib/postgres/constraints.py",
+  "total_input": 316110
+}
