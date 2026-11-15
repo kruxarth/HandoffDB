@@ -34,7 +34,18 @@ Measured on Django, the project with the most SWE-bench issues. Full tables with
 
 **Live agents (Level 2): tokens to locate the right files.** Measured with DeepSeek V4.1 Flash through OpenCode.
 
-{{L2_SUMMARY}}
+40 SWE-bench Verified issues from after the graph's cutoff, each run once with no memory, with a dictionary pack, and with the Bearings pack pasted into the prompt. **Result: no token saving.**
+
+| | named every real-fix file | total input tokens, median [IQR] | tokens until a real-fix file is opened, median |
+|---|---|---|---|
+| No memory | 92.5% | 76,626 [45k–329k] | 6,928 |
+| Dictionary pack | 95.0% | 112,149 [33k–309k] | 6,809 |
+| **Bearings pack** | **95.0%** | 79,749 [45k–339k] | 7,061 |
+
+- Paired vs no memory, Bearings: success +2.5 points [+0, +7.5]; whole-run tokens +20k mean [−20k, +61k], median per-issue ratio 1.03. Flat within noise.
+- Why: on these issues the agent opens a real-fix file within its first step or two in **every** condition (~7k tokens, most of it the prompt). There is little search left for a pack to remove. Whole runs are dominated by how long the agent double-checks, which varies more than 2× between conditions on the same issue. The mean Δ for "tokens until a real-fix file" (−5.4k [−13.4k, −0.8k]) comes from one issue where the agent without memory wandered for 150k tokens; the median ratio is 1.06, so we do not claim it.
+- A wrong pack can mislead: on two issues the pack's low-ranked files were unrelated (one matched the builtin name `max`) and the agent checked each before answering. Builtins are now skipped; trimming low-confidence files was tried on dev and lost real fixes, so it is not shipped.
+- Where Bearings does help is ranking (Level 1): which file to open first among many plausible ones, and starting from an empty graph.
 
 **Claude Code** (a demo, not a statistic): on two real issues fixed end to end, Bearings did **not** reduce tokens. Sonnet already knew where to look, and every extra turn re-reads ~35k tokens of context, so the pack's value was smaller than one turn. Details below.
 
@@ -152,7 +163,7 @@ CLI: `bearings pack "<task>"`, `bearings report "<task>" --changed a.py --test "
 2. Agents ran `find /` and read other checkouts on the machine. Runs now happen in a bubblewrap sandbox that sees only the snapshot and a fresh OpenCode data dir (`scripts/sandbox_opencode.sh`).
 3. Agents used web search and `curl` to fetch the upstream commit. The sandbox now has no network except an allow-list proxy to the model API (`scripts/netproxy.py`); every attempt to reach out is blocked and logged.
 
-**What we tried that did not help** (all on dev, none shipped): a "past similar tasks" channel through `Task` nodes (no reliable gain over the direct links); adding keyword-search scores to the fusion (no reliable gain); treating plain lower-case words as identifiers for code anchors (hit@5 .778 → .683); tuning the miss penalty and hop cost (flat within noise). Delivering the pack through an MCP tool call made agents spend extra turns; see the Claude Code results.
+**What we tried that did not help** (all on dev, none shipped): a "past similar tasks" channel through `Task` nodes (no reliable gain over the direct links); adding keyword-search scores to the fusion (no reliable gain); treating plain lower-case words as identifiers for code anchors (hit@5 .778 → .683); tuning the miss penalty and hop cost (flat within noise); showing only files scored within a fraction of the top file, to cut noise in the pack (the real fix is among the shown files less often: .778 → .754 at the mildest cut; `results/dev/exp_trim_history.txt`). Delivering the pack through an MCP tool call made agents spend extra turns; see the Claude Code results.
 
 **Claude Code demo.** `bench/claude_demo.py` runs one real issue through headless Claude Code (`claude -p`, sonnet, Claude Code 2.1.325) without and with Bearings and prints the usage block side by side. Claude Code reports `input_tokens`, `cache_creation_input_tokens`, `cache_read_input_tokens`, `output_tokens`, `num_turns` and a list-price `total_cost_usd`.
 
@@ -171,7 +182,7 @@ CLI: `bearings pack "<task>"`, `bearings report "<task>" --changed a.py --test "
 
 Total input = uncached + cache write + cache read, from Claude Code's own usage block (sonnet). Full columns and list-price arithmetic: `results/RESULTS.md`.
 
-Bearings v1 (MCP tool, graph only) and v2 (hooks, graph + code anchors) both cost more than running without it on these two issues, and a second run without Bearings shows ±20–30% run-to-run noise. Both issues name the function to change, and Sonnet went straight to it. In Claude Code every turn re-reads the whole context (~35k tokens here), so a context layer pays off only when it removes turns: on issues where the agent would otherwise search. Two demo issues cannot show that either way; Level 2 measures it.
+Bearings v1 (MCP tool, graph only) and v2 (hooks, graph + code anchors) both cost more than running without it on these two issues, and a second run without Bearings shows ±20–30% run-to-run noise. Both issues name the function to change, and Sonnet went straight to it. In Claude Code every turn re-reads the whole context (~35k tokens here), so a context layer pays off only when it removes turns: on issues where the agent would otherwise search. Two demo issues cannot show that either way. Level 2 measured it on 40 issues with DeepSeek and found no saving there either, for the same reason: the issues already point at the code.
 
 ## Reproducing the numbers
 

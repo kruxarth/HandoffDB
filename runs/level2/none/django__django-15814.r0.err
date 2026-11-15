@@ -1,2 +1,1 @@
-[93m[1m! [0mpermission requested: external_directory (<home>/coding/hackathon/hydradb-hackathon/bearings/data/repos/django/*); auto-rejecting
-[93m[1m! [0mpermission requested: external_directory (<home>/coding/hackathon/hydradb-hackathon/bearings/data/repos/django/*); auto-rejecting
+timestamp=2026-11-15T21:48:23.898Z level=WARN run=b6f3b673 message="background dependency install failed" dir=<home>/.config/opencode error="Cause([Fail(NpmInstallFailedError (cause: rF: 403 Forbidden - GET https://registry.npmjs.org/@opencode-ai%2fplugin))])"

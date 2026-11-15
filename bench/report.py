@@ -183,6 +183,11 @@ def level2() -> tuple[str, dict]:
     valid = [r for r in rs if not r["rate_limited"] and r["steps"] > 0]
     excluded = len(rs) - len(valid)
     conds = [c for c in L2_ORDER if any(r["condition"] == c for r in valid)]
+    main0 = {"none", "dict", "bearings"}
+    # ablations that ran on too few tasks (dropped for budget) are listed, not tabulated
+    dropped = {c: sum(1 for r in valid if r["condition"] == c) for c in conds
+               if c not in main0 and sum(1 for r in valid if r["condition"] == c) < 10}
+    conds = [c for c in conds if c not in dropped]
     main = [c for c in ("none", "dict", "bearings") if c in conds]
     ids = set.intersection(*[{r["id"] for r in valid if r["condition"] == c} for c in main]) if main else set()
     by = {c: {r["id"]: r for r in valid if r["condition"] == c} for c in conds}
@@ -192,9 +197,12 @@ def level2() -> tuple[str, dict]:
     escapes = sum(1 for r in valid if r.get("outside_access") and r["id"] in ids)
     model = valid[0]["model"] if valid else "?"
     out = [f"Model: `{model}` via OpenCode 1.18.35, step cap 25, sandboxed (no network except the model API). "
-           f"Paired tasks (a counted run in no memory, dictionary and Bearings): {len(ids)}; the code-anchors-only ablation ran on the first tasks only (budget). Runs excluded (rate-limited or the agent never "
-           f"started): {excluded} of {len(rs)}. Timeouts counted as failures: {timeouts}. Runs where the agent tried to "
-           f"reach outside the sandbox (blocked, counted normally): {escapes}.", "",
+           f"Paired tasks (a counted run in no memory, dictionary and Bearings): {len(ids)}."
+           + "".join(f" {L2_LAB[c]} ran on {n} task(s) before it was dropped to stay within budget; too few to report." for c, n in dropped.items())
+           + f" Runs excluded (rate-limited or the agent never "
+           f"started): {excluded} of {len(rs)}. Timeouts counted as failures: {timeouts}. Runs with a command flagged by the "
+           f"escape check (`find /`, `pip`, a URL in a command): {escapes}; the sandbox has no network and sees only the snapshot, "
+           f"so they are counted normally.", "",
            "| Condition | success (all gold files named) | hit (≥1 gold file) | total input tokens, median [IQR] | tokens until first real-fix file opened, median | uncached input | output+reasoning | tool calls | wall s |",
            "|---|---|---|---|---|---|---|---|---|"]
     stats: dict = {"conds": {}, "n": len(ids), "excluded": excluded, "total": len(rs), "timeouts": timeouts,
@@ -222,7 +230,7 @@ def level2() -> tuple[str, dict]:
             st["first_gold_ratio"] = statistics.median([x / max(1, y) for x, y in zip(ftg, fb)])
             st["dfirst"] = paired_diff(ftg, fb)
         stats["conds"][c] = st
-        out.append(f"| {L2_LAB[c]}{'' if c in main else f' (n={len(rr)}, ablation)'} | {fmt(st['succ'])} | {fmt(st['hit'])} | {st['median_in']:,.0f} [{q[0]:,.0f}–{q[2]:,.0f}] | "
+        out.append(f"| {L2_LAB[c]} | {fmt(st['succ'])} | {fmt(st['hit'])} | {st['median_in']:,.0f} [{q[0]:,.0f}–{q[2]:,.0f}] | "
                    f"{st['first_gold']:,.0f} ({st['never_gold']} never) | "
                    f"{statistics.median([r['tokens']['input'] for r in rr]):,.0f} | "
                    f"{statistics.median([r['tokens']['output'] + r['tokens']['reasoning'] for r in rr]):,.0f} | "
@@ -393,10 +401,10 @@ def dashboard(data: dict, l2: dict) -> None:
     c = l2.get("conds", {})
     if "bearings" in c and "none" in c:
         r = c["bearings"]
-        k.append({"label": "Tokens to locate, live agents", "value": f"{r['ratio']:.2f}×",
-                  "delta": f"{r['dsucc'][0] * 100:+.0f} pts success",
+        k.append({"label": "Live agents: right files named", "value": f"{r['succ'][0]:.0%}",
+                  "delta": f"{r['dsucc'][0] * 100:+.1f} pts",
                   "dir": "flat" if abs(r["dsucc"][0]) < 0.005 else "up" if r["dsucc"][0] > 0 else "down",
-                  "sub": f"median per-task ratio vs no memory · {l2['n']} paired tasks"})
+                  "sub": f"vs {c['none']['succ'][0]:.1%} with no memory · tokens flat (median ratio {r['ratio']:.2f}) · {l2['n']} issues"})
     elif (RES / "latency.json").exists():
         q = json.loads((RES / "latency.json").read_text())
         k.append({"label": "Context pack latency", "value": f"{q['context_pack_ms']['p50']:.0f} ms", "delta": "", "dir": "flat",
@@ -412,10 +420,13 @@ def dashboard(data: dict, l2: dict) -> None:
             "intro": (f"A coding agent (DeepSeek V4.1 Flash through OpenCode) gets a real issue and a history-free snapshot "
                       f"of Django at that issue's commit, explores, and names the files it would change. {l2['n']} SWE-bench "
                       f"Verified issues from after the graph's cutoff, each run once in every condition. Token counts are "
-                      f"OpenCode's own usage reports and include the context pack."),
+                      f"OpenCode's own usage reports and include the context pack. <b>Result: no token saving.</b> On these issues the agent "
+                      f"opens a real-fix file within its first step or two in every condition (about 7k tokens), so there is little "
+                      f"search for a pack to remove; whole-run totals are dominated by how long the agent double-checks, which "
+                      f"varies more than 2× between runs of the same issue."),
             "warn": (f"Excluded: {l2['excluded']} of {l2['total']} runs (rate-limited, or the agent never started). "
                      f"Timeouts count as failures ({l2['timeouts']}). The sandbox has no network except the model API; "
-                     f"{l2['escapes']} runs tried to reach outside it (web, other checkouts) and were blocked."),
+                     f"{l2['escapes']} runs ran a command flagged by the escape check (<code>find /</code>, <code>pip</code>, a URL) and are counted normally."),
             "order": [f"l2:{x}" for x in L2_ORDER if x in c],
             "conds": {f"l2:{x}": v for x, v in c.items()},
             "cap": "Paired: the same tasks in every condition. Ratio = median over tasks of this condition's tokens divided by no memory's.",

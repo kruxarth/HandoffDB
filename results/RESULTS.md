@@ -36,7 +36,7 @@ SWE-bench Verified subset (n=199):
 | Bearings (graph + anchors) | 199 | 0.513 [0.442, 0.583] | 0.698 [0.633, 0.764] | 0.779 [0.719, 0.834] | 0.723 [0.661, 0.780] |
 | Bearings, frozen graph | 199 | 0.477 [0.407, 0.548] | 0.714 [0.648, 0.779] | 0.794 [0.734, 0.844] | 0.738 [0.678, 0.797] |
 
-- Query latency: HydraDB path query + code anchors + scoring: p50 2606 ms, p95 5665 ms per task, on a laptop, while other benchmarks ran.
+- Query latency: During this benchmark (three runs sharing one HydraDB): p50 2606 ms, p95 5665 ms.
 - Second hop: Adding the co-changed-file hop changed hit@5 on 5 of 724 tasks (4 better, 1 worse). Measured, and close to zero.
 - Test command: The suggested test command names the module where the real fix's tests live on 43% of tasks.
 - Database vs reference: HydraDB's ranking equals an in-memory reference implementation of the same query on 714/724 tasks (ties broken differently on the rest). Pack size: median 353 tokens.
@@ -75,7 +75,7 @@ SWE-bench Verified subset (n=199):
 | Bearings (graph + anchors) | 199 | 0.457 [0.387, 0.528] | 0.633 [0.563, 0.698] | 0.709 [0.643, 0.774] | 0.655 [0.592, 0.720] |
 | Bearings, frozen graph | 199 | 0.417 [0.352, 0.487] | 0.613 [0.548, 0.683] | 0.683 [0.618, 0.749] | 0.632 [0.568, 0.695] |
 
-- Query latency: HydraDB path query + code anchors + scoring: p50 615 ms, p95 1347 ms per task, on a laptop, while other benchmarks ran.
+- Query latency: During this benchmark (three runs sharing one HydraDB): p50 615 ms, p95 1347 ms.
 - Second hop: Adding the co-changed-file hop changed hit@5 on 2 of 724 tasks (1 better, 1 worse). Measured, and close to zero.
 - Test command: The suggested test command names the module where the real fix's tests live on 39% of tasks.
 - Database vs reference: HydraDB's ranking equals an in-memory reference implementation of the same query on 686/724 tasks (ties broken differently on the rest). Pack size: median 336 tokens.
@@ -93,20 +93,18 @@ Measured on the dev split (graph only): for each gold source file, is it linked 
 
 The agent (DeepSeek V4.1 Flash through OpenCode) reads the issue, explores a history-free snapshot of the repo at the issue's commit, and names the files it would edit. Success is checked in code against the real fix. Token counts are OpenCode's per-step usage, summed, and include the context pack. Packs come from a graph built only from events before 2022-07-01; tasks are SWE-bench Verified issues from after it.
 
-Model: `deepseek/deepseek-flash` via OpenCode 1.18.35, step cap 25, sandboxed (no network except the model API). Paired tasks (a counted run in every condition): 2. Runs excluded (rate-limited or the agent never started): 0 of 9. Timeouts counted as failures: 0. Runs where the agent tried to reach outside the sandbox (blocked, counted normally): 8.
+Model: `deepseek/deepseek-flash` via OpenCode 1.18.35, step cap 25, sandboxed (no network except the model API). Paired tasks (a counted run in no memory, dictionary and Bearings): 40. Code anchors in prompt ran on 1 task(s) before it was dropped to stay within budget; too few to report. Runs excluded (rate-limited or the agent never started): 0 of 121. Timeouts counted as failures: 0. Runs with a command flagged by the escape check (`find /`, `pip`, a URL in a command): 5; the sandbox has no network and sees only the snapshot, so they are counted normally.
 
-| Condition | success (all gold files named) | hit (≥1 gold file) | total input tokens, median [IQR] | uncached input | output+reasoning | tool calls | wall s |
-|---|---|---|---|---|---|---|---|
-| No memory | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 120,947 [73,589–168,305] | 11,443 | 3,612 | 16 | 66 |
-| Dictionary pack in prompt | 0.500 [0.000, 1.000] | 0.500 [0.000, 1.000] | 202,194 [164,257–240,130] | 15,186 | 4,416 | 20 | 65 |
-| Code anchors in prompt | 0.500 [0.000, 1.000] | 0.500 [0.000, 1.000] | 127,120 [74,893–179,348] | 10,832 | 3,967 | 14 | 62 |
-| Bearings pack in prompt | 0.000 [0.000, 0.000] | 0.000 [0.000, 0.000] | 113,003 [104,142–121,864] | 11,947 | 3,352 | 15 | 46 |
+| Condition | success (all gold files named) | hit (≥1 gold file) | total input tokens, median [IQR] | tokens until first real-fix file opened, median | uncached input | output+reasoning | tool calls | wall s |
+|---|---|---|---|---|---|---|---|---|
+| No memory | 0.925 [0.850, 1.000] | 1.000 [1.000, 1.000] | 76,626 [45,256–329,248] | 6,928 (0 never) | 8,006 | 3,037 | 10 | 36 |
+| Dictionary pack in prompt | 0.950 [0.875, 1.000] | 1.000 [1.000, 1.000] | 112,149 [32,738–309,220] | 6,809 (0 never) | 6,894 | 3,675 | 10 | 37 |
+| Bearings pack in prompt | 0.950 [0.875, 1.000] | 1.000 [1.000, 1.000] | 79,749 [44,686–339,426] | 7,061 (0 never) | 7,980 | 3,486 | 10 | 35 |
 
-| Paired difference vs no memory | Δ success | Δ total input tokens (mean, 95% CI) | median per-task ratio |
-|---|---|---|---|
-| Dictionary pack in prompt | +0.500 [+0.000, +1.000] | +81,246 [-4,048, +166,541] | 2.12 |
-| Code anchors in prompt | +0.500 [+0.000, +1.000] | +6,174 [-93,412, +105,759] | 1.44 |
-| Bearings pack in prompt | +0.000 [+0.000, +0.000] | -7,944 [-46,441, +30,553] | 1.07 |
+| Paired difference vs no memory | Δ success | Δ total input tokens (mean, 95% CI) | median per-task ratio | Δ tokens until first real-fix file (mean, 95% CI) | median per-task ratio |
+|---|---|---|---|---|---|
+| Dictionary pack in prompt | +0.025 [+0.000, +0.075] | -2,623 [-40,155, +32,245] | 0.94 | -4,530 [-11,936, -123] | 1.01 |
+| Bearings pack in prompt | +0.025 [+0.000, +0.075] | +20,210 [-20,282, +60,766] | 1.03 | -5,425 [-13,438, -807] | 1.06 |
 
 ## Claude Code demo (a few tasks, not a statistic)
 
