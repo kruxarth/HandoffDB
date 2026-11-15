@@ -44,7 +44,8 @@ def main() -> None:
     test = [e for e in events[first:] if e["kind"] == "task"]
 
     def q(ev):
-        ranked = [f["path"] for f in eng.context_pack(ev["text"], k=5, hops=2).files]
+        ranked = [f["path"] for f in eng.context_pack(ev["text"], k=5, hops=2, repo=ROOT / "data/repos/django",
+                                                             commit=ev["base_commit"]).files]
         return {"id": ev["id"], "ranked": ranked, "metrics": metrics(ranked, ev["files"])}
 
     with ThreadPoolExecutor(4) as ex, open(args.out, "w") as out:

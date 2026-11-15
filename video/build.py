@@ -298,8 +298,9 @@ def results_data() -> dict:
     cv = rep.curve(path)
     test = rep.rows(path)
     keep = {c: cv[c] for c in ("frozen", "bm25", "bearings") if c in cv}
+    allc = ("frozen", "bm25", "bearings", "bearings-1", "dict")
     ys = [v for s in keep.values() for _, v in s]
-    h5 = {c: ci([r["metrics"][c]["hit@5"] for r in test if c in r["metrics"]])[0] for c in keep}
+    h5 = {c: ci([r["metrics"][c]["hit@5"] for r in test if c in r["metrics"]])[0] for c in allc}
     out["learn"] = {
         "series": keep, "lo": max(0, int(min(ys) * 10) / 10), "hi": min(1, (int(max(ys) * 10) + 1) / 10),
         "labels": {"bearings": "Bearings", "frozen": "Same graph, frozen", "bm25": "Keyword search"},
@@ -339,14 +340,13 @@ def results_data() -> dict:
                          "sub": "One real task each, fixed in headless Claude Code. Total input tokens, as Claude Code reports them.",
                          "foot": "Two examples, not a statistic. Here Bearings added tokens: the agent called it, then explored anyway.",
                          "demo": dd}
-    reach = json.loads((rep.RES / "second_hop_reach.json").read_text()).get(seed, {})
     h5 = out["learn"]["h5"]
     kw = ("matches" if abs(h5["bearings"] - h5["bm25"]) < 0.02 else "beats" if h5["bm25"] > h5["bearings"] else "trails")
     out["limits"] = {"title": "What did not work, measured.", "items": [
         ("orange", f"Plain keyword search over past tasks {kw} Bearings at finding files "
                    f"({h5['bm25']:.0%} vs {h5['bearings']:.0%} top-5)."),
-        ("orange", f"The second hop through co-changed files almost never helps: it added a correct file to the top 5 in "
-                   f"{reach.get('hop2only_in_pack', 0)} of {reach.get('gold', 0)} cases."),
+        ("orange", f"The second hop through co-changed files barely matters: it moved the top-5 hit rate by "
+                   f"{(h5['bearings'] - h5['bearings-1']) * 100:+.1f} points."),
         ("blue", "The graph is seeded from the dataset's own real fixes, in date order, never from the future."),
         ("blue", "Everything is reproducible from committed result files."),
     ]}

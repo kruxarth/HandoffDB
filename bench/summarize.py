@@ -11,7 +11,7 @@ import math
 import random
 from collections import defaultdict
 
-CONDS = ["bm25", "dict", "bearings-1", "bearings", "frozen"]
+CONDS = ["bm25", "dict", "anchors", "graph", "bearings-1", "bearings", "frozen"]
 
 
 def ci(xs: list[float], reps: int = 2000, seed: int = 0) -> tuple[float, float, float]:

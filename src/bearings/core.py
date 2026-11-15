@@ -28,6 +28,7 @@ import math
 import re
 from collections import defaultdict
 from concurrent.futures import ThreadPoolExecutor
+from pathlib import Path
 from dataclasses import dataclass, field
 
 from .db import Hydra, cypher_strings
@@ -49,6 +50,8 @@ class Params:
     hops: int = 2              # 1 = POINTS_TO only, 2 = + CO_CHANGED
     learn_misses: bool = True
     miss_top: int = 5          # suggested-but-wrong files penalised per task
+    anchor_w: float = 2.0      # weight of code anchors vs learned graph (chosen on the dev split)
+    graph_pool: int = 20       # graph candidates considered before fusing with anchors
 
 
 def is_test(path: str) -> bool:
@@ -81,10 +84,15 @@ class Pack:
     entities: list[str] = field(default_factory=list)
 
     def render(self) -> str:
-        lines = ["Bearings context pack (from past work on this repo):", "Start in:"]
-        for f in self.files:
-            lines.append(f"  {f['path']}  (score {f['score']:.2f})")
-            for why in f["why"][:2]:
+        if not self.files:
+            return "Bearings: no suggestion for this task (nothing similar in past work)."
+        lines = ["Bearings context pack: where past work on this repo landed, and where the task's identifiers "
+                 "are defined in this checkout. Read the listed lines first; search wider only if they do not fit.",
+                 "Start in:"]
+        for i, f in enumerate(self.files, 1):
+            loc = ", ".join(f"{n} (line {ln})" for ln, n in f.get("lines", [])[:3])
+            lines.append(f"  {i}. {f['path']}" + (f"  defines {loc}" if loc else ""))
+            for why in [w for w in f["why"] if not w.startswith("defines ")][:2]:
                 lines.append(f"      because {why}")
         if self.test_command:
             lines.append(f"Verify with: {self.test_command}")
@@ -307,7 +315,8 @@ class Bearings:
         known.sort(key=lambda t: (self.df[t], t))
         return known[: self.p.max_terms]
 
-    def context_pack(self, text: str, k: int = 5, hops: int | None = None, backend: str | None = None) -> Pack:
+    def context_pack(self, text: str, k: int = 5, hops: int | None = None, backend: str | None = None,
+                     repo: str | Path | None = None, commit: str | None = None) -> Pack:
         """Rank files for a task. ``backend='db'`` runs the HydraDB path query;
         ``'local'`` is an in-memory reference implementation of the same query
         (used for dev-split tuning and to check the database's answers)."""
@@ -317,9 +326,13 @@ class Bearings:
             self.flush()
         terms = self.select_terms(text)
         pack = Pack(entities=terms)
-        if not terms:
+        anchors, where = ({}, {})
+        if repo is not None:
+            from .anchors import definitions
+            anchors, where = definitions(Path(repo), commit, text, detail=True)
+        if not terms and not anchors:
             return pack
-        rows = self._db_paths(terms, hops) if backend == "db" else self._local_paths(terms, hops)
+        rows = (self._db_paths(terms, hops) if backend == "db" else self._local_paths(terms, hops)) if terms else []
         n_ev = max(1, self.n_events)
         best: dict[tuple[str, str], tuple[float, dict]] = {}
         for path, weight in rows:
@@ -346,10 +359,26 @@ class Bearings:
                 if is_source(f) and self._known_file(f):
                     scores[f] += 2.0
                     evidence[f].append((2.0, t, f"the task names {f}"))
-        ranked = sorted(scores.items(), key=lambda kv: (-kv[1], kv[0]))[:k]
+        ranked = sorted(scores.items(), key=lambda kv: (-kv[1], kv[0]))
+        if anchors:
+            pool = ranked[:self.p.graph_pool]
+            top = max([v for _, v in pool] or [1.0])
+            atop = max(anchors.values())
+            fused: dict[str, float] = defaultdict(float)
+            for f, v in pool:
+                fused[f] += v / top
+            for f, v in anchors.items():
+                fused[f] += self.p.anchor_w * v / atop
+                names = sorted({n for _, n in where.get(f, [])})
+                evidence[f].append((self.p.anchor_w * v / atop * 10, "code", f"defines {', '.join(names[:3])} in this checkout"))
+            ranked = sorted(fused.items(), key=lambda kv: (-kv[1], kv[0]))
+        ranked = ranked[:k]
         for f, s in ranked:
             ev = sorted(evidence[f], reverse=True)
-            pack.files.append({"path": f, "score": s, "why": [e[2] for e in ev[:3]], "terms": [e[1] for e in ev]})
+            pack.files.append({"path": f, "score": s, "why": [e[2] for e in ev[:3]], "terms": [e[1] for e in ev],
+                               "lines": sorted(where.get(f, []))[:5]})
+        if repo is not None:
+            self._locate_terms(pack, Path(repo), commit)
         cmds: dict[str, float] = defaultdict(float)
         for f in pack.files[:3]:
             tests = self._tests_of(f["path"])
@@ -359,6 +388,23 @@ class Bearings:
         if cmds:
             pack.test_command = max(cmds.items(), key=lambda kv: kv[1])[0]
         return pack
+
+    @staticmethod
+    def _locate_terms(pack: Pack, repo: Path, commit: str | None) -> None:
+        """For suggested files without a line yet, find where the entities that
+        led to them are defined in that file (does not change the ranking)."""
+        from .anchors import grep_defs
+        need = [f for f in pack.files if not f.get("lines")]
+        names = sorted({t.split(":", 1)[1] for f in need for t in f["terms"]
+                        if ":" in t and t.split(":", 1)[0] in ("sym", "word") and t.split(":", 1)[1].isidentifier()})
+        if not need or not names:
+            return
+        defs = grep_defs(repo, names[:60], commit)
+        for f in need:
+            mine = {t.split(":", 1)[1] for t in f["terms"] if ":" in t}
+            hits = sorted((ln, n) for n, locs in defs.items() if n.lower() in mine or n in mine
+                          for p, ln in locs if p == f["path"])
+            f["lines"] = hits[:5]
 
     def _db_paths(self, terms: list[str], hops: int) -> list:
         rel = "['POINTS_TO', 'CO_CHANGED']" if hops >= 2 else "['POINTS_TO']"

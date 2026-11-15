@@ -8,28 +8,11 @@
       "permission": {
         "edit": "deny",
         "bash": "allow",
-        "webfetch": "deny"
+        "webfetch": "deny",
+        "websearch": "deny",
+        "codesearch": "deny",
+        "external_directory": "deny"
       }
-    }
-  },
-  "mcp": {
-    "bearings": {
-      "type": "local",
-      "command": [
-        "uv",
-        "run",
-        "--quiet",
-        "--directory",
-        "<home>/coding/hackathon/hydradb-hackathon/bearings",
-        "bearings-mcp"
-      ],
-      "environment": {
-        "BEARINGS_TEAM": "bench",
-        "BEARINGS_REPO": "django-l2",
-        "BEARINGS_LOG": "<home>/coding/hackathon/hydradb-hackathon/bearings/runs/level2/mcp_calls.jsonl",
-        "BEARINGS_READONLY": "1"
-      },
-      "enabled": true
     }
   }
 }

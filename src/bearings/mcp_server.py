@@ -62,6 +62,20 @@ def _log(kind: str, payload: dict) -> None:
             f.write(json.dumps({"t": time.time(), "kind": kind, **payload}) + "\n")
 
 
+def _checkout():
+    """The repo the agent works in: $BEARINGS_CHECKOUT, else the directory the
+    server was launched from ($PWD survives `uv run --directory`)."""
+    from .anchors import checkout_root
+    for c in (os.environ.get("BEARINGS_CHECKOUT"), os.environ.get("PWD")):
+        root = checkout_root(c)
+        if root and root != Path(__file__).resolve().parents[2]:
+            return root
+    return None
+
+
+CHECKOUT = _checkout()
+
+
 @mcp.tool()
 def get_context_pack(task: str, max_files: int = 5) -> str:
     """Get a context pack for a coding task in this repository: the few files most likely
@@ -70,7 +84,7 @@ def get_context_pack(task: str, max_files: int = 5) -> str:
     t0 = time.time()
     try:
         eng = engine()
-        pack = eng.context_pack(task, k=max(1, min(max_files, 10)))
+        pack = eng.context_pack(task, k=max(1, min(max_files, 10)), repo=CHECKOUT)
     except Exception as exc:  # never break the agent's run
         _log("error", {"task": task[:200], "error": str(exc)[:300], "ms": round((time.time() - t0) * 1000)})
         return "Bearings is unavailable right now; explore as usual."
@@ -108,7 +122,12 @@ def report_task(
 
 
 def main() -> None:
-    mcp.run()
+    """stdio by default; ``bearings-mcp --http 8766`` serves streamable HTTP at /mcp."""
+    if "--http" in sys.argv:
+        port = int(sys.argv[sys.argv.index("--http") + 1])
+        mcp.run(transport="streamable-http", host="127.0.0.1", port=port, stateless_http=True)
+    else:
+        mcp.run()
 
 
 if __name__ == "__main__":

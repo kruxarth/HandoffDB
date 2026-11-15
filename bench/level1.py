@@ -5,9 +5,11 @@ Every task is answered using only what was learned from events dated before it
 
   bm25        keyword search over past task/commit texts
   dict        plain table of learned entity->file counts (no graph)
-  bearings-1  Bearings, POINTS_TO only (no second hop)
-  bearings    Bearings, full (POINTS_TO + CO_CHANGED)
-  frozen      Bearings graph built once before the first test task, never updated
+  anchors     code anchors alone: files in the checkout that define identifiers the task names
+  graph       Bearings' learned graph alone (POINTS_TO + CO_CHANGED), no code anchors
+  bearings-1  Bearings, graph POINTS_TO only (no second hop) + code anchors
+  bearings    Bearings, full: graph (POINTS_TO + CO_CHANGED) + code anchors
+  frozen      Bearings full, but the graph is built once before the first test task and never updated
 
 Scenarios (--seed):
   tasks    the graph learns only from the task stream (a team starting from zero)
@@ -32,8 +34,10 @@ sys.path.insert(0, str(ROOT / "src"))
 
 from bearings.baselines import BM25Baseline, DictBaseline  # noqa: E402
 from bearings.core import Bearings, Params, is_source, test_command  # noqa: E402
+from bearings.anchors import definitions  # noqa: E402
 from bearings.db import Hydra  # noqa: E402
 
+REPO = ROOT / "data/repos/django"
 TEST_FROM = "2019-07-01"  # tasks before this date are the dev split (tuning only)
 
 
@@ -68,6 +72,7 @@ def main() -> None:
     ap.add_argument("--hop-penalty", type=float, default=Params.hop_penalty)
     ap.add_argument("--beta", type=float, default=Params.beta)
     ap.add_argument("--tenant", default="bench")
+    ap.add_argument("--scope", default=None, help="subtenant for the live graph (default django-<seed>)")
     ap.add_argument("--no-frozen", action="store_true", help="skip frozen here (run bench/level1_frozen.py)")
     args = ap.parse_args()
 
@@ -80,9 +85,9 @@ def main() -> None:
     events.sort(key=lambda e: (e["date"], e["kind"] != "history", e["id"]))
 
     params = Params(hop_penalty=args.hop_penalty, beta=args.beta)
-    live_db = Hydra(tenant=args.tenant, subtenant=f"django-{args.seed}")
+    live_db = Hydra(tenant=args.tenant, subtenant=args.scope or f"django-{args.seed}")
     frozen_db = Hydra(tenant=args.tenant, subtenant=f"django-{args.seed}-frozen")
-    for db in (live_db, frozen_db):
+    for db in ((live_db,) if args.no_frozen else (live_db, frozen_db)):
         reset_scope(db)
     live = Bearings(live_db, params)
     frozen = Bearings(frozen_db, params)
@@ -90,7 +95,7 @@ def main() -> None:
     frozen_built = False
 
     from concurrent.futures import ThreadPoolExecutor
-    pool = ThreadPoolExecutor(2)
+    pool = ThreadPoolExecutor(3)
     out = open(args.out, "w")
     learned_tasks = 0
     learned_events = 0
@@ -111,28 +116,34 @@ def main() -> None:
                    "learned_events": learned_events, "gold": ev["files"]}
             live.flush()
 
-            def timed(h):
+            def timed(h, code=True):
                 q0 = time.time()
-                p = live.context_pack(ev["text"], k=5, hops=h)
+                p = live.context_pack(ev["text"], k=5, hops=h, **(dict(repo=REPO, commit=ev["base_commit"]) if code else {}))
                 return p, round((time.time() - q0) * 1000, 1)
-            f_full, f_one = pool.submit(timed, 2), pool.submit(timed, 1)
+            f_full, f_one, f_graph = pool.submit(timed, 2), pool.submit(timed, 1), pool.submit(timed, 2, False)
             p_full, row["latency_full_ms"] = f_full.result()
             p_one, row["latency_one_ms"] = f_one.result()
+            p_graph, row["latency_graph_ms"] = f_graph.result()
             ranks = {
                 "bm25": bm25.rank(ev["text"]),
                 "dict": dic.rank(ev["text"]),
+                "anchors": [f for f, _ in sorted(definitions(REPO, ev["base_commit"], ev["text"]).items(),
+                                                 key=lambda kv: (-kv[1], kv[0]))[:5]],
+                "graph": [f["path"] for f in p_graph.files],
                 "bearings-1": [f["path"] for f in p_one.files],
                 "bearings": [f["path"] for f in p_full.files],
             }
             if frozen_built:
-                ranks["frozen"] = [f["path"] for f in frozen.context_pack(ev["text"], k=5, hops=2).files]
+                ranks["frozen"] = [f["path"] for f in frozen.context_pack(ev["text"], k=5, hops=2, repo=REPO,
+                                                                         commit=ev["base_commit"]).files]
             row["ranked"] = ranks
             row["metrics"] = {c: metrics(r, ev["files"]) for c, r in ranks.items()}
             gold_cmds = {test_command(f) for f in ev["test_files"]} - {None}
             row["test_cmd"] = p_full.test_command
             row["test_cmd_hit"] = p_full.test_command in gold_cmds
             # the database's answer vs the in-memory reference implementation
-            row["db_matches_reference"] = [f["path"] for f in live.context_pack(ev["text"], k=5, hops=2, backend="local").files] == ranks["bearings"]
+            row["db_matches_reference"] = [f["path"] for f in live.context_pack(
+                ev["text"], k=5, hops=2, backend="local", repo=REPO, commit=ev["base_commit"]).files] == ranks["bearings"]
             row["pack_chars"] = len(p_full.render())
             out.write(json.dumps(row) + "\n")
             out.flush()

@@ -63,13 +63,24 @@ def run_side(task: dict, side: str, model: str) -> dict:
     subprocess.run([str(ROOT / "scripts/snapshot.sh"), str(ROOT / "data/repos/django"), task["base_commit"], str(wt)],
                    check=True)
     with_b = side == "with"
+    # "without-2": a second run without Bearings, to show run-to-run noise
     prompt = PROMPT.format(extra=EXTRA_WITH if with_b else "", issue=task["text"])
+    settings = []
+    if side == "hook":
+        # Bearings v2 through hooks: the pack (learned graph + code anchors with line
+        # numbers) is added to the prompt by UserPromptSubmit, and the Stop hook
+        # learns from `git status` afterwards. No tool lookup, no extra turns.
+        # BEARINGS_READONLY: the demo shares the Level 2 graph, so the Stop hook must not write.
+        run = f"BEARINGS_TEAM=bench BEARINGS_REPO=django-l2 BEARINGS_READONLY=1 uv run --quiet --directory {ROOT} bearings"
+        settings = ["--settings", json.dumps({"hooks": {
+            "UserPromptSubmit": [{"hooks": [{"type": "command", "command": f"{run} hook"}]}],
+            "Stop": [{"hooks": [{"type": "command", "command": f"{run} hook-stop"}]}]}})]
     tools = "Read Edit Write Glob Grep Bash(python:*) Bash(python3:*) Bash(git diff:*) Bash(git status:*) Bash(ls:*)"
     if with_b:
         tools += " mcp__bearings__get_context_pack mcp__bearings__report_task"
     cmd = ["claude", "-p", prompt, "--model", model, "--output-format", "stream-json", "--verbose",
            "--strict-mcp-config", "--mcp-config", str(mcp_config(with_b)),
-           "--allowedTools", *tools.split(" "), "--max-turns", "60"]
+           "--allowedTools", *tools.split(" "), "--max-turns", "60", *settings]
     venv = ROOT / "runs" / "demo-venv" / "bin"
     env = dict(__import__("os").environ, PATH=f"{venv}:{__import__('os').environ['PATH']}", PYTHONPATH=str(wt))
     t0 = time.time()
@@ -113,7 +124,9 @@ def run_side(task: dict, side: str, model: str) -> dict:
 def show(rows: list[dict]) -> None:
     keys = ["total_input", "input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens",
             "num_turns", "tool_calls", "wall_s", "list_price_usd", "correct_files"]
-    print(f"{'Claude Code':32s}" + "".join(f"{r['side'] + ' Bearings':>18s}" for r in rows))
+    names = {"without": "without Bearings", "without-2": "without (rerun)", "with": "Bearings (MCP, v1)",
+             "hook-v1": "Bearings (hook, v1)", "hook": "Bearings v2 (hooks)"}
+    print(f"{'Claude Code':32s}" + "".join(f"{names[r['side']]:>18s}" for r in rows))
     for k in keys:
         print(f"{k:32s}" + "".join(f"{str(r.get(k)):>18s}" for r in rows))
     print("changed files:", {r["side"]: r["changed_files"] for r in rows}, " gold:", rows[0]["gold_files"])
@@ -124,7 +137,7 @@ def main() -> None:
     ap = argparse.ArgumentParser()
     ap.add_argument("--task", required=True)
     ap.add_argument("--model", default="sonnet")
-    ap.add_argument("--side", default="both", choices=["both", "without", "with"])
+    ap.add_argument("--side", default="both", choices=["both", "without", "with", "hook", "without-2"])
     args = ap.parse_args()
     OUT.mkdir(parents=True, exist_ok=True)
     task = task_by_id(args.task)
@@ -132,11 +145,11 @@ def main() -> None:
     rows = []
     for s in sides:
         rows.append(run_side(task, s, args.model))
-    for s in ("without", "with"):
+    for s in ("without", "without-2", "with", "hook-v1", "hook"):
         p = OUT / f"{task['id']}.{s}.json"
         if p.exists() and s not in sides:
             rows.append(json.loads(p.read_text()))
-    rows.sort(key=lambda r: r["side"] != "without")
+    rows.sort(key=lambda r: ["without", "without-2", "with", "hook-v1", "hook"].index(r["side"]))
     show(rows)
 
 

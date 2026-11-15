@@ -9,3 +9,8 @@ data/repos/
 runs/tmp/
 runs/demo-venv/
 video/audio/*.part
+video/audio/*.wav
+video/out/
+video/scenes/
+runs/level2/netproxy.jsonl
+runs/level2/mcp_server.log

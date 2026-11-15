@@ -25,6 +25,8 @@ from .db import Hydra
 ROOT = Path(__file__).resolve().parents[2]
 TEAM = os.environ.get("BEARINGS_TEAM", "bench")
 REPO = os.environ.get("BEARINGS_REPO", "django-l2")
+# checkout used for code anchors: $BEARINGS_CHECKOUT, else the bundled Django clone if present
+CHECKOUT = os.environ.get("BEARINGS_CHECKOUT") or (str(ROOT / "data/repos/django") if (ROOT / "data/repos/django").exists() else None)
 _eng: Bearings | None = None
 
 
@@ -53,14 +55,25 @@ async def asset(request: Request):
 async def pack(request: Request):
     task = request.query_params.get("task", "")[:20000]
     hops = int(request.query_params.get("hops", "2"))
+    commit = request.query_params.get("commit") or None
+    if commit and not commit.isalnum():
+        commit = None
     t0 = time.time()
     e = eng()
-    p = e.context_pack(task, k=5, hops=hops)
+    p = e.context_pack(task, k=5, hops=hops, repo=CHECKOUT, commit=commit)
+    from .db import cypher_strings
+    cypher = ("CALL algo.MSpaths({sourceLabel: 'Term', sourceProperty: 'key',\n"
+              f"  sourceValues: {cypher_strings(p.entities[:8])[:-1]}, ...],\n"
+              "  relTypes: ['POINTS_TO', 'CO_CHANGED'], relDirection: 'outgoing',\n"
+              "  maxLen: 2, weightProp: 'w', pathCount: 20, pairwise: false})\nYIELD path, pathWeight")
     return JSONResponse({
         "scope": f"{TEAM}/{REPO}",
         "ms": round((time.time() - t0) * 1000),
         "entities": p.entities[:30],
-        "files": [{"path": f["path"], "score": round(f["score"], 3), "why": f["why"]} for f in p.files],
+        "files": [{"path": f["path"], "score": round(f["score"], 3), "why": f["why"], "lines": f.get("lines", [])}
+                  for f in p.files],
+        "code": (f"{Path(CHECKOUT).name}@{commit[:8]}" if commit else Path(CHECKOUT).name) if CHECKOUT else None,
+        "cypher": cypher,
         "test_command": p.test_command,
         "pack_text": p.render(),
         "graph_tasks": e.n_events,
@@ -72,7 +85,7 @@ async def examples(_: Request):
     for line in open(ROOT / "data/derived/tasks.jsonl"):
         t = json.loads(line)
         if t["verified"] and t["date"] >= "2022-07-01":
-            rows.append({"id": t["id"], "text": t["text"][:3000], "gold": t["files"]})
+            rows.append({"id": t["id"], "text": t["text"][:3000], "gold": t["files"], "base_commit": t["base_commit"]})
     return JSONResponse(rows[:40])
 
 

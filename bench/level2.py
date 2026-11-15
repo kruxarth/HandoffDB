@@ -31,11 +31,16 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "src"))
 
+from bearings.anchors import definitions  # noqa: E402
 from bearings.baselines import DictBaseline  # noqa: E402
 from bearings.core import Bearings, Params, is_source  # noqa: E402
 from bearings.db import Hydra  # noqa: E402
 
+# DeepSeek V4.1 Flash, free tier through OpenCode (signed-in account key, see
+# oc_auth). Fallback: L2_MODEL=deepseek/deepseek-flash uses the same model through
+# the DeepSeek API (paid, capped by BALANCE_FLOOR).
 MODEL = os.environ.get("L2_MODEL", "opencode/deepseek-v4.1-flash-free")
+BALANCE_FLOOR = 0.25  # USD: stop starting new runs below this DeepSeek balance
 CUTOFF = "2022-07-01"  # graph/dictionary learn from events before this; sample from after
 SCOPE = ("bench", "django-l2")
 RUNS = ROOT / "runs" / "level2"
@@ -45,9 +50,22 @@ MCP_PORT = 8766
 import threading  # noqa: E402
 _lock = threading.Lock()
 _start_lock = threading.Lock()
-TIMEOUT = 900
+_pack_lock = threading.Lock()
+_engine = None
 
-PROMPT = """You are localizing an issue in this repository (the Django source tree). Read the issue, explore the code as needed, and decide which source files must be edited to fix it. Do not edit any files and do not run the test suite. Finish with one final line in exactly this form:
+
+def bearings_engine():
+    """Read-only engine on the Level 2 graph (history + tasks before CUTOFF)."""
+    global _engine
+    if _engine is None:
+        _engine = Bearings(Hydra(tenant=SCOPE[0], subtenant=SCOPE[1]), Params())
+        _engine.load(full=False)
+    return _engine
+TIMEOUT = 900
+LIMIT_RE = re.compile(r"usage limit|rate.?limit|too many requests|quota|\b429\b", re.I)
+AUTH = None
+
+PROMPT = """You are localizing an issue in this repository (the Django source tree at /work/repo). Read the issue, explore the code as needed, and decide which source files must be edited to fix it. Everything you need is in this repository; do not search outside it. Do not edit any files and do not run the test suite. Finish with one final line in exactly this form:
 FILES: path/one.py, path/two.py
 (repo-relative paths of the source files to edit, most likely first, at most 5).
 {extra}
@@ -57,7 +75,10 @@ ISSUE:
 EXTRA = {
     "none": "",
     "dict": "\nFiles that past fixes with similar wording changed (from a word-to-file table built from this repo's history; may be wrong):\n{pack}\n",
-    "bearings": "\nA Bearings MCP tool is available. Call bearings_get_context_pack with the issue text before you start exploring; it returns where past work on this repo landed.\n",
+    "anchors": "\nWhere identifiers named in the issue are defined in this checkout (from git grep; may be wrong):\n{pack}\n",
+    "bearings": "\n{pack}\n",
+    # v1 delivery, kept for comparison: the agent pulls the pack through an MCP tool
+    "bearings-mcp": "\nA Bearings MCP tool is available. Call bearings_get_context_pack with the issue text before you start exploring; it returns where past work on this repo landed.\n",
 }
 
 OC_ENV = {
@@ -109,9 +130,9 @@ def oc_config(cond: str) -> Path:
         "agent": {"locate": {"description": "Find the files to edit for an issue; never edits.",
                              "mode": "primary", "steps": STEP_CAP,
                              "permission": {"edit": "deny", "bash": "allow", "webfetch": "deny", "websearch": "deny",
-                                            "codesearch": "deny"}}},
+                                            "codesearch": "deny", "external_directory": "deny"}}},
     }
-    if cond == "bearings":
+    if cond == "bearings-mcp":
         # served over HTTP from outside the sandbox (see start_mcp), so the
         # agent's sandbox never contains the Bearings repo or its data
         cfg["mcp"] = {"bearings": {"type": "remote", "url": f"http://127.0.0.1:{MCP_PORT}/mcp", "enabled": True}}
@@ -165,6 +186,47 @@ def score(pred: list[str], gold: list[str]) -> dict:
 NET = WORK / "net"
 
 
+def deepseek_key() -> str | None:
+    for line in (ROOT / ".env").read_text().splitlines() if (ROOT / ".env").exists() else []:
+        k, _, v = line.partition("=")
+        if k.strip().startswith("DEEPSEEK"):
+            return v.strip().strip('"')
+    return os.environ.get("DEEPSEEK_API_KEY")
+
+
+def deepseek_balance() -> float | None:
+    import urllib.request
+    key = deepseek_key()
+    if not key:
+        return None
+    req = urllib.request.Request("https://api.deepseek.com/user/balance", headers={"Authorization": f"Bearer {key}"})
+    try:
+        d = json.load(urllib.request.urlopen(req, timeout=20))
+        return float(d["balance_infos"][0]["total_balance"])
+    except Exception:  # noqa: BLE001
+        return None
+
+
+def oc_auth() -> str | None:
+    """auth.json with only the provider the model needs, for the sandbox's fresh
+    OpenCode data dir. Kept in runs/tmp (git-ignored); run logs are checked for
+    the key before committing (scripts/check_secrets.sh)."""
+    dst = WORK / "oc_auth.json"
+    if MODEL.startswith("deepseek/"):
+        key = deepseek_key()
+        if not key:
+            return None
+        dst.write_text(json.dumps({"deepseek": {"type": "api", "key": key}}))
+    else:
+        src = Path.home() / ".local/share/opencode/auth.json"
+        d = json.loads(src.read_text()) if src.exists() else {}
+        if "opencode" not in d:
+            return None
+        dst.write_text(json.dumps({"opencode": d["opencode"]}))
+    dst.chmod(0o600)
+    return str(dst)
+
+
 def start_net(with_mcp: bool) -> list[subprocess.Popen]:
     """The sandbox has no network. Outside it: an allow-list HTTPS proxy that
     only reaches the model provider, and a unix-socket relay to the MCP server."""
@@ -172,7 +234,7 @@ def start_net(with_mcp: bool) -> list[subprocess.Popen]:
     for f in ("proxy.sock", "mcp.sock"):
         (NET / f).unlink(missing_ok=True)
     procs = [subprocess.Popen([sys.executable, str(ROOT / "scripts/netproxy.py"), str(NET / "proxy.sock"),
-                               str(RUNS / "netproxy.jsonl")])]
+                               str(RUNS / "netproxy.jsonl"), "opencode.ai", "models.dev", "api.deepseek.com"])]
     if with_mcp:
         procs.append(subprocess.Popen(["socat", f"UNIX-LISTEN:{NET / 'mcp.sock'},fork",
                                        f"TCP:127.0.0.1:{MCP_PORT}"]))
@@ -231,6 +293,19 @@ def run_one(task: dict, cond: str, dic: DictBaseline | None, rep: int = 0) -> di
     if cond == "dict":
         pack_text = "\n".join(f"  {f}" for f in dic.rank(task["text"], k=5))
         extra = extra.format(pack=pack_text or "  (none)")
+    elif cond == "anchors":
+        sc, where = definitions(ROOT / "data/repos/django", task["base_commit"], task["text"], detail=True)
+        top = sorted(sc.items(), key=lambda kv: (-kv[1], kv[0]))[:5]
+        pack_text = "\n".join(f"  {f}  defines " + ", ".join(f"{n} (line {ln})" for ln, n in sorted(where[f])[:3])
+                              for f, _ in top)
+        extra = extra.format(pack=pack_text or "  (none)")
+    elif cond == "bearings":
+        # pushed into the prompt (like the Claude Code hook): no tool lookup, no extra turn
+        with _pack_lock:
+            pk = bearings_engine().context_pack(task["text"], k=5, repo=ROOT / "data/repos/django",
+                                                commit=task["base_commit"])
+        pack_text = pk.render()
+        extra = extra.format(pack=pack_text)
     prompt = PROMPT.format(extra=extra, issue=task["text"])
     cfg_path = oc_config(cond)
     attempts = 0
@@ -242,23 +317,37 @@ def run_one(task: dict, cond: str, dic: DictBaseline | None, rep: int = 0) -> di
         data_dir = WORK / f"ocdata-{cond}-{task['id']}"
         subprocess.run(["rm", "-rf", str(data_dir)])
         with open(ev_path, "w") as fo, open(ev_path.with_suffix(".err"), "w") as fe:
-            try:
-                proc = subprocess.run([str(ROOT / "scripts/sandbox_opencode.sh"), str(wt), str(cfg_path), str(data_dir), str(NET), "--",
-                                       "run", "--title", "bench", "--format", "json", "--agent", "locate",
-                                       "-m", MODEL, "--dir", "/work/repo", prompt],
-                                      stdout=fo, stderr=fe, timeout=TIMEOUT)
-                code = proc.returncode
-            except subprocess.TimeoutExpired:
-                code = "timeout"
+            proc = subprocess.Popen([str(ROOT / "scripts/sandbox_opencode.sh"), str(wt), str(cfg_path), str(data_dir), str(NET), "--",
+                                     "run", "--print-logs", "--log-level", "WARN", "--title", "bench", "--format", "json",
+                                     "--agent", "locate", "-m", MODEL, "--dir", "/work/repo", prompt],
+                                    stdin=subprocess.DEVNULL, stdout=fo, stderr=fe,
+                                    env=dict(os.environ, **({"OC_AUTH": AUTH} if AUTH else {})))
+            code = None
+            while code is None:
+                try:
+                    code = proc.wait(timeout=5)
+                except subprocess.TimeoutExpired:
+                    err = ev_path.with_suffix(".err").read_text(errors="replace")
+                    if LIMIT_RE.search(err) or time.time() - t0 > TIMEOUT:
+                        reason = "rate_limit" if LIMIT_RE.search(err) else "timeout"
+                        proc.terminate()
+                        try:
+                            proc.wait(timeout=10)
+                        except subprocess.TimeoutExpired:
+                            proc.kill()
+                        code = reason
         subprocess.run(["rm", "-rf", str(data_dir)])
         wall = time.time() - t0
         res = parse_events(ev_path)
         # infrastructure failure before the model ran (e.g. opencode's db locked): retry
-        if code != 0 and res["steps"] == 0 and attempts < 3:
+        if code == "rate_limit" and attempts < 6:
+            time.sleep(90 * attempts)  # back off, then try again; counted in `attempts`
+            continue
+        if code != 0 and code != "rate_limit" and res["steps"] == 0 and attempts < 3:
             continue
         break
     err_text = ev_path.with_suffix(".err").read_text()[-4000:]
-    rate_limited = bool(re.search(r"rate.?limit|429|too many requests|quota", err_text + " ".join(res["errors"]), re.I))
+    rate_limited = code == "rate_limit" or bool(LIMIT_RE.search(err_text + " ".join(res["errors"])))
     subprocess.run(["rm", "-rf", str(wt)])
     leaks = outside_access(ev_path)
     row = {"id": task["id"], "date": task["date"], "condition": cond, "rep": rep, "model": MODEL,
@@ -276,7 +365,7 @@ def main() -> None:
     r = sub.add_parser("run")
     r.add_argument("--tasks", type=int, default=30)
     r.add_argument("--only", default=None)
-    r.add_argument("--conditions", default="none,dict,bearings")
+    r.add_argument("--conditions", default="none,dict,anchors,bearings")
     r.add_argument("--seed", type=int, default=0)
     r.add_argument("--skip-done", action="store_true")
     r.add_argument("--parallel", type=int, default=3)
@@ -298,13 +387,23 @@ def main() -> None:
             if not r0["rate_limited"] and r0["answered"]:
                 done.add((r0["id"], r0["condition"]))
     jobs = [(t, c) for t in tasks for c in conds if (t["id"], c) not in done]
-    mcp_proc = start_mcp() if "bearings" in conds else None
-    net_procs = start_net("bearings" in conds)
+    mcp_proc = start_mcp() if "bearings-mcp" in conds else None
+    net_procs = start_net("bearings-mcp" in conds)
+    global AUTH
+    AUTH = oc_auth()
     # all conditions of one task run at the same time, so time-of-day and
     # rate-limit drift hit every condition equally
 
+    stop = {"low": False}
+
     def job(tc):
         t, c = tc
+        if MODEL.startswith("deepseek/"):
+            bal = deepseek_balance()
+            if bal is not None and bal < BALANCE_FLOOR or stop["low"]:
+                stop["low"] = True
+                print(f"skip {t['id']} {c}: DeepSeek balance {bal} below floor {BALANCE_FLOOR}", flush=True)
+                return None
         row = run_one(t, c, dic)
         print(f"{t['id']} {c}: hit={row['hit']} all={row['all']} files={row['files']} "
               f"in={row['total_input']} out={row['tokens']['output']} tools={row['tool_calls']} "

@@ -8,6 +8,7 @@ Every number in the README comes from this script's output.
 from __future__ import annotations
 
 import html
+import re
 import json
 import math
 import statistics
@@ -19,7 +20,8 @@ sys.path.insert(0, str(ROOT / "bench"))
 from summarize import CONDS, ci, paired_diff  # noqa: E402
 
 RES = ROOT / "results"
-SIDE = {"without": "Without Bearings", "with": "Bearings via MCP", "hook": "Bearings via hook"}
+SIDE = {"without": "Without Bearings", "without-2": "Without Bearings (rerun)", "with": "Bearings v1 via MCP tool",
+        "hook-v1": "Bearings v1 via prompt hook", "hook": "Bearings v2 via hooks (graph + code anchors)"}
 LABEL = {"bm25": "Keyword search (BM25)", "dict": "Dictionary (no graph)", "bearings-1": "Bearings, one hop",
          "bearings": "Bearings, full", "frozen": "Frozen graph"}
 COLOR = {"bearings": "--series-1", "dict": "--series-2", "bearings-1": "--series-3", "frozen": "--series-4",
@@ -162,50 +164,69 @@ def svg_bars(groups: list[tuple[str, list[tuple[str, float, float, float]]]], ci
     return "".join(parts)
 
 
-def level2() -> tuple[str, list[dict], dict]:
+L2_LAB = {"none": "No memory", "dict": "Dictionary pack in prompt", "anchors": "Code anchors in prompt",
+          "bearings": "Bearings pack in prompt", "bearings-mcp": "Bearings via MCP tool (v1)"}
+L2_ORDER = ["none", "dict", "anchors", "bearings", "bearings-mcp"]
+
+
+def level2() -> tuple[str, dict]:
+    """Markdown + structured stats. A run counts unless it was rate-limited or the
+    agent never ran (infrastructure failure); timeouts count as failures."""
     p = ROOT / "runs" / "level2" / "results.jsonl"
-    rp = RES / "level2_results.jsonl"
-    src = rp if rp.exists() else p
-    if not src.exists():
-        return "(Level 2 not run yet)", [], {}
-    rs = [json.loads(line) for line in open(src)]
-    valid = [r for r in rs if not r["rate_limited"] and r["exit"] == 0]
+    if not p.exists():
+        return "(Level 2 not run yet)", {}
+    rs = [json.loads(line) for line in open(p)]
+    latest: dict[tuple[str, str], dict] = {}
+    for r in rs:
+        latest[(r["id"], r["condition"])] = r
+    rs = list(latest.values())
+    valid = [r for r in rs if not r["rate_limited"] and r["steps"] > 0]
     excluded = len(rs) - len(valid)
-    conds = [c for c in ("none", "dict", "bearings") if any(r["condition"] == c for r in valid)]
-    # paired: only tasks with a valid run in every condition
+    conds = [c for c in L2_ORDER if any(r["condition"] == c for r in valid)]
     ids = set.intersection(*[{r["id"] for r in valid if r["condition"] == c} for c in conds]) if conds else set()
     by = {c: {r["id"]: r for r in valid if r["condition"] == c} for c in conds}
-    lab = {"none": "No memory", "dict": "Dictionary pack in prompt", "bearings": "Bearings (MCP)"}
-    out = [f"Model: `{valid[0]['model'] if valid else '?'}` via OpenCode. Paired tasks: {len(ids)}. "
-           f"Runs excluded (rate limit / crash / timeout): {excluded} of {len(rs)}.", "",
+    timeouts = sum(1 for r in valid if r["exit"] == "timeout" and r["id"] in ids)
+    escapes = sum(1 for r in valid if r.get("outside_access") and r["id"] in ids)
+    model = valid[0]["model"] if valid else "?"
+    out = [f"Model: `{model}` via OpenCode 1.18.35, step cap 25, sandboxed (no network except the model API). "
+           f"Paired tasks (a counted run in every condition): {len(ids)}. Runs excluded (rate-limited or the agent never "
+           f"started): {excluded} of {len(rs)}. Timeouts counted as failures: {timeouts}. Runs where the agent tried to "
+           f"reach outside the sandbox (blocked, counted normally): {escapes}.", "",
            "| Condition | success (all gold files named) | hit (≥1 gold file) | total input tokens, median [IQR] | uncached input | output+reasoning | tool calls | wall s |",
            "|---|---|---|---|---|---|---|---|"]
-    stats = {}
+    stats: dict = {"conds": {}, "n": len(ids), "excluded": excluded, "total": len(rs), "timeouts": timeouts,
+                   "escapes": escapes, "model": model}
     for c in conds:
         rr = [by[c][i] for i in sorted(ids)]
         if not rr:
             continue
         ti = sorted(r["total_input"] for r in rr)
         q = statistics.quantiles(ti, n=4) if len(ti) >= 4 else [ti[0], statistics.median(ti), ti[-1]]
-        succ = ci([r["all"] for r in rr])
-        hit = ci([r["hit"] for r in rr])
-        stats[c] = {"succ": succ, "hit": hit, "median_in": statistics.median(ti), "mean_in": sum(ti) / len(ti), "n": len(rr)}
-        out.append(f"| {lab[c]} | {fmt(succ)} | {fmt(hit)} | {statistics.median(ti):,.0f} [{q[0]:,.0f}–{q[2]:,.0f}] | "
+        st = {"succ": ci([r["all"] for r in rr]), "hit": ci([r["hit"] for r in rr]), "median_in": statistics.median(ti),
+              "q1": q[0], "q3": q[2], "mean_in": sum(ti) / len(ti), "n": len(rr),
+              "tools": round(statistics.median([r["tool_calls"] for r in rr])),
+              "wall": round(statistics.median([r["wall_s"] for r in rr])), "ratio": None, "dsucc": None, "dtok": None}
+        if c != "none" and "none" in conds:
+            b = [by["none"][i] for i in sorted(ids)]
+            st["dsucc"] = paired_diff([x["all"] for x in rr], [y["all"] for y in b])
+            st["dtok"] = paired_diff([x["total_input"] for x in rr], [y["total_input"] for y in b])
+            st["ratio"] = statistics.median([x["total_input"] / max(1, y["total_input"]) for x, y in zip(rr, b)])
+        stats["conds"][c] = st
+        out.append(f"| {L2_LAB[c]} | {fmt(st['succ'])} | {fmt(st['hit'])} | {st['median_in']:,.0f} [{q[0]:,.0f}–{q[2]:,.0f}] | "
                    f"{statistics.median([r['tokens']['input'] for r in rr]):,.0f} | "
                    f"{statistics.median([r['tokens']['output'] + r['tokens']['reasoning'] for r in rr]):,.0f} | "
-                   f"{statistics.median([r['tool_calls'] for r in rr]):.0f} | {statistics.median([r['wall_s'] for r in rr]):.0f} |")
+                   f"{st['tools']} | {st['wall']} |")
     if "none" in conds and ids:
-        out += ["", "| Paired difference vs no memory | Δ success | Δ total input tokens (mean, 95% CI) | median ratio |", "|---|---|---|---|"]
+        out += ["", "| Paired difference vs no memory | Δ success | Δ total input tokens (mean, 95% CI) | median per-task ratio |",
+                "|---|---|---|---|"]
         for c in conds:
             if c == "none":
                 continue
-            a = [by[c][i] for i in sorted(ids)]
-            b = [by["none"][i] for i in sorted(ids)]
-            ds = paired_diff([x["all"] for x in a], [y["all"] for y in b])
-            dt = paired_diff([x["total_input"] for x in a], [y["total_input"] for y in b])
-            ratio = statistics.median([x["total_input"] / max(1, y["total_input"]) for x, y in zip(a, b)])
-            out.append(f"| {lab[c]} | {ds[0]:+.3f} [{ds[1]:+.3f}, {ds[2]:+.3f}] | {dt[0]:+,.0f} [{dt[1]:+,.0f}, {dt[2]:+,.0f}] | {ratio:.2f} |")
-    return "\n".join(out), valid, stats
+            st = stats["conds"][c]
+            ds, dt = st["dsucc"], st["dtok"]
+            out.append(f"| {L2_LAB[c]} | {ds[0]:+.3f} [{ds[1]:+.3f}, {ds[2]:+.3f}] | {dt[0]:+,.0f} [{dt[1]:+,.0f}, {dt[2]:+,.0f}] | "
+                       f"{st['ratio']:.2f} |")
+    return "\n".join(out), stats
 
 
 def reach_section() -> str:
@@ -220,151 +241,184 @@ def reach_section() -> str:
     return "\n".join(lines)
 
 
-def main() -> None:
-    md = ["# Results", "", "Generated by `uv run python bench/report.py` from the files in `results/`. "
-          "Brackets are 95% bootstrap confidence intervals.", ""]
-    body_html = []
-    for seed, title in (("history", "Seeded from Django's commit history, then learning from the task stream"),
-                        ("tasks", "Learning from the task stream only (a team starting from an empty graph)")):
-        path = RES / f"level1_{seed}.jsonl"
-        test = rows(path)
-        if not test:
+L1_ORDER = ["bearings", "bearings-1", "graph", "anchors", "bm25", "dict", "frozen"]
+LABEL.update({"anchors": "Code anchors only", "graph": "Learned graph only", "bearings": "Bearings (graph + anchors)",
+              "bearings-1": "Bearings, no second hop", "frozen": "Bearings, frozen graph"})
+COLORS = {"bearings": "s1", "bm25": "s2", "graph": "s3", "frozen": "s4", "dict": "s5", "anchors": "s7", "bearings-1": "s6",
+          "l2:none": "s4", "l2:dict": "s5", "l2:anchors": "s7", "l2:bearings": "s1", "l2:bearings-mcp": "s3"}
+SEED_TITLE = {"history": "Seeded from history", "tasks": "Empty start"}
+SEED_LONG = {"history": "Seeded from Django's commit history, then learning from the task stream",
+             "tasks": "Learning from the task stream only (a team starting from an empty graph)"}
+
+
+def seed_block(seed: str) -> tuple[list[str], dict]:
+    path = RES / f"level1_{seed}.jsonl"
+    test = rows(path)
+    if not test:
+        return [], {}
+    ver = rows(path, subset="verified")
+    md = [f"## Level 1, {SEED_LONG[seed]}", "", f"Test split: SWE-bench Django tasks from 2019-07-01 on (n={len(test)}). "
+          f"Retrieval only, no model calls.", "", l1_table(test), "", diffs(test), "",
+          f"SWE-bench Verified subset (n={len(ver)}):", "", l1_table(ver), ""]
+    lat = sorted(r["latency_full_ms"] for r in test)
+    agree = [r["db_matches_reference"] for r in test if "db_matches_reference" in r]
+    tc = [r["test_cmd_hit"] for r in test]
+    pc = sorted(r["pack_chars"] for r in test)
+    w2, l2 = where_differ(test, "bearings", "bearings-1")
+    facts = [
+        {"title": "Query latency", "text": f"HydraDB path query + code anchors + scoring: p50 {lat[len(lat)//2]:.0f} ms, "
+                                           f"p95 {lat[int(len(lat)*.95)]:.0f} ms per task, on a laptop, while other benchmarks ran."},
+        {"title": "Second hop", "text": f"Adding the co-changed-file hop changed hit@5 on {w2 + l2} of {len(test)} tasks "
+                                        f"({w2} better, {l2} worse). Measured, and close to zero."},
+        {"title": "Test command", "text": f"The suggested test command names the module where the real fix's tests live on "
+                                          f"{sum(tc)/len(tc):.0%} of tasks."},
+        {"title": "Database vs reference", "text": f"HydraDB's ranking equals an in-memory reference implementation of the same "
+                                                   f"query on {sum(agree)}/{len(agree)} tasks (ties broken differently on the rest). "
+                                                   f"Pack size: median {pc[len(pc)//2]//4} tokens."},
+    ]
+    md += [f"- {f['title']}: {re.sub('<[^>]+>', '', f['text'])}" for f in facts] + [""]
+    conds = {}
+    for c in CONDS:
+        sub = [r for r in test if c in r["metrics"]]
+        if sub:
+            conds[c] = {m: ci([r["metrics"][c][m] for r in sub]) for m in METRICS}
+    dd = []
+    reading = {("bearings", "bm25"): "vs keyword search over past tasks", ("bearings", "graph"): "what the code anchors add",
+               ("bearings", "anchors"): "what the learned graph adds", ("bearings", "frozen"): "what learning as tasks arrive adds",
+               ("bearings", "bearings-1"): "what the second hop adds", ("bearings", "dict"): "vs a plain word-to-file table"}
+    for (a, b), txt in reading.items():
+        sub = [r for r in test if a in r["metrics"] and b in r["metrics"]]
+        if not sub:
             continue
-        ver = rows(path, subset="verified")
-        md += [f"## Level 1, {title}", "", f"Test split: SWE-bench Django tasks from 2019-07-01 on (n={len(test)}). "
-               f"Retrieval only, no model calls.", "", l1_table(test), "", diffs(test), "",
-               f"SWE-bench Verified subset (n={len(ver)}):", "", l1_table(ver), ""]
-        w, lo = where_differ(test, "bearings", "dict")
-        w2, l2 = where_differ(test, "bearings", "bearings-1")
-        lat = sorted(r["latency_full_ms"] for r in test)
-        lat1 = sorted(r["latency_one_ms"] for r in test)
-        agree = [r["db_matches_reference"] for r in test if "db_matches_reference" in r]
-        tc = [r["test_cmd_hit"] for r in test]
-        pc = sorted(r["pack_chars"] for r in test)
-        md += [f"- Where Bearings and the dictionary differ at hit@5: Bearings better on {w} tasks, worse on {lo}.",
-               f"- Where the second hop changes hit@5: better on {w2} tasks, worse on {l2}.",
-               f"- Query latency (HydraDB path query + scoring): full p50 {lat[len(lat)//2]:.0f} ms, p95 {lat[int(len(lat)*.95)]:.0f} ms; "
-               f"one hop p50 {lat1[len(lat1)//2]:.0f} ms.",
-               f"- Suggested test command names the module the real fix's tests live in: {sum(tc)/len(tc):.3f} of tasks.",
-               f"- Context pack size: median {pc[len(pc)//2]} characters (≈{pc[len(pc)//2]//4} tokens).",
-               (f"- HydraDB's ranking equals the in-memory reference implementation on {sum(agree)}/{len(agree)} tasks."
-                if agree else ""), ""]
-        body_html.append(f"<h2>Level 1: {html.escape(title)}</h2>")
-        body_html.append(f"<p class='note'>hit@5 = the real fix touched at least one of the 5 suggested files. "
-                         f"Rolling mean over 100 tasks; each task is answered before it is learned.</p>")
-        body_html.append(svg_lines(curve(path), f"hit@5 vs tasks learned ({seed})", "hit@5", f"curve-{seed}"))
-        groups = []
-        for m in ("hit@1", "hit@5"):
-            items = []
-            for c in CONDS:
-                sub = [r for r in test if c in r["metrics"]]
-                if sub:
-                    items.append((c, *ci([r["metrics"][c][m] for r in sub])))
-            groups.append((f"{m}, test split n={len(test)}", items))
-        body_html.append(svg_bars(groups, f"bars-{seed}"))
+        d = {m: paired_diff([r["metrics"][a][m] for r in sub], [r["metrics"][b][m] for r in sub]) for m in ("hit@1", "hit@5")}
+        dd.append({"label": f"{LABEL[a]} − {LABEL[b]}", "reading": txt, "hl": b in ("bm25", "frozen"), **d})
+    curves = {}
+    for m in ("hit@1", "hit@3", "hit@5"):
+        cv = curve(path, m)
+        curves[m] = {c: [[x, round(y, 4)] for x, y in cv[c]] for c in ("bearings", "graph", "bm25", "frozen") if c in cv}
+    return md, {"title": SEED_TITLE[seed], "n": len(test), "test_from": "2019-07-01", "conds": conds, "diffs": dd,
+                "curves": curves, "facts": facts, "lat_p50": lat[len(lat)//2]}
+
+
+def main() -> None:
+    md = ["# Results", "", "Generated by `uv run python bench/report.py` from the files in `results/` and `runs/level2/`. "
+          "Brackets are 95% bootstrap confidence intervals. hit@k = the real fix changed at least one of the top k suggested "
+          "source files.", ""]
+    data: dict = {"level1": {}, "labels": dict(LABEL), "colors": COLORS, "l1_order": L1_ORDER,
+                  "curve_hidden": [], "demo": [], "notes": [], "pills": [], "kpis": []}
+    for seed in ("history", "tasks"):
+        m, d = seed_block(seed)
+        md += m
+        if d:
+            data["level1"][seed] = d
     rs = reach_section()
     if rs:
         md += ["## Does the second hop reach files the first hop cannot?", "",
-               "Measured on the dev split: for each gold source file, is it linked in one hop from any of the task's "
+               "Measured on the dev split (graph only): for each gold source file, is it linked in one hop from any of the task's "
                "entities, only through a CO_CHANGED hop, or not at all?", "", rs, ""]
-    l2md, l2rows, l2stats = level2()
+    l2md, l2 = level2()
     md += ["## Level 2, live agent runs: tokens to locate the right files", "",
-           "Measured with DeepSeek through OpenCode. The agent names the files it would edit and stops; success is "
-           "checked in code against the real fix. Token counts include the context pack.", "", l2md, ""]
+           "The agent (DeepSeek V4.1 Flash through OpenCode) reads the issue, explores a history-free snapshot of the repo "
+           "at the issue's commit, and names the files it would edit. Success is checked in code against the real fix. "
+           "Token counts are OpenCode's per-step usage, summed, and include the context pack. Packs come from a graph built "
+           "only from events before 2022-07-01; tasks are SWE-bench Verified issues from after it.", "", l2md, ""]
     demo = [json.loads(p.read_text()) for p in sorted((RES / "claude_demo").glob("*.json"))] \
         if (RES / "claude_demo").exists() else []
     demo = sorted((d for d in demo if "side" in d), key=lambda d: (d["task"], list(SIDE).index(d["side"])))
     if demo:
-        md += ["## Claude Code demo (two tasks, not a statistic)", "",
-               "Headless Claude Code (`claude -p`, sonnet), the same task fixed once without and once with Bearings. "
-               "Usage is Claude Code's own `usage` block from the final result event. Total input = uncached input + "
-               "cache write + cache read. The dollar column is Claude Code's list-price arithmetic, not measured spend "
-               "(these runs used a Pro plan). On both tasks Bearings *increased* tokens: the agent made the "
-               "pack call (plus a tool lookup and a report call over MCP) and still explored about as much.", "",
+        md += ["## Claude Code demo (a few tasks, not a statistic)", "",
+               "Headless Claude Code (`claude -p`, sonnet) fixing the issue end to end. Usage is Claude Code's own `usage` "
+               "block from the final result event; total input = uncached input + cache write + cache read. The dollar "
+               "column is Claude Code's list-price arithmetic, not measured spend (these runs used a Pro plan).", "",
                "| Task | Side | total input | vs without | uncached input | cache write | cache read | output | turns | tool calls | right files | list-price arithmetic |",
                "|---|---|---|---|---|---|---|---|---|---|---|---|"]
         base = {d["task"]: d["total_input"] for d in demo if d["side"] == "without"}
         for d in demo:
-            rel = (f"{(d['total_input'] / base[d['task']] - 1) * 100:+.0f}%" if d["side"] != "without" and d["task"] in base
-                   else "")
-            md.append(f"| {d['task']} | {SIDE.get(d['side'], d['side'])} | {d['total_input']:,} | {rel} | {d['input_tokens']:,} | "
-                      f"{d['cache_creation_input_tokens']:,} | {d['cache_read_input_tokens']:,} | {d['output_tokens']:,} | "
-                      f"{d['num_turns']} | {d['tool_calls']} | {d['correct_files']} | ${d['list_price_usd']:.2f} |")
+            rel = round((d["total_input"] / base[d["task"]] - 1) * 100) if d["side"] != "without" and d["task"] in base else None
+            md.append(f"| {d['task']} | {SIDE.get(d['side'], d['side'])} | {d['total_input']:,} | {'' if rel is None else f'{rel:+d}%'} | "
+                      f"{d['input_tokens']:,} | {d['cache_creation_input_tokens']:,} | {d['cache_read_input_tokens']:,} | "
+                      f"{d['output_tokens']:,} | {d['num_turns']} | {d['tool_calls']} | {d['correct_files']} | ${d['list_price_usd']:.2f} |")
+            data["demo"].append({"task": d["task"].replace("django__", ""), "side": d["side"], "label": SIDE.get(d["side"], d["side"]),
+                                 "total_input": d["total_input"], "rel": rel, "num_turns": d["num_turns"],
+                                 "tool_calls": d["tool_calls"], "output_tokens": d["output_tokens"], "correct": d["correct_files"]})
         md.append("")
     (RES / "RESULTS.md").write_text("\n".join(md))
-    md_html = "\n".join(md)
-    page = TEMPLATE.replace("{{BODY}}", "\n".join(body_html)).replace("{{RESULTS_MD}}", html.escape(md_html))
-    (RES / "report.html").write_text(page)
+    dashboard(data, l2)
     print("\n".join(md))
 
 
-TEMPLATE = """<!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Bearings results</title>
-<style>
-.viz-root{color-scheme:light;--surface-1:#fcfcfb;--text-primary:#0b0b0b;--text-secondary:#52514e;--grid:#e4e3df;
---series-1:#2a78d6;--series-2:#eb6834;--series-3:#1baf7a;--series-4:#eda100;--series-5:#e87ba4}
-@media (prefers-color-scheme: dark){:root:where(:not([data-theme="light"])) .viz-root{color-scheme:dark;--surface-1:#1a1a19;
---text-primary:#f0efec;--text-secondary:#c3c2b7;--grid:#34332f;--series-1:#3987e5;--series-2:#d95926;--series-3:#199e70;--series-4:#c98500;--series-5:#d55181}}
-body{margin:0;font:15px/1.5 system-ui,sans-serif}
-.viz-root{background:var(--surface-1);color:var(--text-primary);min-height:100vh;padding:24px 32px;max-width:980px;margin:auto}
-h1{font-size:26px;margin:0 0 4px} h2{font-size:19px;margin:32px 0 6px} .note{color:var(--text-secondary);margin:0 0 8px}
-.chart{width:100%;height:auto;display:block;margin:8px 0 12px}
-.grid{stroke:var(--grid);stroke-width:1} .tick{fill:var(--text-secondary);font-size:11px} .axis{fill:var(--text-secondary);font-size:12px}
-.dlabel{fill:var(--text-primary);font-size:12px} .glabel{fill:var(--text-primary);font-size:13px;font-weight:600}
-.whisker{stroke:var(--text-secondary);stroke-width:1.5} .xhair{stroke:var(--text-secondary);stroke-width:1;stroke-dasharray:3 3}
-#tip{position:fixed;pointer-events:none;background:var(--surface-1);border:1px solid var(--grid);border-radius:6px;padding:6px 8px;font-size:12px;display:none;box-shadow:0 2px 8px #0002}
-textarea{width:100%;min-height:140px;font:13px ui-monospace,monospace;background:transparent;color:inherit;border:1px solid var(--grid);border-radius:6px;padding:8px}
-button,select{font:inherit;padding:6px 12px;border-radius:6px;border:1px solid var(--grid);background:transparent;color:inherit;cursor:pointer}
-.file{margin:10px 0;padding:10px 12px;border:1px solid var(--grid);border-radius:8px} .file code{font-weight:600}
-.why{color:var(--text-secondary);font:12px ui-monospace,monospace;margin-top:4px}
-details pre{white-space:pre-wrap;font-size:12px}
-</style></head>
-<body><div class="viz-root">
-<h1>Bearings</h1>
-<p class="note">A learned context layer for coding agents, stored as a graph in self-hosted HydraDB. Every number below is generated from the result files in this repository.</p>
-<h2>Try a task</h2>
-<p class="note">Paste an issue, or pick a SWE-bench task from after the graph's cutoff. The suggestions come from one weighted path query against HydraDB; each line under a file is the graph path that justifies it.</p>
-<select id="ex"><option value="">Pick an example task...</option></select>
-<textarea id="task" placeholder="Describe the bug or task"></textarea>
-<p><button id="go">Get context pack</button> <span id="meta" class="note"></span></p>
-<div id="out"></div>
-{{BODY}}
-<details><summary>All result tables (RESULTS.md)</summary><pre>{{RESULTS_MD}}</pre></details>
-<div id="tip"></div>
-</div>
-<script>
-const tip=document.getElementById('tip');
-document.querySelectorAll('svg[data-chart]').forEach(svg=>{
-  const d=JSON.parse(document.getElementById('data-'+svg.dataset.chart).textContent);
-  const hit=svg.querySelector('.hit'), xh=svg.querySelector('.xhair');
-  hit.addEventListener('mousemove',ev=>{
-    const pt=svg.createSVGPoint(); pt.x=ev.clientX; pt.y=ev.clientY;
-    const p=pt.matrixTransform(svg.getScreenCTM().inverse());
-    const x=d.x0+(p.x-d.L)/(d.W-d.L-d.R)*(d.x1-d.x0);
-    let rows=[], nx=null;
-    for(const [c,s] of Object.entries(d.series)){let best=s[0];for(const q of s){if(Math.abs(q[0]-x)<Math.abs(best[0]-x))best=q;}nx=best[0];rows.push([best[1],d.labels[c]]);}
-    rows.sort((a,b)=>b[0]-a[0]);
-    tip.innerHTML='<b>after '+nx+' tasks</b><br>'+rows.map(r=>r[1]+': '+r[0].toFixed(3)).join('<br>');
-    tip.style.display='block'; tip.style.left=(ev.clientX+14)+'px'; tip.style.top=(ev.clientY+10)+'px';
-    const sx=d.L+(nx-d.x0)/(d.x1-d.x0)*(d.W-d.L-d.R); xh.setAttribute('x1',sx); xh.setAttribute('x2',sx); xh.setAttribute('visibility','visible');
-  });
-  hit.addEventListener('mouseleave',()=>{tip.style.display='none'; xh.setAttribute('visibility','hidden');});
-});
-const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-fetch('/api/examples').then(r=>r.json()).then(ex=>{const sel=document.getElementById('ex');
-  ex.forEach((t,i)=>{const o=document.createElement('option');o.value=i;o.textContent=t.id;sel.appendChild(o);});
-  sel.onchange=()=>{const t=ex[sel.value]; if(t){document.getElementById('task').value=t.text; window._gold=t.gold;}};
-}).catch(()=>{document.getElementById('meta').textContent='(start the server with: uv run bearings-web)';});
-document.getElementById('go').onclick=async()=>{
-  const task=document.getElementById('task').value; if(!task.trim())return;
-  document.getElementById('meta').textContent='querying HydraDB...';
-  const r=await (await fetch('/api/pack?task='+encodeURIComponent(task))).json();
-  const gold=window._gold||[];
-  document.getElementById('meta').textContent=`${r.ms} ms, scope ${r.scope}, ${r.graph_tasks} tasks in graph`+(gold.length?`; real fix touched: ${gold.join(', ')}`:'');
-  document.getElementById('out').innerHTML=r.files.map((f,i)=>`<div class="file"><code>${i+1}. ${esc(f.path)}</code> ${gold.includes(f.path)?' <b>(in the real fix)</b>':''}<span class="note"> score ${f.score}</span>${f.why.map(w=>'<div class="why">'+esc(w)+'</div>').join('')}</div>`).join('')+(r.test_command?`<p>Verify with <code>${esc(r.test_command)}</code></p>`:'');
-};
-</script></body></html>"""
+def dashboard(data: dict, l2: dict) -> None:
+    h = data["level1"].get("history") or next(iter(data["level1"].values()), None)
+    t = data["level1"].get("tasks")
+    data["labels"].update({f"l2:{k}": v for k, v in L2_LAB.items()})
+    data["pills"] = ["Self-hosted HydraDB (open source)", "One weighted path query per task", "No model calls",
+                     "Every number from committed result files"]
+    k = []
+    if h:
+        b, kw = h["conds"]["bearings"], h["conds"]["bm25"]
+        d1 = (b["hit@1"][0] - kw["hit@1"][0]) * 100
+        k.append({"label": "Right file ranked first", "value": f"{b['hit@1'][0]:.0%}",
+                  "delta": f"{d1:+.0f} pts", "dir": "up" if d1 > 0 else "down",
+                  "sub": f"vs {kw['hit@1'][0]:.0%} for keyword search · {h['n']} real Django issues"})
+        k.append({"label": "Real fix in top 5", "value": f"{b['hit@5'][0]:.0%}", "delta": "", "dir": "flat",
+                  "sub": f"graph alone {h['conds']['graph']['hit@5'][0]:.0%} · code anchors alone {h['conds']['anchors']['hit@5'][0]:.0%}"})
+    if t:
+        b, kw = t["conds"]["bearings"], t["conds"]["bm25"]
+        k.append({"label": "Starting from an empty graph", "value": f"{b['hit@5'][0]:.0%}",
+                  "delta": f"{(b['hit@5'][0] - kw['hit@5'][0]) * 100:+.0f} pts", "dir": "up",
+                  "sub": f"top-5 hit rate vs {kw['hit@5'][0]:.0%} for keyword search"})
+    c = l2.get("conds", {})
+    if "bearings" in c and "none" in c:
+        r = c["bearings"]
+        k.append({"label": "Tokens to locate, live agents", "value": f"{r['ratio']:.2f}×",
+                  "delta": f"{r['dsucc'][0] * 100:+.0f} pts success",
+                  "dir": "flat" if abs(r["dsucc"][0]) < 0.005 else "up" if r["dsucc"][0] > 0 else "down",
+                  "sub": f"median per-task ratio vs no memory · {l2['n']} paired tasks"})
+    elif h:
+        k.append({"label": "Query latency", "value": f"{h['lat_p50']:.0f} ms", "delta": "", "dir": "flat",
+                  "sub": "median, HydraDB path query + anchors"})
+    data["kpis"] = k
+    data["l1_intro"] = (f"Every SWE-bench task on Django ({sum(1 for _ in open(ROOT / 'data/derived/tasks.jsonl'))} issues, 2015–2023) "
+                        "replayed in date order. For each issue Bearings suggests five files using only what it learned "
+                        "<em>before</em> that issue, then learns from the real fix. Scored on the 724 issues from 2019-07 on; "
+                        "tuning used only the earlier 126. <b>The graph learns from the dataset's own real fixes</b>, as a team's "
+                        "graph would learn from its merged work.")
+    if c:
+        data["level2"] = {
+            "intro": (f"A coding agent (DeepSeek V4.1 Flash through OpenCode) gets a real issue and a history-free snapshot "
+                      f"of Django at that issue's commit, explores, and names the files it would change. {l2['n']} SWE-bench "
+                      f"Verified issues from after the graph's cutoff, each run once in every condition. Token counts are "
+                      f"OpenCode's own usage reports and include the context pack."),
+            "warn": (f"Excluded: {l2['excluded']} of {l2['total']} runs (rate-limited, or the agent never started). "
+                     f"Timeouts count as failures ({l2['timeouts']}). The sandbox has no network except the model API; "
+                     f"{l2['escapes']} runs tried to reach outside it (web, other checkouts) and were blocked."),
+            "order": [f"l2:{x}" for x in L2_ORDER if x in c],
+            "conds": {f"l2:{x}": v for x, v in c.items()},
+            "cap": "Paired: the same tasks in every condition. Ratio = median over tasks of this condition's tokens divided by no memory's.",
+        }
+    data["demo_note"] = ("Total input = uncached + cache write + cache read tokens, as Claude Code reports them. In Claude Code "
+                         "every turn re-reads a ~35k-token system prompt, so what matters is the number of turns, not the "
+                         "size of the pack.")
+    data["notes"] = [
+        "<b>Data.</b> SWE-bench (full test split) Django issues with their real fixes, and 21k issue-fixing commits from "
+        "Django's history as the seed. The graph is seeded from these real fixes; nothing from an issue's own fix is visible "
+        "before it is answered.",
+        "<b>No tuning on the test split.</b> The only tuned values (anchor weight, a few graph constants) were chosen on the 126 "
+        "issues before 2019-07. Ideas that did not help on dev are listed in the README, not shipped.",
+        "<b>Code anchors.</b> Files in the checkout that define an identifier the issue names (<code>git grep</code> for "
+        "<code>def</code>/<code>class</code>). Fused with the graph's learned scores; neither alone is as good.",
+        "<b>Second hop.</b> The co-changed-file hop is in the query and measured. It rarely changes the top 5.",
+        "<b>Live agents.</b> One run per task and condition, so small differences are noise; intervals are shown. "
+        "The agent runs in a sandbox with no network except the model API, after earlier runs were caught fetching the real "
+        "fix from GitHub and reading other checkouts. Those runs were discarded.",
+        "<b>Claude Code.</b> A few end-to-end examples with a different model. Delivered through an MCP tool, Bearings cost "
+        "extra turns and more tokens; that is why it now injects the pack through a prompt hook and learns through a stop hook.",
+        "<b>Money.</b> Any dollar figure is list-price arithmetic from token counts, not a measured bill.",
+    ]
+    data["footer"] = ("Generated by <code>uv run python bench/report.py</code>. Raw rows: <code>results/level1_*.jsonl</code>, "
+                      "<code>runs/level2/results.jsonl</code>, <code>results/claude_demo/</code>.")
+    page = (ROOT / "bench" / "dashboard.html").read_text().replace("__DATA__", json.dumps(data).replace("</", "<\\/"))
+    (RES / "report.html").write_text(page)
 
 
 if __name__ == "__main__":

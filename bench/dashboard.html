@@ -1,0 +1,410 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bearings · a learned context layer for coding agents</title>
+<style>
+:root{
+  color-scheme:light;
+  --bg:#f6f5f2; --surface:#fcfcfb; --surface-2:#f0efec; --border:#e4e3df; --grid:#ecebe7;
+  --text:#0b0b0b; --text-2:#52514e; --muted:#8a8984; --accent:#2a78d6; --accent-soft:#e3eefb;
+  --good:#0a7d0a; --good-soft:#e4f4e4; --bad:#c23b3b; --bad-soft:#fbe9e9;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#6250d6; --s8:#e34948;
+  --mono:"JetBrains Mono","SFMono-Regular",ui-monospace,Menlo,Consolas,monospace;
+  --sans:Inter,"Noto Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --radius:14px; --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){
+  color-scheme:dark;
+  --bg:#111110; --surface:#1a1a19; --surface-2:#222220; --border:#2e2e2b; --grid:#272725;
+  --text:#f0efec; --text-2:#c3c2b7; --muted:#8f8e86; --accent:#3987e5; --accent-soft:#1b2a3d;
+  --good:#3fbf55; --good-soft:#16261a; --bad:#e66767; --bad-soft:#2c1818;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#0ca30c; --s7:#9085e9; --s8:#e66767;
+  --shadow:none;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#111110; --surface:#1a1a19; --surface-2:#222220; --border:#2e2e2b; --grid:#272725;
+  --text:#f0efec; --text-2:#c3c2b7; --muted:#8f8e86; --accent:#3987e5; --accent-soft:#1b2a3d;
+  --good:#3fbf55; --good-soft:#16261a; --bad:#e66767; --bad-soft:#2c1818;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#0ca30c; --s7:#9085e9; --s8:#e66767;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+code,.mono{font-family:var(--mono);font-size:.92em}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+header.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+header.top .wrap{display:flex;align-items:center;gap:28px;height:58px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;letter-spacing:-.2px}
+.brand svg{width:22px;height:22px}
+nav{display:flex;gap:4px;flex:1}
+nav a{color:var(--text-2);padding:6px 10px;border-radius:8px;font-size:14px}
+nav a:hover{background:var(--surface-2);text-decoration:none;color:var(--text)}
+.theme{border:1px solid var(--border);background:var(--surface);color:var(--text-2);border-radius:8px;padding:5px 10px;font:inherit;font-size:13px;cursor:pointer}
+.hero{padding:56px 0 28px}
+.hero h1{font-size:44px;line-height:1.08;letter-spacing:-1.2px;margin:0 0 14px;max-width:820px}
+.hero p.lede{font-size:18px;color:var(--text-2);max-width:760px;margin:0}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.pill{font-size:12.5px;padding:4px 10px;border-radius:999px;background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:30px 0 8px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 18px 16px;box-shadow:var(--shadow)}
+.kpi .label{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.kpi .value{font-size:34px;font-weight:700;letter-spacing:-.8px;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.kpi .sub{font-size:13px;color:var(--text-2)}
+.delta{display:inline-block;font-size:12.5px;font-weight:600;padding:1px 7px;border-radius:6px;margin-left:4px}
+.delta.up{color:var(--good);background:var(--good-soft)} .delta.down{color:var(--bad);background:var(--bad-soft)} .delta.flat{color:var(--text-2);background:var(--surface-2)}
+section{padding:40px 0 8px;scroll-margin-top:64px}
+section h2{font-size:26px;letter-spacing:-.5px;margin:0 0 6px}
+section .intro{color:var(--text-2);max-width:820px;margin:0 0 20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow)}
+.card h3{margin:0 0 4px;font-size:16px}
+.card .cap{color:var(--muted);font-size:13px;margin:0 0 14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-try{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:16px;align-items:start}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px}
+.seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:3px}
+.seg button{border:0;background:transparent;color:var(--text-2);font:inherit;font-size:13.5px;padding:6px 12px;border-radius:7px;cursor:pointer}
+.seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08);font-weight:600}
+select,textarea{font:inherit;color:var(--text);background:var(--surface-2);border:1px solid var(--border);border-radius:10px}
+select{padding:8px 10px;width:100%}
+textarea{width:100%;min-height:210px;padding:12px;font-family:var(--mono);font-size:12.5px;line-height:1.5;resize:vertical}
+.btn{border:0;background:var(--accent);color:#fff;font:inherit;font-weight:600;padding:10px 16px;border-radius:10px;cursor:pointer}
+.btn:disabled{opacity:.6;cursor:progress}
+.row{display:flex;gap:10px;align-items:center;margin-top:12px}
+.hint{font-size:12.5px;color:var(--muted)}
+.result-empty{color:var(--muted);text-align:center;padding:60px 20px;border:1px dashed var(--border);border-radius:12px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chip{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}
+.chip.good{background:var(--good-soft);color:var(--good);border-color:transparent;font-weight:600}
+.file{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--surface)}
+.file.gold{border-color:var(--good);box-shadow:inset 3px 0 0 var(--good)}
+.file .path{font-family:var(--mono);font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.file .rank{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--surface-2);color:var(--text-2);font-size:12px;font-family:var(--sans)}
+.file .lines{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}
+.file .lines>*{font-family:var(--mono);font-size:12px}
+.file .lines .def{color:var(--muted)}
+.file .lines span.ln{color:var(--accent);margin-right:12px}
+.file ul b{color:var(--text);font-weight:600}
+.file .lines .nm{color:var(--text);font-weight:600}
+.file ul{list-style:none;padding-left:0}
+.file li{margin:3px 0}
+.kind{display:inline-block;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:0 5px;margin-right:6px;vertical-align:1px}
+.file ul{margin:6px 0 0;color:var(--text-2);font-size:12.5px}
+.testcmd{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--surface-2);font-family:var(--mono);font-size:12.5px}
+details{margin-top:10px} summary{cursor:pointer;color:var(--text-2);font-size:13px}
+pre{background:var(--surface-2);border-radius:10px;padding:12px;overflow:auto;font-size:12px;line-height:1.5;margin:8px 0 0}
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.chart text{fill:var(--text-2);font-size:12px;font-family:var(--sans)}
+.chart .axis-title{fill:var(--muted);font-size:12px}
+.chart .grid{stroke:var(--grid);stroke-width:1}
+.chart .base{stroke:var(--border);stroke-width:1}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin:0 0 8px;font-size:13px;color:var(--text-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.legend span.off{opacity:.35}
+.legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
+.tip{position:fixed;pointer-events:none;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:12.5px;box-shadow:0 6px 24px rgba(0,0,0,.18);display:none;min-width:160px}
+.tip b{display:block;margin-bottom:4px}
+.tip div{display:flex;justify-content:space-between;gap:14px} .tip i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+td.num,th.num{text-align:right}
+tr.hl td{background:var(--accent-soft)}
+.ci{color:var(--muted);font-size:12px}
+.swatch{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;vertical-align:-1px}
+.notes{columns:2;column-gap:28px}
+.notes li{margin:0 0 10px;break-inside:avoid;color:var(--text-2)}
+.notes li b{color:var(--text)}
+.warn{border-left:3px solid var(--s4);background:var(--surface-2);padding:12px 14px;border-radius:8px;color:var(--text-2);font-size:14px;margin:0 0 16px}
+footer{color:var(--muted);font-size:13px;padding:40px 0 60px}
+@media (max-width:900px){.kpis{grid-template-columns:1fr 1fr}.grid2,.grid-try{grid-template-columns:1fr}.notes{columns:1}nav{display:none}.hero h1{font-size:34px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><path d="M14.8 9.2l-4.2 1.4-1.4 4.2 4.2-1.4z" fill="var(--accent)"/></svg>Bearings</div>
+  <nav><a href="#try">Try a task</a><a href="#retrieval">Retrieval</a><a href="#agents">Live agents</a><a href="#claude">Claude Code</a><a href="#method">Method</a></nav>
+  <button class="theme" id="theme">Theme</button>
+</div></header>
+
+<main class="wrap">
+  <div class="hero">
+    <h1>Coding agents start every task from zero. Bearings remembers where past work landed.</h1>
+    <p class="lede">A learned context layer stored as a graph in self-hosted HydraDB. One weighted path query turns a new task into a small context pack: the files to start in, the lines to read, and the test to run. No model calls.</p>
+    <div class="pills" id="pills"></div>
+    <div class="kpis" id="kpis"></div>
+  </div>
+
+  <section id="try">
+    <h2>Try a task</h2>
+    <p class="intro">Pick a real SWE-bench issue from after the graph's cutoff, or paste your own. The suggestions come from a live path query against HydraDB plus code anchors from the checkout at the issue's commit. Each line under a file is the reason it was suggested.</p>
+    <div class="grid-try">
+      <div class="card">
+        <h3>Task</h3>
+        <p class="cap">Issues the graph has never seen, from SWE-bench Verified.</p>
+        <select id="ex"><option value="">Pick an example issue…</option></select>
+        <div style="height:10px"></div>
+        <textarea id="task" placeholder="Describe the bug or feature…"></textarea>
+        <div class="row"><button class="btn" id="go">Get context pack</button><span class="hint" id="status"></span></div>
+      </div>
+      <div class="card" id="result"><div class="result-empty">The context pack appears here.</div></div>
+    </div>
+  </section>
+
+  <section id="retrieval">
+    <h2>Retrieval: does the right file come back?</h2>
+    <p class="intro" id="l1intro"></p>
+    <div class="controls">
+      <div class="seg" id="seedSeg"></div>
+      <div class="seg" id="metricSeg"></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Learning over time</h3>
+        <p class="cap" id="curveCap"></p>
+        <div class="legend" id="curveLegend"></div>
+        <div id="curve"></div>
+      </div>
+      <div class="card">
+        <h3>All conditions, test split</h3>
+        <p class="cap" id="dotsCap"></p>
+        <div id="dots"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3>Paired comparisons</h3>
+      <p class="cap">Same tasks, difference in hit rate, 95% bootstrap interval. An interval that crosses zero is not a reliable difference.</p>
+      <div id="diffs"></div>
+    </div>
+    <div class="grid2" style="margin-top:16px" id="l1facts"></div>
+  </section>
+
+  <section id="agents">
+    <h2>Live agents: tokens to locate the right files</h2>
+    <p class="intro" id="l2intro"></p>
+    <div id="l2warn"></div>
+    <div class="grid2">
+      <div class="card"><h3>Found every file of the real fix</h3><p class="cap">Share of paired tasks, 95% interval.</p><div id="l2succ"></div></div>
+      <div class="card"><h3>Tokens to locate the files</h3><p class="cap">Median total input tokens per run, bar = interquartile range. Includes the pack's own tokens.</p><div id="l2tok"></div></div>
+    </div>
+    <div class="card" style="margin-top:16px"><h3>Per condition</h3><p class="cap" id="l2cap"></p><div id="l2table"></div></div>
+  </section>
+
+  <section id="claude">
+    <h2>Claude Code: one task at a time</h2>
+    <p class="intro">Headless Claude Code fixing a real issue end to end, with and without Bearings. A handful of examples, not a statistic, and a different model from the measurements above. Usage is Claude Code's own report.</p>
+    <div class="card"><div id="demo"></div></div>
+  </section>
+
+  <section id="method">
+    <h2>Method and caveats</h2>
+    <div class="card"><ul class="notes" id="notes"></ul></div>
+  </section>
+  <footer id="foot"></footer>
+</main>
+<div class="tip" id="tip"></div>
+
+<script id="data" type="application/json">__DATA__</script>
+<script>
+const D = JSON.parse(document.getElementById('data').textContent);
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pct = (v, d=0) => (v*100).toFixed(d) + '%';
+const num = v => Math.round(v).toLocaleString('en-US');
+const COLOR = c => `var(--${D.colors[c] || 's8'})`;
+const LAB = c => D.labels[c] || c;
+const tip = $('#tip');
+function showTip(html, x, y){ tip.innerHTML = html; tip.style.display='block';
+  const r = tip.getBoundingClientRect(); let L = x + 14, T = y + 14;
+  if (L + r.width > innerWidth - 8) L = x - r.width - 14; if (T + r.height > innerHeight - 8) T = y - r.height - 14;
+  tip.style.left = L + 'px'; tip.style.top = T + 'px'; }
+function hideTip(){ tip.style.display='none'; }
+
+// theme toggle
+(function(){ const k='bearings-theme'; const t=localStorage.getItem(k); if(t) document.documentElement.dataset.theme=t;
+  $('#theme').onclick=()=>{ const cur=document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+    const nx = cur==='dark'?'light':'dark'; document.documentElement.dataset.theme=nx; localStorage.setItem(k,nx); }; })();
+
+// ---------------------------------------------------------------- hero
+(function(){
+  const k = D.kpis;
+  $('#pills').innerHTML = D.pills.map(p=>`<span class="pill">${esc(p)}</span>`).join('');
+  $('#kpis').innerHTML = k.map(x=>`<div class="kpi"><div class="label">${esc(x.label)}</div>
+    <div class="value">${esc(x.value)}${x.delta?`<span class="delta ${x.dir}">${esc(x.delta)}</span>`:''}</div>
+    <div class="sub">${x.sub}</div></div>`).join('');
+})();
+
+// ---------------------------------------------------------------- charts
+function lineChart(el, series, opt){
+  const W=480,H=300,L=42,R=12,T=10,B=38;
+  const keys = Object.keys(series).filter(k=>!opt.hidden.has(k));
+  const all = Object.values(series).flat();
+  if(!all.length){ el.innerHTML='<p class="hint">No data yet.</p>'; return; }
+  const x0=Math.min(...all.map(p=>p[0])), x1=Math.max(...all.map(p=>p[0]));
+  let lo=Math.floor(Math.min(...all.map(p=>p[1]))*10)/10, hi=Math.ceil(Math.max(...all.map(p=>p[1]))*10)/10;
+  if(hi-lo<0.2){hi=Math.min(1,hi+0.1);lo=Math.max(0,lo-0.1);}
+  const sx=x=>L+(x-x0)/Math.max(1,x1-x0)*(W-L-R), sy=y=>T+(hi-y)/(hi-lo)*(H-T-B);
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}">`;
+  for(let y=lo;y<=hi+1e-9;y+=0.1){ s+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${sy(y)}" y2="${sy(y)}"/><text x="${L-8}" y="${sy(y)+4}" text-anchor="end">${pct(y)}</text>`; }
+  const step = x1-x0>600?200:100;
+  for(let x=Math.ceil(x0/step)*step;x<=x1;x+=step){ s+=`<text x="${sx(x)}" y="${H-B+18}" text-anchor="middle">${x}</text>`; }
+  s+=`<text class="axis-title" x="${(L+W-R)/2}" y="${H-4}" text-anchor="middle">tasks already learned</text>`;
+  for(const k of keys){ const pts=series[k].map(p=>`${sx(p[0]).toFixed(1)},${sy(p[1]).toFixed(1)}`).join(' ');
+    s+=`<polyline points="${pts}" fill="none" stroke="${COLOR(k)}" stroke-width="${k==='bearings'?2.6:1.8}" stroke-linejoin="round" stroke-linecap="round"/>`; }
+  s+=`<line id="xh" x1="0" x2="0" y1="${T}" y2="${H-B}" stroke="var(--muted)" stroke-dasharray="3 3" visibility="hidden"/>`;
+  for(const k of keys) s+=`<circle class="hv" data-k="${k}" r="4" fill="${COLOR(k)}" stroke="var(--surface)" stroke-width="2" visibility="hidden"/>`;
+  s+=`<rect x="${L}" y="${T}" width="${W-L-R}" height="${H-T-B}" fill="transparent" class="hit"/></svg>`;
+  el.innerHTML=s;
+  const svg=el.querySelector('svg'), xh=svg.querySelector('#xh');
+  svg.querySelector('.hit').addEventListener('mousemove', ev=>{
+    const pt=svg.createSVGPoint(); pt.x=ev.clientX; pt.y=ev.clientY; const p=pt.matrixTransform(svg.getScreenCTM().inverse());
+    const xv = x0+(p.x-L)/(W-L-R)*(x1-x0);
+    let rows=[], xs=null;
+    for(const k of keys){ const ser=series[k]; let best=ser[0]; for(const q of ser) if(Math.abs(q[0]-xv)<Math.abs(best[0]-xv)) best=q;
+      xs=best[0]; rows.push([k,best[1]]); const c=svg.querySelector(`circle[data-k="${k}"]`); c.setAttribute('cx',sx(best[0])); c.setAttribute('cy',sy(best[1])); c.setAttribute('visibility','visible'); }
+    xh.setAttribute('x1',sx(xs)); xh.setAttribute('x2',sx(xs)); xh.setAttribute('visibility','visible');
+    rows.sort((a,b)=>b[1]-a[1]);
+    showTip(`<b>after ${xs} tasks</b>`+rows.map(r=>`<div><span><i style="background:${COLOR(r[0])}"></i>${esc(LAB(r[0]))}</span><span>${pct(r[1],1)}</span></div>`).join(''), ev.clientX, ev.clientY);
+  });
+  svg.querySelector('.hit').addEventListener('mouseleave', ()=>{ hideTip(); xh.setAttribute('visibility','hidden'); svg.querySelectorAll('.hv').forEach(c=>c.setAttribute('visibility','hidden')); });
+}
+
+function dotWhisker(el, rows, opt={}){
+  // rows: [{key,label,m,lo,hi,color,bold}]
+  const W=480, rowH=34, L=176, R=52, T=6, B=28, H=T+B+rows.length*rowH;
+  const lo = opt.min ?? 0, hi = opt.max ?? 1;
+  const sx=v=>L+(v-lo)/(hi-lo)*(W-L-R);
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}">`;
+  const ticks = opt.ticks || [0,.25,.5,.75,1];
+  for(const t of ticks){ s+=`<line class="grid" x1="${sx(t)}" x2="${sx(t)}" y1="${T}" y2="${H-B}"/><text x="${sx(t)}" y="${H-B+18}" text-anchor="middle">${opt.fmt?opt.fmt(t):pct(t)}</text>`; }
+  rows.forEach((r,i)=>{ const y=T+i*rowH+rowH/2;
+    s+=`<g class="dw" data-i="${i}"><rect x="0" y="${y-rowH/2}" width="${W}" height="${rowH}" fill="transparent"/>
+      <text x="${L-12}" y="${y+4}" text-anchor="end" style="${r.bold?'font-weight:700;fill:var(--text)':''}">${esc(r.label)}</text>
+      ${r.lo!=null?`<line x1="${sx(r.lo)}" x2="${sx(r.hi)}" y1="${y}" y2="${y}" stroke="${r.color}" stroke-width="2.5" stroke-linecap="round" opacity=".55"/>`:''}
+      <circle cx="${sx(r.m)}" cy="${y}" r="${r.bold?6.5:5.5}" fill="${r.color}" stroke="var(--surface)" stroke-width="2"/>
+      <text x="${sx(r.hi ?? r.m)+10}" y="${y+4}" style="fill:var(--text);font-weight:600">${opt.fmt?opt.fmt(r.m):pct(r.m)}</text></g>`; });
+  s+='</svg>'; el.innerHTML=s;
+  el.querySelectorAll('.dw').forEach(g=>{ const r=rows[+g.dataset.i];
+    g.addEventListener('mousemove',ev=>showTip(`<b>${esc(r.label)}</b><div><span>value</span><span>${opt.fmt?opt.fmt(r.m):pct(r.m,1)}</span></div>`+
+      (r.lo!=null?`<div><span>95% interval</span><span>${opt.fmt?opt.fmt(r.lo):pct(r.lo,1)} – ${opt.fmt?opt.fmt(r.hi):pct(r.hi,1)}</span></div>`:'')+(r.n?`<div><span>tasks</span><span>${r.n}</span></div>`:''),ev.clientX,ev.clientY));
+    g.addEventListener('mouseleave',hideTip); });
+}
+
+function segmented(el, items, cur, onPick){
+  el.innerHTML = items.map(([k,l])=>`<button data-k="${k}" class="${k===cur?'on':''}">${esc(l)}</button>`).join('');
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{ el.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); onPick(b.dataset.k); });
+}
+
+// ---------------------------------------------------------------- level 1
+(function(){
+  const L1 = D.level1; const seeds = Object.keys(L1);
+  if(!seeds.length){ $('#retrieval').querySelector('.intro').textContent='Level 1 has not been run yet.'; return; }
+  let seed = seeds[0], metric = 'hit@5'; const hidden = new Set(D.curve_hidden);
+  $('#l1intro').innerHTML = D.l1_intro;
+  function render(){
+    const S = L1[seed];
+    $('#curveCap').textContent = `${metric}, rolling mean over the last 100 tasks. Every task is answered before it is learned.`;
+    const keys = Object.keys(S.curves[metric]);
+    $('#curveLegend').innerHTML = keys.map(k=>`<span data-k="${k}" class="${hidden.has(k)?'off':''}"><i style="background:${COLOR(k)}"></i>${esc(LAB(k))}</span>`).join('');
+    $('#curveLegend').querySelectorAll('span').forEach(sp=>sp.onclick=()=>{ const k=sp.dataset.k; hidden.has(k)?hidden.delete(k):hidden.add(k); render(); });
+    lineChart($('#curve'), S.curves[metric], {hidden});
+    $('#dotsCap').textContent = `${metric} on the ${S.n} test tasks (from ${S.test_from}), dot = mean, line = 95% interval.`;
+    const rows = D.l1_order.filter(c=>S.conds[c]).map(c=>({label:LAB(c), m:S.conds[c][metric][0], lo:S.conds[c][metric][1], hi:S.conds[c][metric][2], color:COLOR(c), bold:c==='bearings', n:S.n}));
+    dotWhisker($('#dots'), rows);
+    $('#diffs').innerHTML = `<table><tr><th>Comparison</th><th class="num">Δ hit@1</th><th class="num">Δ hit@5</th><th>Reading</th></tr>`+
+      S.diffs.map(d=>`<tr class="${d.hl?'hl':''}"><td>${esc(d.label)}</td>`+['hit@1','hit@5'].map(m=>`<td class="num">${(d[m][0]>=0?'+':'')}${(d[m][0]*100).toFixed(1)} pts <span class="ci">[${(d[m][1]*100).toFixed(1)}, ${(d[m][2]*100).toFixed(1)}]</span></td>`).join('')+
+      `<td class="hint">${esc(d.reading)}</td></tr>`).join('')+`</table>`;
+    $('#l1facts').innerHTML = S.facts.map(f=>`<div class="card"><h3>${esc(f.title)}</h3><p class="cap" style="margin:0">${f.text}</p></div>`).join('');
+  }
+  segmented($('#seedSeg'), seeds.map(s=>[s, L1[s].title]), seed, k=>{seed=k;render();});
+  segmented($('#metricSeg'), [['hit@1','hit@1'],['hit@3','hit@3'],['hit@5','hit@5']], metric, k=>{metric=k;render();});
+  render();
+})();
+
+// ---------------------------------------------------------------- level 2
+(function(){
+  const L2 = D.level2;
+  if(!L2 || !L2.conds || !Object.keys(L2.conds).length){ $('#l2intro').textContent = 'Live agent runs are still in progress.';
+    document.querySelectorAll('#agents .card, #agents .grid2').forEach(e=>e.style.display='none'); return; }
+  $('#l2intro').innerHTML = L2.intro;
+  if(L2.warn) $('#l2warn').innerHTML = `<div class="warn">${L2.warn}</div>`;
+  const cs = L2.order.filter(c=>L2.conds[c]);
+  dotWhisker($('#l2succ'), cs.map(c=>({label:LAB(c), m:L2.conds[c].succ[0], lo:L2.conds[c].succ[1], hi:L2.conds[c].succ[2], color:COLOR(c), bold:c==='l2:bearings', n:L2.conds[c].n})));
+  const mx = Math.max(...cs.map(c=>L2.conds[c].q3)) * 1.08;
+  const tk = [0, mx/4, mx/2, 3*mx/4, mx].map(v=>Math.round(v/10000)*10000);
+  dotWhisker($('#l2tok'), cs.map(c=>({label:LAB(c), m:L2.conds[c].median_in, lo:L2.conds[c].q1, hi:L2.conds[c].q3, color:COLOR(c), bold:c==='l2:bearings', n:L2.conds[c].n})),
+    {min:0, max:tk[4], ticks:tk, fmt:v=>v>=1000?Math.round(v/1000)+'k':String(Math.round(v))});
+  $('#l2cap').innerHTML = L2.cap;
+  $('#l2table').innerHTML = `<table><tr><th>Condition</th><th class="num">all files found</th><th class="num">≥1 file found</th><th class="num">median tokens</th><th class="num">vs no memory (paired)</th><th class="num">tool calls</th><th class="num">wall time</th></tr>`+
+    cs.map(c=>{const r=L2.conds[c]; return `<tr class="${c==='l2:bearings'?'hl':''}"><td><span class="swatch" style="background:${COLOR(c)}"></span>${esc(LAB(c))}</td>
+      <td class="num">${pct(r.succ[0])} <span class="ci">[${pct(r.succ[1])}, ${pct(r.succ[2])}]</span></td><td class="num">${pct(r.hit[0])}</td>
+      <td class="num">${num(r.median_in)}</td><td class="num">${r.ratio!=null?`${r.ratio.toFixed(2)}×`:'—'} ${r.dsucc!=null?`<span class="ci">Δ success ${(r.dsucc[0]>=0?'+':'')}${(r.dsucc[0]*100).toFixed(0)} pts [${(r.dsucc[1]*100).toFixed(0)}, ${(r.dsucc[2]*100).toFixed(0)}]</span>`:''}</td>
+      <td class="num">${r.tools}</td><td class="num">${r.wall}s</td></tr>`;}).join('')+`</table>`;
+})();
+
+// ---------------------------------------------------------------- claude code demo
+(function(){
+  const d = D.demo; if(!d.length){ $('#demo').innerHTML='<p class="hint">No demo runs.</p>'; return; }
+  const tasks=[...new Set(d.map(r=>r.task))];
+  $('#demo').innerHTML = `<table><tr><th>Task</th><th>Run</th><th class="num">total input tokens</th><th class="num">vs without</th><th class="num">turns</th><th class="num">tool calls</th><th class="num">output</th><th>right files</th></tr>`+
+    tasks.map(t=>d.filter(r=>r.task===t).map((r,i)=>`<tr class="${r.side!=='without'&&r.rel<0?'hl':''}"><td>${i?'':esc(t)}</td><td>${esc(r.label)}</td><td class="num">${num(r.total_input)}</td>
+      <td class="num">${r.rel==null?'':`<span class="delta ${r.rel<0?'up':'down'}">${r.rel>0?'+':''}${r.rel}%</span>`}</td><td class="num">${r.num_turns}</td><td class="num">${r.tool_calls}</td><td class="num">${num(r.output_tokens)}</td><td>${r.correct?'yes':'no'}</td></tr>`).join('')).join('')+`</table>
+    <p class="hint" style="margin:12px 0 0">${D.demo_note}</p>`;
+})();
+
+$('#notes').innerHTML = D.notes.map(n=>`<li>${n}</li>`).join('');
+$('#foot').innerHTML = D.footer;
+
+// ---------------------------------------------------------------- try a task
+const KIND = {word:'word', symbol:'symbol', module:'module', error:'error', path:'path'};
+const KLAB = {word:'word stem', symbol:'symbol', module:'module', error:'error', path:'path'};
+function reason(w, seen){
+  if (w.startsWith('defines ')) return null;
+  if (w.startsWith('the task names ')) return 'the issue names this file';
+  let m = w.match(/^(\w+) '(.+?)' -> (.+?) \(together in (\d+) past changes?\)(?: -> co-changed with .+? \((\d+)x\))?$/);
+  if (!m) return esc(w);
+  const key = m[2].toLowerCase(); if (seen.has(key)) return null; seen.add(key);
+  const k = `<span class="kind">${KLAB[m[1]]||m[1]}</span><b class="mono">${esc(m[2])}</b>`;
+  if (m[5]) return `${k} led to <span class="mono">${esc(m[3])}</span>, changed together with this file ${m[5]}×`;
+  return `${k} was in ${m[4]} past fix${m[4]==='1'?'':'es'} to this file`;
+}
+(function(){
+  const live = location.protocol.startsWith('http');
+  let examples = [];
+  const sel = $('#ex');
+  if(!live){ $('#status').textContent = 'Open through `bearings-web` to query the live graph.'; $('#go').disabled = true; }
+  else fetch('api/examples').then(r=>r.json()).then(rows=>{ examples=rows;
+    sel.innerHTML += rows.map((r,i)=>`<option value="${i}">${esc(r.id.replace('django__',''))} · ${esc(r.text.split('\n')[0].slice(0,70))}</option>`).join('');
+    if(rows.length){ sel.value='0'; $('#task').value=rows[0].text; run(); } });
+  sel.onchange=()=>{ const r=examples[+sel.value]; if(r){ $('#task').value=r.text; run(); } };
+  $('#go').onclick=run;
+  async function run(){
+    const text=$('#task').value.trim(); if(!text) return;
+    const ex = examples[+sel.value]; const useEx = ex && ex.text===$('#task').value;
+    $('#go').disabled=true; $('#status').textContent='Querying HydraDB…';
+    try{
+      const q = new URLSearchParams({task:text}); if(useEx) q.set('commit', ex.base_commit);
+      const r = await (await fetch('api/pack?'+q)).json();
+      const gold = new Set(useEx?ex.gold:[]);
+      const hit = r.files.some(f=>gold.has(f.path));
+      $('#result').innerHTML = `<h3>Context pack</h3>
+        <div class="meta"><span class="chip">${r.ms} ms</span><span class="chip">graph: ${num(r.graph_tasks)} past changes</span><span class="chip">${r.code?'code anchors at '+esc(r.code):'graph only'}</span>
+        ${useEx?`<span class="chip ${hit?'good':''}">${hit?'real fix in the pack':'real fix not in the pack'}</span>`:''}</div>`+
+        (r.files.length? r.files.map((f,i)=>`<div class="file ${gold.has(f.path)?'gold':''}"><div class="path"><span class="rank">${i+1}</span>${esc(f.path)}${gold.has(f.path)?'<span class="chip good">real fix</span>':''}</div>
+          ${f.lines&&f.lines.length?`<div class="lines">${f.lines.slice(0,3).map(l=>`<span class="def">def</span><span class="nm">${esc(l[1])}</span><span class="ln">line ${l[0]}</span>`).join('')}</div>`:''}
+          <ul>${(()=>{const seen=new Set(); return f.why.map(w=>reason(w,seen)).filter(Boolean).slice(0,3).map(w=>`<li>${w}</li>`).join('');})()}</ul></div>`).join('') : '<div class="result-empty">No suggestion: nothing similar in past work.</div>')+
+        (r.test_command?`<div class="testcmd">Verify with: ${esc(r.test_command)}</div>`:'')+
+        `<details><summary>What the agent receives (${num(r.pack_text.length/4)} tokens)</summary><pre>${esc(r.pack_text)}</pre></details>
+         <details><summary>The HydraDB query</summary><pre>${esc(r.cypher||'')}</pre></details>`;
+      $('#status').textContent='';
+    }catch(e){ $('#status').textContent='Query failed: '+e; }
+    $('#go').disabled=false;
+  }
+})();
+</script>
+</body>
+</html>

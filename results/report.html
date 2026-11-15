@@ -1,149 +1,410 @@
 <!DOCTYPE html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Bearings results</title>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Bearings · a learned context layer for coding agents</title>
 <style>
-.viz-root{color-scheme:light;--surface-1:#fcfcfb;--text-primary:#0b0b0b;--text-secondary:#52514e;--grid:#e4e3df;
---series-1:#2a78d6;--series-2:#eb6834;--series-3:#1baf7a;--series-4:#eda100;--series-5:#e87ba4}
-@media (prefers-color-scheme: dark){:root:where(:not([data-theme="light"])) .viz-root{color-scheme:dark;--surface-1:#1a1a19;
---text-primary:#f0efec;--text-secondary:#c3c2b7;--grid:#34332f;--series-1:#3987e5;--series-2:#d95926;--series-3:#199e70;--series-4:#c98500;--series-5:#d55181}}
-body{margin:0;font:15px/1.5 system-ui,sans-serif}
-.viz-root{background:var(--surface-1);color:var(--text-primary);min-height:100vh;padding:24px 32px;max-width:980px;margin:auto}
-h1{font-size:26px;margin:0 0 4px} h2{font-size:19px;margin:32px 0 6px} .note{color:var(--text-secondary);margin:0 0 8px}
-.chart{width:100%;height:auto;display:block;margin:8px 0 12px}
-.grid{stroke:var(--grid);stroke-width:1} .tick{fill:var(--text-secondary);font-size:11px} .axis{fill:var(--text-secondary);font-size:12px}
-.dlabel{fill:var(--text-primary);font-size:12px} .glabel{fill:var(--text-primary);font-size:13px;font-weight:600}
-.whisker{stroke:var(--text-secondary);stroke-width:1.5} .xhair{stroke:var(--text-secondary);stroke-width:1;stroke-dasharray:3 3}
-#tip{position:fixed;pointer-events:none;background:var(--surface-1);border:1px solid var(--grid);border-radius:6px;padding:6px 8px;font-size:12px;display:none;box-shadow:0 2px 8px #0002}
-textarea{width:100%;min-height:140px;font:13px ui-monospace,monospace;background:transparent;color:inherit;border:1px solid var(--grid);border-radius:6px;padding:8px}
-button,select{font:inherit;padding:6px 12px;border-radius:6px;border:1px solid var(--grid);background:transparent;color:inherit;cursor:pointer}
-.file{margin:10px 0;padding:10px 12px;border:1px solid var(--grid);border-radius:8px} .file code{font-weight:600}
-.why{color:var(--text-secondary);font:12px ui-monospace,monospace;margin-top:4px}
-details pre{white-space:pre-wrap;font-size:12px}
-</style></head>
-<body><div class="viz-root">
-<h1>Bearings</h1>
-<p class="note">A learned context layer for coding agents, stored as a graph in self-hosted HydraDB. Every number below is generated from the result files in this repository.</p>
-<h2>Try a task</h2>
-<p class="note">Paste an issue, or pick a SWE-bench task from after the graph's cutoff. The suggestions come from one weighted path query against HydraDB; each line under a file is the graph path that justifies it.</p>
-<select id="ex"><option value="">Pick an example task...</option></select>
-<textarea id="task" placeholder="Describe the bug or task"></textarea>
-<p><button id="go">Get context pack</button> <span id="meta" class="note"></span></p>
-<div id="out"></div>
-<h2>Level 1: Learning from the task stream only (a team starting from an empty graph)</h2>
-<p class='note'>hit@5 = the real fix touched at least one of the 5 suggested files. Rolling mean over 100 tasks; each task is answered before it is learned.</p>
-<svg viewBox="0 0 760 360" class="chart" role="img" aria-label="hit@5 vs tasks learned (tasks)" data-chart="curve-tasks"><line x1="52" x2="555" y1="316.0" y2="316.0" class="grid"/><text x="44" y="320.0" class="tick" text-anchor="end">0.20</text><line x1="52" x2="555" y1="269.0" y2="269.0" class="grid"/><text x="44" y="273.0" class="tick" text-anchor="end">0.30</text><line x1="52" x2="555" y1="222.0" y2="222.0" class="grid"/><text x="44" y="226.0" class="tick" text-anchor="end">0.40</text><line x1="52" x2="555" y1="175.0" y2="175.0" class="grid"/><text x="44" y="179.0" class="tick" text-anchor="end">0.50</text><line x1="52" x2="555" y1="128.0" y2="128.0" class="grid"/><text x="44" y="132.0" class="tick" text-anchor="end">0.60</text><line x1="52" x2="555" y1="81.0" y2="81.0" class="grid"/><text x="44" y="85.0" class="tick" text-anchor="end">0.70</text><line x1="52" x2="555" y1="34.0" y2="34.0" class="grid"/><text x="44" y="38.0" class="tick" text-anchor="end">0.80</text><text x="52.7" y="334" class="tick" text-anchor="middle">100</text><text x="119.7" y="334" class="tick" text-anchor="middle">200</text><text x="186.8" y="334" class="tick" text-anchor="middle">300</text><text x="253.9" y="334" class="tick" text-anchor="middle">400</text><text x="320.9" y="334" class="tick" text-anchor="middle">500</text><text x="388.0" y="334" class="tick" text-anchor="middle">600</text><text x="455.1" y="334" class="tick" text-anchor="middle">700</text><text x="522.1" y="334" class="tick" text-anchor="middle">800</text><text x="303.5" y="354" class="axis" text-anchor="middle">tasks learned</text><text x="12" y="18" class="axis">hit@5</text><polyline points="52.0,269.0 58.7,259.6 65.4,264.3 72.1,254.9 78.8,245.5 85.5,245.5 92.2,226.7 98.9,207.9 105.7,203.2 112.4,203.2 119.1,198.5 125.8,222.0 132.5,222.0 139.2,212.6 145.9,207.9 152.6,217.3 159.3,226.7 166.0,245.5 172.7,250.2 179.4,231.4 186.1,222.0 192.8,189.1 199.5,184.4 206.3,179.7 213.0,175.0 219.7,170.3 226.4,160.9 233.1,156.2 239.8,146.8 246.5,142.1 253.2,160.9 259.9,156.2 266.6,151.5 273.3,160.9 280.0,170.3 286.7,156.2 293.4,142.1 300.1,146.8 306.9,142.1 313.6,160.9 320.3,137.4 327.0,142.1 333.7,156.2 340.4,156.2 347.1,142.1 353.8,137.4 360.5,137.4 367.2,128.0 373.9,132.7 380.6,118.6 387.3,146.8 394.0,156.2 400.7,151.5 407.5,151.5 414.2,156.2 420.9,151.5 427.6,156.2 434.3,156.2 441.0,146.8 447.7,146.8 454.4,132.7 461.1,128.0 467.8,109.2 474.5,95.1 481.2,90.4 487.9,95.1 494.6,90.4 501.3,85.7 508.1,81.0 514.8,85.7 521.5,71.6 528.2,81.0 534.9,95.1 541.6,95.1 548.3,113.9 555.0,118.6" fill="none" stroke="var(--series-5)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Keyword search (BM25)</title></polyline><polyline points="52.0,297.2 58.7,283.1 65.4,283.1 72.1,278.4 78.8,273.7 85.5,259.6 92.2,245.5 98.9,226.7 105.7,226.7 112.4,217.3 119.1,217.3 125.8,240.8 132.5,236.1 139.2,212.6 145.9,207.9 152.6,222.0 159.3,222.0 166.0,240.8 172.7,240.8 179.4,240.8 186.1,231.4 192.8,198.5 199.5,203.2 206.3,212.6 213.0,203.2 219.7,189.1 226.4,184.4 233.1,179.7 239.8,175.0 246.5,156.2 253.2,165.6 259.9,156.2 266.6,146.8 273.3,156.2 280.0,165.6 286.7,179.7 293.4,175.0 300.1,184.4 306.9,179.7 313.6,189.1 320.3,175.0 327.0,189.1 333.7,207.9 340.4,207.9 347.1,207.9 353.8,189.1 360.5,184.4 367.2,175.0 373.9,179.7 380.6,179.7 387.3,198.5 394.0,203.2 400.7,193.8 407.5,198.5 414.2,184.4 420.9,184.4 427.6,179.7 434.3,170.3 441.0,165.6 447.7,160.9 454.4,160.9 461.1,165.6 467.8,165.6 474.5,146.8 481.2,142.1 487.9,156.2 494.6,160.9 501.3,165.6 508.1,156.2 514.8,156.2 521.5,137.4 528.2,132.7 534.9,113.9 541.6,113.9 548.3,132.7 555.0,123.3" fill="none" stroke="var(--series-2)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Dictionary (no graph)</title></polyline><polyline points="52.0,306.6 58.7,292.5 65.4,287.8 72.1,287.8 78.8,273.7 85.5,264.3 92.2,240.8 98.9,222.0 105.7,222.0 112.4,212.6 119.1,212.6 125.8,222.0 132.5,222.0 139.2,193.8 145.9,203.2 152.6,217.3 159.3,226.7 166.0,245.5 172.7,245.5 179.4,254.9 186.1,240.8 192.8,226.7 199.5,222.0 206.3,240.8 213.0,222.0 219.7,207.9 226.4,193.8 233.1,179.7 239.8,175.0 246.5,146.8 253.2,165.6 259.9,151.5 266.6,146.8 273.3,137.4 280.0,142.1 286.7,142.1 293.4,151.5 300.1,170.3 306.9,170.3 313.6,184.4 320.3,156.2 327.0,170.3 333.7,179.7 340.4,189.1 347.1,189.1 353.8,179.7 360.5,184.4 367.2,175.0 373.9,156.2 380.6,160.9 387.3,179.7 394.0,184.4 400.7,184.4 407.5,179.7 414.2,175.0 420.9,170.3 427.6,156.2 434.3,142.1 441.0,151.5 447.7,142.1 454.4,146.8 461.1,146.8 467.8,142.1 474.5,128.0 481.2,123.3 487.9,132.7 494.6,132.7 501.3,142.1 508.1,137.4 514.8,137.4 521.5,128.0 528.2,132.7 534.9,123.3 541.6,132.7 548.3,151.5 555.0,156.2" fill="none" stroke="var(--series-3)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Bearings, one hop</title></polyline><polyline points="52.0,301.9 58.7,287.8 65.4,283.1 72.1,283.1 78.8,269.0 85.5,259.6 92.2,236.1 98.9,217.3 105.7,217.3 112.4,207.9 119.1,207.9 125.8,222.0 132.5,222.0 139.2,198.5 145.9,207.9 152.6,222.0 159.3,231.4 166.0,250.2 172.7,245.5 179.4,254.9 186.1,240.8 192.8,217.3 199.5,212.6 206.3,236.1 213.0,217.3 219.7,203.2 226.4,189.1 233.1,175.0 239.8,175.0 246.5,146.8 253.2,165.6 259.9,156.2 266.6,151.5 273.3,137.4 280.0,137.4 286.7,132.7 293.4,142.1 300.1,156.2 306.9,151.5 313.6,165.6 320.3,142.1 327.0,156.2 333.7,165.6 340.4,175.0 347.1,179.7 353.8,175.0 360.5,179.7 367.2,175.0 373.9,160.9 380.6,165.6 387.3,179.7 394.0,184.4 400.7,184.4 407.5,179.7 414.2,170.3 420.9,165.6 427.6,156.2 434.3,142.1 441.0,156.2 447.7,146.8 454.4,156.2 461.1,156.2 467.8,151.5 474.5,137.4 481.2,137.4 487.9,146.8 494.6,142.1 501.3,146.8 508.1,142.1 514.8,132.7 521.5,118.6 528.2,123.3 534.9,113.9 541.6,123.3 548.3,142.1 555.0,146.8" fill="none" stroke="var(--series-1)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Bearings, full</title></polyline><polyline points="136.5,240.8 143.2,245.5 149.9,245.5 156.6,254.9 163.3,254.9 170.0,254.9 176.7,259.6 183.5,254.9 190.2,245.5 196.9,250.2 203.6,250.2 210.3,226.7 217.0,226.7 223.7,231.4 230.4,250.2 237.1,254.9 243.8,245.5 250.5,236.1 257.2,240.8 263.9,240.8 270.6,231.4 277.3,250.2 284.1,245.5 290.8,245.5 297.5,240.8 304.2,250.2 310.9,250.2 317.6,250.2 324.3,245.5 331.0,259.6 337.7,278.4 344.4,273.7 351.1,283.1 357.8,287.8 364.5,269.0 371.2,273.7 377.9,273.7 384.7,283.1 391.4,292.5 398.1,278.4 404.8,269.0 411.5,269.0 418.2,273.7 424.9,278.4 431.6,287.8 438.3,283.1 445.0,273.7 451.7,278.4 458.4,287.8 465.1,287.8 471.8,292.5 478.5,287.8 485.3,283.1 492.0,273.7 498.7,278.4 505.4,264.3 512.1,287.8 518.8,269.0 525.5,254.9 532.2,259.6 538.9,264.3 545.6,273.7 552.3,273.7" fill="none" stroke="var(--series-4)" stroke-width="2" stroke-linejoin="round" stroke-linecap="round"><title>Frozen graph</title></polyline><text x="563" y="122.6" class="dlabel">Keyword search (BM25) 0.62</text><text x="563" y="138.6" class="dlabel">Dictionary (no graph) 0.61</text><text x="563" y="154.6" class="dlabel">Bearings, full 0.56</text><text x="563" y="170.6" class="dlabel">Bearings, one hop 0.54</text><text x="563" y="277.7" class="dlabel">Frozen graph 0.29</text><line class="xhair" x1="0" x2="0" y1="34" y2="316" visibility="hidden"/><rect class="hit" x="52" y="34" width="503" height="282" fill="transparent"/></svg><script type="application/json" id="data-curve-tasks">{"series": {"bm25": [[99, 0.3], [109, 0.32], [119, 0.31], [129, 0.33], [139, 0.35], [149, 0.35], [159, 0.39], [169, 0.43], [179, 0.44], [189, 0.44], [199, 0.45], [209, 0.4], [219, 0.4], [229, 0.42], [239, 0.43], [249, 0.41], [259, 0.39], [269, 0.35], [279, 0.34], [289, 0.38], [299, 0.4], [309, 0.47], [319, 0.48], [329, 0.49], [339, 0.5], [349, 0.51], [359, 0.53], [369, 0.54], [379, 0.56], [389, 0.57], [399, 0.53], [409, 0.54], [419, 0.55], [429, 0.53], [439, 0.51], [449, 0.54], [459, 0.57], [469, 0.56], [479, 0.57], [489, 0.53], [499, 0.58], [509, 0.57], [519, 0.54], [529, 0.54], [539, 0.57], [549, 0.58], [559, 0.58], [569, 0.6], [579, 0.59], [589, 0.62], [599, 0.56], [609, 0.54], [619, 0.55], [629, 0.55], [639, 0.54], [649, 0.55], [659, 0.54], [669, 0.54], [679, 0.56], [689, 0.56], [699, 0.59], [709, 0.6], [719, 0.64], [729, 0.67], [739, 0.68], [749, 0.67], [759, 0.68], [769, 0.69], [779, 0.7], [789, 0.69], [799, 0.72], [809, 0.7], [819, 0.67], [829, 0.67], [839, 0.63], [849, 0.62]], "dict": [[99, 0.24], [109, 0.27], [119, 0.27], [129, 0.28], [139, 0.29], [149, 0.32], [159, 0.35], [169, 0.39], [179, 0.39], [189, 0.41], [199, 0.41], [209, 0.36], [219, 0.37], [229, 0.42], [239, 0.43], [249, 0.4], [259, 0.4], [269, 0.36], [279, 0.36], [289, 0.36], [299, 0.38], [309, 0.45], [319, 0.44], [329, 0.42], [339, 0.44], [349, 0.47], [359, 0.48], [369, 0.49], [379, 0.5], [389, 0.54], [399, 0.52], [409, 0.54], [419, 0.56], [429, 0.54], [439, 0.52], [449, 0.49], [459, 0.5], [469, 0.48], [479, 0.49], [489, 0.47], [499, 0.5], [509, 0.47], [519, 0.43], [529, 0.43], [539, 0.43], [549, 0.47], [559, 0.48], [569, 0.5], [579, 0.49], [589, 0.49], [599, 0.45], [609, 0.44], [619, 0.46], [629, 0.45], [639, 0.48], [649, 0.48], [659, 0.49], [669, 0.51], [679, 0.52], [689, 0.53], [699, 0.53], [709, 0.52], [719, 0.52], [729, 0.56], [739, 0.57], [749, 0.54], [759, 0.53], [769, 0.52], [779, 0.54], [789, 0.54], [799, 0.58], [809, 0.59], [819, 0.63], [829, 0.63], [839, 0.59], [849, 0.61]], "bearings-1": [[99, 0.22], [109, 0.25], [119, 0.26], [129, 0.26], [139, 0.29], [149, 0.31], [159, 0.36], [169, 0.4], [179, 0.4], [189, 0.42], [199, 0.42], [209, 0.4], [219, 0.4], [229, 0.46], [239, 0.44], [249, 0.41], [259, 0.39], [269, 0.35], [279, 0.35], [289, 0.33], [299, 0.36], [309, 0.39], [319, 0.4], [329, 0.36], [339, 0.4], [349, 0.43], [359, 0.46], [369, 0.49], [379, 0.5], [389, 0.56], [399, 0.52], [409, 0.55], [419, 0.56], [429, 0.58], [439, 0.57], [449, 0.57], [459, 0.55], [469, 0.51], [479, 0.51], [489, 0.48], [499, 0.54], [509, 0.51], [519, 0.49], [529, 0.47], [539, 0.47], [549, 0.49], [559, 0.48], [569, 0.5], [579, 0.54], [589, 0.53], [599, 0.49], [609, 0.48], [619, 0.48], [629, 0.49], [639, 0.5], [649, 0.51], [659, 0.54], [669, 0.57], [679, 0.55], [689, 0.57], [699, 0.56], [709, 0.56], [719, 0.57], [729, 0.6], [739, 0.61], [749, 0.59], [759, 0.59], [769, 0.57], [779, 0.58], [789, 0.58], [799, 0.6], [809, 0.59], [819, 0.61], [829, 0.59], [839, 0.55], [849, 0.54]], "bearings": [[99, 0.23], [109, 0.26], [119, 0.27], [129, 0.27], [139, 0.3], [149, 0.32], [159, 0.37], [169, 0.41], [179, 0.41], [189, 0.43], [199, 0.43], [209, 0.4], [219, 0.4], [229, 0.45], [239, 0.43], [249, 0.4], [259, 0.38], [269, 0.34], [279, 0.35], [289, 0.33], [299, 0.36], [309, 0.41], [319, 0.42], [329, 0.37], [339, 0.41], [349, 0.44], [359, 0.47], [369, 0.5], [379, 0.5], [389, 0.56], [399, 0.52], [409, 0.54], [419, 0.55], [429, 0.58], [439, 0.58], [449, 0.59], [459, 0.57], [469, 0.54], [479, 0.55], [489, 0.52], [499, 0.57], [509, 0.54], [519, 0.52], [529, 0.5], [539, 0.49], [549, 0.5], [559, 0.49], [569, 0.5], [579, 0.53], [589, 0.52], [599, 0.49], [609, 0.48], [619, 0.48], [629, 0.49], [639, 0.51], [649, 0.52], [659, 0.54], [669, 0.57], [679, 0.54], [689, 0.56], [699, 0.54], [709, 0.54], [719, 0.55], [729, 0.58], [739, 0.58], [749, 0.56], [759, 0.57], [769, 0.56], [779, 0.57], [789, 0.59], [799, 0.62], [809, 0.61], [819, 0.63], [829, 0.61], [839, 0.57], [849, 0.56]], "frozen": [[225, 0.36], [235, 0.35], [245, 0.35], [255, 0.33], [265, 0.33], [275, 0.33], [285, 0.32], [295, 0.33], [305, 0.35], [315, 0.34], [325, 0.34], [335, 0.39], [345, 0.39], [355, 0.38], [365, 0.34], [375, 0.33], [385, 0.35], [395, 0.37], [405, 0.36], [415, 0.36], [425, 0.38], [435, 0.34], [445, 0.35], [455, 0.35], [465, 0.36], [475, 0.34], [485, 0.34], [495, 0.34], [505, 0.35], [515, 0.32], [525, 0.28], [535, 0.29], [545, 0.27], [555, 0.26], [565, 0.3], [575, 0.29], [585, 0.29], [595, 0.27], [605, 0.25], [615, 0.28], [625, 0.3], [635, 0.3], [645, 0.29], [655, 0.28], [665, 0.26], [675, 0.27], [685, 0.29], [695, 0.28], [705, 0.26], [715, 0.26], [725, 0.25], [735, 0.26], [745, 0.27], [755, 0.29], [765, 0.28], [775, 0.31], [785, 0.26], [795, 0.3], [805, 0.33], [815, 0.32], [825, 0.31], [835, 0.29], [845, 0.29]]}, "labels": {"bm25": "Keyword search (BM25)", "dict": "Dictionary (no graph)", "bearings-1": "Bearings, one hop", "bearings": "Bearings, full", "frozen": "Frozen graph"}, "x0": 99, "x1": 849, "L": 52, "R": 205, "W": 760}</script>
-<svg viewBox="0 0 720 294" class="chart" role="img" aria-label="hit rates by condition"><text x="0" y="24" class="glabel">hit@1, test split n=724</text><text x="202" y="44" class="tick" text-anchor="end">Keyword search (BM25)</text><rect x="210" y="34" width="134.3" height="14" rx="4" fill="var(--series-5)"><title>Keyword search (BM25) hit@1, test split n=724: 0.298 (95% CI 0.265-0.333)</title></rect><line x1="329.3" x2="359.8" y1="41" y2="41" class="whisker"/><text x="365.8" y="45" class="tick">0.30</text><text x="202" y="66" class="tick" text-anchor="end">Dictionary (no graph)</text><rect x="210" y="56" width="114.4" height="14" rx="4" fill="var(--series-2)"><title>Dictionary (no graph) hit@1, test split n=724: 0.254 (95% CI 0.222-0.286)</title></rect><line x1="310.1" x2="338.7" y1="63" y2="63" class="whisker"/><text x="344.7" y="67" class="tick">0.25</text><text x="202" y="88" class="tick" text-anchor="end">Bearings, one hop</text><rect x="210" y="78" width="116.9" height="14" rx="4" fill="var(--series-3)"><title>Bearings, one hop hit@1, test split n=724: 0.260 (95% CI 0.231-0.291)</title></rect><line x1="313.8" x2="341.1" y1="85" y2="85" class="whisker"/><text x="347.1" y="89" class="tick">0.26</text><text x="202" y="110" class="tick" text-anchor="end">Bearings, full</text><rect x="210" y="100" width="116.9" height="14" rx="4" fill="var(--series-1)"><title>Bearings, full hit@1, test split n=724: 0.260 (95% CI 0.231-0.290)</title></rect><line x1="313.8" x2="340.5" y1="107" y2="107" class="whisker"/><text x="346.5" y="111" class="tick">0.26</text><text x="202" y="132" class="tick" text-anchor="end">Frozen graph</text><rect x="210" y="122" width="58.4" height="14" rx="4" fill="var(--series-4)"><title>Frozen graph hit@1, test split n=724: 0.130 (95% CI 0.106-0.155)</title></rect><line x1="257.9" x2="279.6" y1="129" y2="129" class="whisker"/><text x="285.6" y="133" class="tick">0.13</text><text x="0" y="156" class="glabel">hit@5, test split n=724</text><text x="202" y="176" class="tick" text-anchor="end">Keyword search (BM25)</text><rect x="210" y="166" width="248.0" height="14" rx="4" fill="var(--series-5)"><title>Keyword search (BM25) hit@5, test split n=724: 0.551 (95% CI 0.515-0.588)</title></rect><line x1="441.8" x2="474.8" y1="173" y2="173" class="whisker"/><text x="480.8" y="177" class="tick">0.55</text><text x="202" y="198" class="tick" text-anchor="end">Dictionary (no graph)</text><rect x="210" y="188" width="220.6" height="14" rx="4" fill="var(--series-2)"><title>Dictionary (no graph) hit@5, test split n=724: 0.490 (95% CI 0.454-0.528)</title></rect><line x1="414.5" x2="447.4" y1="195" y2="195" class="whisker"/><text x="453.4" y="199" class="tick">0.49</text><text x="202" y="220" class="tick" text-anchor="end">Bearings, one hop</text><rect x="210" y="210" width="225.0" height="14" rx="4" fill="var(--series-3)"><title>Bearings, one hop hit@5, test split n=724: 0.500 (95% CI 0.464-0.536)</title></rect><line x1="418.8" x2="451.2" y1="217" y2="217" class="whisker"/><text x="457.2" y="221" class="tick">0.50</text><text x="202" y="242" class="tick" text-anchor="end">Bearings, full</text><rect x="210" y="232" width="227.5" height="14" rx="4" fill="var(--series-1)"><title>Bearings, full hit@5, test split n=724: 0.506 (95% CI 0.470-0.540)</title></rect><line x1="421.3" x2="453.0" y1="239" y2="239" class="whisker"/><text x="459.0" y="243" class="tick">0.51</text><text x="202" y="264" class="tick" text-anchor="end">Frozen graph</text><rect x="210" y="254" width="141.7" height="14" rx="4" fill="var(--series-4)"><title>Frozen graph hit@5, test split n=724: 0.315 (95% CI 0.280-0.351)</title></rect><line x1="336.2" x2="367.9" y1="261" y2="261" class="whisker"/><text x="373.9" y="265" class="tick">0.31</text><line x1="210.0" x2="210.0" y1="6" y2="274" class="grid"/><text x="210.0" y="288" class="tick" text-anchor="middle">0.00</text><line x1="322.5" x2="322.5" y1="6" y2="274" class="grid"/><text x="322.5" y="288" class="tick" text-anchor="middle">0.25</text><line x1="435.0" x2="435.0" y1="6" y2="274" class="grid"/><text x="435.0" y="288" class="tick" text-anchor="middle">0.50</text><line x1="547.5" x2="547.5" y1="6" y2="274" class="grid"/><text x="547.5" y="288" class="tick" text-anchor="middle">0.75</text><line x1="660.0" x2="660.0" y1="6" y2="274" class="grid"/><text x="660.0" y="288" class="tick" text-anchor="middle">1.00</text></svg>
-<details><summary>All result tables (RESULTS.md)</summary><pre># Results
+:root{
+  color-scheme:light;
+  --bg:#f6f5f2; --surface:#fcfcfb; --surface-2:#f0efec; --border:#e4e3df; --grid:#ecebe7;
+  --text:#0b0b0b; --text-2:#52514e; --muted:#8a8984; --accent:#2a78d6; --accent-soft:#e3eefb;
+  --good:#0a7d0a; --good-soft:#e4f4e4; --bad:#c23b3b; --bad-soft:#fbe9e9;
+  --s1:#2a78d6; --s2:#eb6834; --s3:#1baf7a; --s4:#eda100; --s5:#e87ba4; --s6:#008300; --s7:#6250d6; --s8:#e34948;
+  --mono:"JetBrains Mono","SFMono-Regular",ui-monospace,Menlo,Consolas,monospace;
+  --sans:Inter,"Noto Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --radius:14px; --shadow:0 1px 2px rgba(0,0,0,.04),0 4px 16px rgba(0,0,0,.04);
+}
+@media (prefers-color-scheme:dark){:root:where(:not([data-theme="light"])){
+  color-scheme:dark;
+  --bg:#111110; --surface:#1a1a19; --surface-2:#222220; --border:#2e2e2b; --grid:#272725;
+  --text:#f0efec; --text-2:#c3c2b7; --muted:#8f8e86; --accent:#3987e5; --accent-soft:#1b2a3d;
+  --good:#3fbf55; --good-soft:#16261a; --bad:#e66767; --bad-soft:#2c1818;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#0ca30c; --s7:#9085e9; --s8:#e66767;
+  --shadow:none;
+}}
+:root[data-theme="dark"]{
+  color-scheme:dark;
+  --bg:#111110; --surface:#1a1a19; --surface-2:#222220; --border:#2e2e2b; --grid:#272725;
+  --text:#f0efec; --text-2:#c3c2b7; --muted:#8f8e86; --accent:#3987e5; --accent-soft:#1b2a3d;
+  --good:#3fbf55; --good-soft:#16261a; --bad:#e66767; --bad-soft:#2c1818;
+  --s1:#3987e5; --s2:#d95926; --s3:#199e70; --s4:#c98500; --s5:#d55181; --s6:#0ca30c; --s7:#9085e9; --s8:#e66767;
+  --shadow:none;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth}
+body{margin:0;background:var(--bg);color:var(--text);font:15px/1.55 var(--sans);-webkit-font-smoothing:antialiased}
+a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
+code,.mono{font-family:var(--mono);font-size:.92em}
+.wrap{max-width:1180px;margin:0 auto;padding:0 28px}
+header.top{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 86%,transparent);backdrop-filter:blur(10px);border-bottom:1px solid var(--border)}
+header.top .wrap{display:flex;align-items:center;gap:28px;height:58px}
+.brand{display:flex;align-items:center;gap:10px;font-weight:700;font-size:17px;letter-spacing:-.2px}
+.brand svg{width:22px;height:22px}
+nav{display:flex;gap:4px;flex:1}
+nav a{color:var(--text-2);padding:6px 10px;border-radius:8px;font-size:14px}
+nav a:hover{background:var(--surface-2);text-decoration:none;color:var(--text)}
+.theme{border:1px solid var(--border);background:var(--surface);color:var(--text-2);border-radius:8px;padding:5px 10px;font:inherit;font-size:13px;cursor:pointer}
+.hero{padding:56px 0 28px}
+.hero h1{font-size:44px;line-height:1.08;letter-spacing:-1.2px;margin:0 0 14px;max-width:820px}
+.hero p.lede{font-size:18px;color:var(--text-2);max-width:760px;margin:0}
+.pills{display:flex;flex-wrap:wrap;gap:8px;margin-top:18px}
+.pill{font-size:12.5px;padding:4px 10px;border-radius:999px;background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin:30px 0 8px}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:18px 18px 16px;box-shadow:var(--shadow)}
+.kpi .label{font-size:12.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;font-weight:600}
+.kpi .value{font-size:34px;font-weight:700;letter-spacing:-.8px;margin:6px 0 2px;font-variant-numeric:tabular-nums}
+.kpi .sub{font-size:13px;color:var(--text-2)}
+.delta{display:inline-block;font-size:12.5px;font-weight:600;padding:1px 7px;border-radius:6px;margin-left:4px}
+.delta.up{color:var(--good);background:var(--good-soft)} .delta.down{color:var(--bad);background:var(--bad-soft)} .delta.flat{color:var(--text-2);background:var(--surface-2)}
+section{padding:40px 0 8px;scroll-margin-top:64px}
+section h2{font-size:26px;letter-spacing:-.5px;margin:0 0 6px}
+section .intro{color:var(--text-2);max-width:820px;margin:0 0 20px}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:22px;box-shadow:var(--shadow)}
+.card h3{margin:0 0 4px;font-size:16px}
+.card .cap{color:var(--muted);font-size:13px;margin:0 0 14px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-try{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:16px;align-items:start}
+.controls{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 14px}
+.seg{display:inline-flex;background:var(--surface-2);border:1px solid var(--border);border-radius:10px;padding:3px}
+.seg button{border:0;background:transparent;color:var(--text-2);font:inherit;font-size:13.5px;padding:6px 12px;border-radius:7px;cursor:pointer}
+.seg button.on{background:var(--surface);color:var(--text);box-shadow:0 1px 2px rgba(0,0,0,.08);font-weight:600}
+select,textarea{font:inherit;color:var(--text);background:var(--surface-2);border:1px solid var(--border);border-radius:10px}
+select{padding:8px 10px;width:100%}
+textarea{width:100%;min-height:210px;padding:12px;font-family:var(--mono);font-size:12.5px;line-height:1.5;resize:vertical}
+.btn{border:0;background:var(--accent);color:#fff;font:inherit;font-weight:600;padding:10px 16px;border-radius:10px;cursor:pointer}
+.btn:disabled{opacity:.6;cursor:progress}
+.row{display:flex;gap:10px;align-items:center;margin-top:12px}
+.hint{font-size:12.5px;color:var(--muted)}
+.result-empty{color:var(--muted);text-align:center;padding:60px 20px;border:1px dashed var(--border);border-radius:12px}
+.meta{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
+.chip{font-size:12px;padding:3px 9px;border-radius:999px;background:var(--surface-2);color:var(--text-2);border:1px solid var(--border)}
+.chip.good{background:var(--good-soft);color:var(--good);border-color:transparent;font-weight:600}
+.file{border:1px solid var(--border);border-radius:12px;padding:12px 14px;margin-bottom:10px;background:var(--surface)}
+.file.gold{border-color:var(--good);box-shadow:inset 3px 0 0 var(--good)}
+.file .path{font-family:var(--mono);font-size:13.5px;font-weight:600;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.file .rank{display:inline-grid;place-items:center;width:22px;height:22px;border-radius:6px;background:var(--surface-2);color:var(--text-2);font-size:12px;font-family:var(--sans)}
+.file .lines{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 2px}
+.file .lines>*{font-family:var(--mono);font-size:12px}
+.file .lines .def{color:var(--muted)}
+.file .lines span.ln{color:var(--accent);margin-right:12px}
+.file ul b{color:var(--text);font-weight:600}
+.file .lines .nm{color:var(--text);font-weight:600}
+.file ul{list-style:none;padding-left:0}
+.file li{margin:3px 0}
+.kind{display:inline-block;font-size:10.5px;text-transform:uppercase;letter-spacing:.4px;color:var(--muted);border:1px solid var(--border);border-radius:5px;padding:0 5px;margin-right:6px;vertical-align:1px}
+.file ul{margin:6px 0 0;color:var(--text-2);font-size:12.5px}
+.testcmd{margin-top:10px;padding:10px 12px;border-radius:10px;background:var(--surface-2);font-family:var(--mono);font-size:12.5px}
+details{margin-top:10px} summary{cursor:pointer;color:var(--text-2);font-size:13px}
+pre{background:var(--surface-2);border-radius:10px;padding:12px;overflow:auto;font-size:12px;line-height:1.5;margin:8px 0 0}
+.chart{width:100%;height:auto;display:block;overflow:visible}
+.chart text{fill:var(--text-2);font-size:12px;font-family:var(--sans)}
+.chart .axis-title{fill:var(--muted);font-size:12px}
+.chart .grid{stroke:var(--grid);stroke-width:1}
+.chart .base{stroke:var(--border);stroke-width:1}
+.legend{display:flex;flex-wrap:wrap;gap:14px;margin:0 0 8px;font-size:13px;color:var(--text-2)}
+.legend span{display:inline-flex;align-items:center;gap:6px;cursor:pointer;user-select:none}
+.legend span.off{opacity:.35}
+.legend i{width:14px;height:3px;border-radius:2px;display:inline-block}
+.tip{position:fixed;pointer-events:none;z-index:50;background:var(--surface);border:1px solid var(--border);border-radius:10px;padding:8px 10px;font-size:12.5px;box-shadow:0 6px 24px rgba(0,0,0,.18);display:none;min-width:160px}
+.tip b{display:block;margin-bottom:4px}
+.tip div{display:flex;justify-content:space-between;gap:14px} .tip i{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px}
+table{width:100%;border-collapse:collapse;font-size:13.5px;font-variant-numeric:tabular-nums}
+th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--border);vertical-align:top}
+th{color:var(--muted);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.4px}
+td.num,th.num{text-align:right}
+tr.hl td{background:var(--accent-soft)}
+.ci{color:var(--muted);font-size:12px}
+.swatch{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:8px;vertical-align:-1px}
+.notes{columns:2;column-gap:28px}
+.notes li{margin:0 0 10px;break-inside:avoid;color:var(--text-2)}
+.notes li b{color:var(--text)}
+.warn{border-left:3px solid var(--s4);background:var(--surface-2);padding:12px 14px;border-radius:8px;color:var(--text-2);font-size:14px;margin:0 0 16px}
+footer{color:var(--muted);font-size:13px;padding:40px 0 60px}
+@media (max-width:900px){.kpis{grid-template-columns:1fr 1fr}.grid2,.grid-try{grid-template-columns:1fr}.notes{columns:1}nav{display:none}.hero h1{font-size:34px}}
+</style>
+</head>
+<body>
+<header class="top"><div class="wrap">
+  <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><path d="M14.8 9.2l-4.2 1.4-1.4 4.2 4.2-1.4z" fill="var(--accent)"/></svg>Bearings</div>
+  <nav><a href="#try">Try a task</a><a href="#retrieval">Retrieval</a><a href="#agents">Live agents</a><a href="#claude">Claude Code</a><a href="#method">Method</a></nav>
+  <button class="theme" id="theme">Theme</button>
+</div></header>
 
-Generated by `uv run python bench/report.py` from the files in `results/`. Brackets are 95% bootstrap confidence intervals.
+<main class="wrap">
+  <div class="hero">
+    <h1>Coding agents start every task from zero. Bearings remembers where past work landed.</h1>
+    <p class="lede">A learned context layer stored as a graph in self-hosted HydraDB. One weighted path query turns a new task into a small context pack: the files to start in, the lines to read, and the test to run. No model calls.</p>
+    <div class="pills" id="pills"></div>
+    <div class="kpis" id="kpis"></div>
+  </div>
 
-## Level 1, Learning from the task stream only (a team starting from an empty graph)
+  <section id="try">
+    <h2>Try a task</h2>
+    <p class="intro">Pick a real SWE-bench issue from after the graph's cutoff, or paste your own. The suggestions come from a live path query against HydraDB plus code anchors from the checkout at the issue's commit. Each line under a file is the reason it was suggested.</p>
+    <div class="grid-try">
+      <div class="card">
+        <h3>Task</h3>
+        <p class="cap">Issues the graph has never seen, from SWE-bench Verified.</p>
+        <select id="ex"><option value="">Pick an example issue…</option></select>
+        <div style="height:10px"></div>
+        <textarea id="task" placeholder="Describe the bug or feature…"></textarea>
+        <div class="row"><button class="btn" id="go">Get context pack</button><span class="hint" id="status"></span></div>
+      </div>
+      <div class="card" id="result"><div class="result-empty">The context pack appears here.</div></div>
+    </div>
+  </section>
 
-Test split: SWE-bench Django tasks from 2019-07-01 on (n=724). Retrieval only, no model calls.
+  <section id="retrieval">
+    <h2>Retrieval: does the right file come back?</h2>
+    <p class="intro" id="l1intro"></p>
+    <div class="controls">
+      <div class="seg" id="seedSeg"></div>
+      <div class="seg" id="metricSeg"></div>
+    </div>
+    <div class="grid2">
+      <div class="card">
+        <h3>Learning over time</h3>
+        <p class="cap" id="curveCap"></p>
+        <div class="legend" id="curveLegend"></div>
+        <div id="curve"></div>
+      </div>
+      <div class="card">
+        <h3>All conditions, test split</h3>
+        <p class="cap" id="dotsCap"></p>
+        <div id="dots"></div>
+      </div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h3>Paired comparisons</h3>
+      <p class="cap">Same tasks, difference in hit rate, 95% bootstrap interval. An interval that crosses zero is not a reliable difference.</p>
+      <div id="diffs"></div>
+    </div>
+    <div class="grid2" style="margin-top:16px" id="l1facts"></div>
+  </section>
 
-| Condition | n | hit@1 | hit@3 | hit@5 | recall@5 |
-|---|---|---|---|---|---|
-| Keyword search (BM25) | 724 | 0.298 [0.265, 0.333] | 0.464 [0.428, 0.501] | 0.551 [0.515, 0.588] | 0.487 [0.452, 0.521] |
-| Dictionary (no graph) | 724 | 0.254 [0.222, 0.286] | 0.410 [0.376, 0.445] | 0.490 [0.454, 0.528] | 0.430 [0.396, 0.464] |
-| Bearings, one hop | 724 | 0.260 [0.231, 0.291] | 0.409 [0.373, 0.442] | 0.500 [0.464, 0.536] | 0.445 [0.411, 0.478] |
-| Bearings, full | 724 | 0.260 [0.231, 0.290] | 0.405 [0.369, 0.438] | 0.506 [0.470, 0.540] | 0.450 [0.416, 0.483] |
-| Frozen graph | 724 | 0.130 [0.106, 0.155] | 0.260 [0.228, 0.293] | 0.315 [0.280, 0.351] | 0.270 [0.238, 0.302] |
+  <section id="agents">
+    <h2>Live agents: tokens to locate the right files</h2>
+    <p class="intro" id="l2intro"></p>
+    <div id="l2warn"></div>
+    <div class="grid2">
+      <div class="card"><h3>Found every file of the real fix</h3><p class="cap">Share of paired tasks, 95% interval.</p><div id="l2succ"></div></div>
+      <div class="card"><h3>Tokens to locate the files</h3><p class="cap">Median total input tokens per run, bar = interquartile range. Includes the pack's own tokens.</p><div id="l2tok"></div></div>
+    </div>
+    <div class="card" style="margin-top:16px"><h3>Per condition</h3><p class="cap" id="l2cap"></p><div id="l2table"></div></div>
+  </section>
 
-| Comparison (paired, same tasks) | Δ hit@1 | Δ hit@5 |
-|---|---|---|
-| Bearings, full − Dictionary (no graph) (n=724) | +0.006 [-0.018, +0.030] | +0.015 [-0.014, +0.043] |
-| Bearings, full − Bearings, one hop (n=724) | +0.000 [-0.004, +0.004] | +0.006 [-0.006, +0.017] |
-| Bearings, full − Frozen graph (n=724) | +0.130 [+0.098, +0.163] | +0.191 [+0.153, +0.229] |
-| Bearings, full − Keyword search (BM25) (n=724) | -0.039 [-0.072, -0.008] | -0.046 [-0.080, -0.011] |
-| Dictionary (no graph) − Keyword search (BM25) (n=724) | -0.044 [-0.072, -0.017] | -0.061 [-0.091, -0.033] |
+  <section id="claude">
+    <h2>Claude Code: one task at a time</h2>
+    <p class="intro">Headless Claude Code fixing a real issue end to end, with and without Bearings. A handful of examples, not a statistic, and a different model from the measurements above. Usage is Claude Code's own report.</p>
+    <div class="card"><div id="demo"></div></div>
+  </section>
 
-SWE-bench Verified subset (n=199):
+  <section id="method">
+    <h2>Method and caveats</h2>
+    <div class="card"><ul class="notes" id="notes"></ul></div>
+  </section>
+  <footer id="foot"></footer>
+</main>
+<div class="tip" id="tip"></div>
 
-| Condition | n | hit@1 | hit@3 | hit@5 | recall@5 |
-|---|---|---|---|---|---|
-| Keyword search (BM25) | 199 | 0.302 [0.241, 0.372] | 0.487 [0.417, 0.558] | 0.593 [0.523, 0.658] | 0.536 [0.470, 0.600] |
-| Dictionary (no graph) | 199 | 0.241 [0.186, 0.302] | 0.392 [0.322, 0.457] | 0.482 [0.412, 0.553] | 0.444 [0.377, 0.510] |
-| Bearings, one hop | 199 | 0.256 [0.201, 0.322] | 0.397 [0.332, 0.467] | 0.487 [0.412, 0.558] | 0.445 [0.374, 0.510] |
-| Bearings, full | 199 | 0.256 [0.201, 0.322] | 0.392 [0.327, 0.462] | 0.477 [0.407, 0.543] | 0.441 [0.373, 0.508] |
-| Frozen graph | 199 | 0.136 [0.090, 0.186] | 0.286 [0.226, 0.347] | 0.342 [0.276, 0.407] | 0.319 [0.257, 0.385] |
-
-- Where Bearings and the dictionary differ at hit@5: Bearings better on 58 tasks, worse on 47.
-- Where the second hop changes hit@5: better on 11 tasks, worse on 7.
-- Query latency (HydraDB path query + scoring): full p50 546 ms, p95 1190 ms; one hop p50 102 ms.
-- Suggested test command names the module the real fix&#x27;s tests live in: 0.327 of tasks.
-- Context pack size: median 1062 characters (≈265 tokens).
-- HydraDB&#x27;s ranking equals the in-memory reference implementation on 659/724 tasks.
-
-## Does the second hop reach files the first hop cannot?
-
-Measured on the dev split: for each gold source file, is it linked in one hop from any of the task&#x27;s entities, only through a CO_CHANGED hop, or not at all?
-
-| Seed | gold source files | 1 hop from a task entity | reachable only by 2nd hop | unreachable | 2nd-hop-only that reached top 5 |
-|---|---|---|---|---|---|
-| history | 215 | 207 | 5 | 3 | 0 |
-| tasks | 215 | 66 | 3 | 146 | 0 |
-
-## Level 2, live agent runs: tokens to locate the right files
-
-Measured with DeepSeek through OpenCode. The agent names the files it would edit and stops; success is checked in code against the real fix. Token counts include the context pack.
-
-Model: `opencode/deepseek-v4.1-flash-free` via OpenCode. Paired tasks: 1. Runs excluded (rate limit / crash / timeout): 0 of 5.
-
-| Condition | success (all gold files named) | hit (≥1 gold file) | total input tokens, median [IQR] | uncached input | output+reasoning | tool calls | wall s |
-|---|---|---|---|---|---|---|---|
-| No memory | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 72,320 [72,320–72,320] | 6,400 | 1,639 | 9 | 63 |
-| Dictionary pack in prompt | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 21,580 [21,580–21,580] | 5,964 | 298 | 2 | 44 |
-| Bearings (MCP) | 1.000 [1.000, 1.000] | 1.000 [1.000, 1.000] | 75,565 [75,565–75,565] | 12,973 | 2,336 | 10 | 67 |
-
-| Paired difference vs no memory | Δ success | Δ total input tokens (mean, 95% CI) | median ratio |
-|---|---|---|---|
-| Dictionary pack in prompt | +0.000 [+0.000, +0.000] | -50,740 [-50,740, -50,740] | 0.30 |
-| Bearings (MCP) | +0.000 [+0.000, +0.000] | +3,245 [+3,245, +3,245] | 1.04 |
-
-## Claude Code demo (two tasks, not a statistic)
-
-Headless Claude Code (`claude -p`, sonnet), the same task fixed once without and once with Bearings. Usage is Claude Code&#x27;s own `usage` block from the final result event. Total input = uncached input + cache write + cache read. The dollar column is Claude Code&#x27;s list-price arithmetic, not measured spend (these runs used a Pro plan). On both tasks Bearings *increased* tokens: the agent made the pack call (plus a tool lookup and a report call over MCP) and still explored about as much.
-
-| Task | Side | total input | vs without | uncached input | cache write | cache read | output | turns | tool calls | right files | list-price arithmetic |
-|---|---|---|---|---|---|---|---|---|---|---|---|
-| django__django-15863 | Without Bearings | 108,493 |  | 6 | 13,647 | 94,840 | 705 | 4 | 3 | True | $0.07 |
-| django__django-15863 | Bearings via MCP | 185,137 | +71% | 12 | 14,971 | 170,154 | 1,348 | 7 | 6 | True | $0.09 |
-| django__django-15863 | Bearings via hook | 144,424 | +33% | 8 | 13,374 | 131,042 | 777 | 5 | 4 | True | $0.07 |
-| django__django-16560 | Without Bearings | 253,968 |  | 12 | 21,630 | 232,326 | 2,632 | 6 | 5 | True | $0.14 |
-| django__django-16560 | Bearings via MCP | 295,771 | +16% | 16 | 25,516 | 270,239 | 2,991 | 8 | 7 | True | $0.16 |
-| django__django-16560 | Bearings via hook | 316,110 | +24% | 14 | 25,212 | 290,884 | 3,173 | 8 | 7 | True | $0.16 |
-</pre></details>
-<div id="tip"></div>
-</div>
+<script id="data" type="application/json">{"level1": {"history": {"title": "Seeded from history", "n": 724, "test_from": "2019-07-01", "conds": {"bm25": {"hit@1": [0.4198895027624309, 0.38812154696132595, 0.4558011049723757], "hit@3": [0.6740331491712708, 0.6395027624309392, 0.7085635359116023], "hit@5": [0.7596685082872928, 0.7279005524861878, 0.7914364640883977], "recall@5": [0.6848663406430712, 0.6538297938880893, 0.7159020652459879]}, "dict": {"hit@1": [0.39917127071823205, 0.36464088397790057, 0.4350828729281768], "hit@3": [0.5980662983425414, 0.56353591160221, 0.6325966850828729], "hit@5": [0.680939226519337, 0.649171270718232, 0.7140883977900553], "recall@5": [0.603937108913547, 0.5717253683241252, 0.6372210002785644]}, "anchors": {"hit@1": [0.3756906077348066, 0.3411602209944751, 0.4102209944751381], "hit@3": [0.5069060773480663, 0.4723756906077348, 0.5428176795580111], "hit@5": [0.5262430939226519, 0.49171270718232046, 0.5607734806629834], "recall@5": [0.46144435674822415, 0.4294922388845041, 0.49666535122336225]}, "graph": {"hit@1": [0.393646408839779, 0.35911602209944754, 0.4281767955801105], "hit@3": [0.5939226519337016, 0.5593922651933702, 0.6298342541436464], "hit@5": [0.6795580110497238, 0.6450276243093923, 0.7113259668508287], "recall@5": [0.6053434242020934, 0.5720273560621302, 0.6374733848419663]}, "bearings-1": {"hit@1": [0.49171270718232046, 0.4558011049723757, 0.5276243093922652], "hit@3": [0.6988950276243094, 0.6657458563535912, 0.7306629834254144], "hit@5": [0.7651933701657458, 0.7334254143646409, 0.7955801104972375], "recall@5": [0.6881508542643576, 0.657560994010864, 0.7189897782317347]}, "bearings": {"hit@1": [0.49171270718232046, 0.4544198895027624, 0.5276243093922652], "hit@3": [0.7058011049723757, 0.6726519337016574, 0.7375690607734806], "hit@5": [0.7693370165745856, 0.7375690607734806, 0.7983425414364641], "recall@5": [0.690999611170435, 0.6605536758902456, 0.7220692696968289]}, "frozen": {"hit@1": [0.4516574585635359, 0.4143646408839779, 0.48480662983425415], "hit@3": [0.6740331491712708, 0.6395027624309392, 0.7071823204419889], "hit@5": [0.7624309392265194, 0.7306629834254144, 0.7928176795580111], "recall@5": [0.6804052145720166, 0.6493059585712738, 0.711113561446678]}}, "diffs": [{"label": "Bearings (graph + anchors) \u2212 Keyword search (BM25)", "reading": "vs keyword search over past tasks", "hl": true, "hit@1": [0.0718232044198895, 0.029005524861878452, 0.11602209944751381], "hit@5": [0.009668508287292817, -0.023480662983425413, 0.04419889502762431]}, {"label": "Bearings (graph + anchors) \u2212 Learned graph only", "reading": "what the code anchors add", "hl": false, "hit@1": [0.09806629834254144, 0.06353591160220995, 0.13121546961325967], "hit@5": [0.08977900552486189, 0.0649171270718232, 0.11602209944751381]}, {"label": "Bearings (graph + anchors) \u2212 Code anchors only", "reading": "what the learned graph adds", "hl": false, "hit@1": [0.11602209944751381, 0.08977900552486189, 0.1464088397790055], "hit@5": [0.2430939226519337, 0.20994475138121546, 0.27624309392265195]}, {"label": "Bearings (graph + anchors) \u2212 Bearings, frozen graph", "reading": "what learning as tasks arrive adds", "hl": true, "hit@1": [0.04005524861878453, 0.019337016574585635, 0.06353591160220995], "hit@5": [0.006906077348066298, -0.015193370165745856, 0.029005524861878452]}, {"label": "Bearings (graph + anchors) \u2212 Bearings, no second hop", "reading": "what the second hop adds", "hl": false, "hit@1": [0.0, -0.0055248618784530384, 0.0055248618784530384], "hit@5": [0.004143646408839779, -0.0013812154696132596, 0.011049723756906077]}, {"label": "Bearings (graph + anchors) \u2212 Dictionary (no graph)", "reading": "vs a plain word-to-file table", "hl": false, "hit@1": [0.0925414364640884, 0.049723756906077346, 0.13121546961325967], "hit@5": [0.08839779005524862, 0.05939226519337017, 0.11740331491712708]}], "curves": {"hit@1": {"bearings": [[99, 0.42], [109, 0.42], [119, 0.42], [129, 0.42], [139, 0.44], [149, 0.43], [159, 0.42], [169, 0.42], [179, 0.45], [189, 0.48], [199, 0.46], [209, 0.42], [219, 0.43], [229, 0.44], [239, 0.43], [249, 0.44], [259, 0.43], [269, 0.43], [279, 0.42], [289, 0.4], [299, 0.39], [309, 0.4], [319, 0.42], [329, 0.44], [339, 0.45], [349, 0.41], [359, 0.43], [369, 0.43], [379, 0.43], [389, 0.45], [399, 0.47], [409, 0.5], [419, 0.49], [429, 0.49], [439, 0.51], [449, 0.54], [459, 0.52], [469, 0.5], [479, 0.48], [489, 0.5], [499, 0.51], [509, 0.51], [519, 0.52], [529, 0.51], [539, 0.51], [549, 0.54], [559, 0.56], [569, 0.58], [579, 0.58], [589, 0.55], [599, 0.57], [609, 0.55], [619, 0.54], [629, 0.49], [639, 0.49], [649, 0.48], [659, 0.48], [669, 0.48], [679, 0.46], [689, 0.47], [699, 0.45], [709, 0.45], [719, 0.46], [729, 0.52], [739, 0.56], [749, 0.54], [759, 0.54], [769, 0.56], [779, 0.58], [789, 0.58], [799, 0.6], [809, 0.6], [819, 0.59], [829, 0.57], [839, 0.5], [849, 0.51]], "graph": [[99, 0.4], [109, 0.39], [119, 0.38], [129, 0.4], [139, 0.41], [149, 0.4], [159, 0.39], [169, 0.38], [179, 0.39], [189, 0.39], [199, 0.36], [209, 0.33], [219, 0.35], [229, 0.34], [239, 0.34], [249, 0.32], [259, 0.35], [269, 0.36], [279, 0.35], [289, 0.35], [299, 0.35], [309, 0.36], [319, 0.36], [329, 0.37], [339, 0.39], [349, 0.38], [359, 0.39], [369, 0.38], [379, 0.37], [389, 0.41], [399, 0.43], [409, 0.48], [419, 0.52], [429, 0.52], [439, 0.52], [449, 0.55], [459, 0.51], [469, 0.48], [479, 0.49], [489, 0.45], [499, 0.47], [509, 0.43], [519, 0.4], [529, 0.39], [539, 0.37], [549, 0.4], [559, 0.38], [569, 0.4], [579, 0.41], [589, 0.42], [599, 0.4], [609, 0.39], [619, 0.35], [629, 0.32], [639, 0.31], [649, 0.27], [659, 0.3], [669, 0.33], [679, 0.29], [689, 0.33], [699, 0.34], [709, 0.34], [719, 0.37], [729, 0.41], [739, 0.46], [749, 0.46], [759, 0.47], [769, 0.44], [779, 0.46], [789, 0.42], [799, 0.42], [809, 0.42], [819, 0.43], [829, 0.42], [839, 0.37], [849, 0.38]], "bm25": [[99, 0.32], [109, 0.33], [119, 0.32], [129, 0.33], [139, 0.34], [149, 0.36], [159, 0.36], [169, 0.41], [179, 0.42], [189, 0.42], [199, 0.43], [209, 0.39], [219, 0.41], [229, 0.42], [239, 0.43], [249, 0.37], [259, 0.38], [269, 0.35], [279, 0.34], [289, 0.34], [299, 0.33], [309, 0.34], [319, 0.36], [329, 0.35], [339, 0.37], [349, 0.4], [359, 0.42], [369, 0.42], [379, 0.42], [389, 0.43], [399, 0.43], [409, 0.49], [419, 0.46], [429, 0.46], [439, 0.45], [449, 0.47], [459, 0.45], [469, 0.43], [479, 0.45], [489, 0.43], [499, 0.47], [509, 0.43], [519, 0.43], [529, 0.45], [539, 0.44], [549, 0.44], [559, 0.42], [569, 0.44], [579, 0.44], [589, 0.45], [599, 0.41], [609, 0.4], [619, 0.4], [629, 0.39], [639, 0.38], [649, 0.38], [659, 0.39], [669, 0.39], [679, 0.38], [689, 0.39], [699, 0.41], [709, 0.41], [719, 0.41], [729, 0.41], [739, 0.46], [749, 0.45], [759, 0.47], [769, 0.48], [779, 0.49], [789, 0.48], [799, 0.48], [809, 0.51], [819, 0.52], [829, 0.51], [839, 0.44], [849, 0.42]], "frozen": [[225, 0.43], [235, 0.42], [245, 0.42], [255, 0.43], [265, 0.42], [275, 0.4], [285, 0.4], [295, 0.39], [305, 0.39], [315, 0.39], [325, 0.43], [335, 0.44], [345, 0.4], [355, 0.39], [365, 0.37], [375, 0.41], [385, 0.41], [395, 0.4], [405, 0.42], [415, 0.41], [425, 0.39], [435, 0.44], [445, 0.44], [455, 0.44], [465, 0.43], [475, 0.39], [485, 0.39], [495, 0.4], [505, 0.41], [515, 0.44], [525, 0.46], [535, 0.42], [545, 0.47], [555, 0.48], [565, 0.5], [575, 0.48], [585, 0.49], [595, 0.5], [605, 0.52], [615, 0.48], [625, 0.46], [635, 0.45], [645, 0.45], [655, 0.47], [665, 0.47], [675, 0.5], [685, 0.48], [695, 0.49], [705, 0.46], [715, 0.49], [725, 0.49], [735, 0.53], [745, 0.54], [755, 0.5], [765, 0.51], [775, 0.52], [785, 0.52], [795, 0.52], [805, 0.52], [815, 0.52], [825, 0.5], [835, 0.47], [845, 0.45]]}, "hit@3": {"bearings": [[99, 0.65], [109, 0.67], [119, 0.7], [129, 0.69], [139, 0.7], [149, 0.7], [159, 0.71], [169, 0.71], [179, 0.75], [189, 0.77], [199, 0.74], [209, 0.69], [219, 0.69], [229, 0.68], [239, 0.68], [249, 0.65], [259, 0.63], [269, 0.63], [279, 0.61], [289, 0.58], [299, 0.6], [309, 0.62], [319, 0.61], [329, 0.65], [339, 0.66], [349, 0.67], [359, 0.71], [369, 0.69], [379, 0.71], [389, 0.75], [399, 0.74], [409, 0.78], [419, 0.8], [429, 0.78], [439, 0.78], [449, 0.78], [459, 0.73], [469, 0.74], [479, 0.72], [489, 0.72], [499, 0.75], [509, 0.73], [519, 0.71], [529, 0.7], [539, 0.73], [549, 0.75], [559, 0.77], [569, 0.78], [579, 0.8], [589, 0.79], [599, 0.77], [609, 0.76], [619, 0.75], [629, 0.74], [639, 0.71], [649, 0.7], [659, 0.71], [669, 0.7], [679, 0.65], [689, 0.65], [699, 0.65], [709, 0.65], [719, 0.66], [729, 0.69], [739, 0.72], [749, 0.71], [759, 0.7], [769, 0.7], [779, 0.75], [789, 0.74], [799, 0.76], [809, 0.76], [819, 0.76], [829, 0.75], [839, 0.69], [849, 0.69]], "graph": [[99, 0.62], [109, 0.64], [119, 0.66], [129, 0.67], [139, 0.66], [149, 0.64], [159, 0.64], [169, 0.62], [179, 0.64], [189, 0.63], [199, 0.61], [209, 0.56], [219, 0.55], [229, 0.54], [239, 0.55], [249, 0.51], [259, 0.51], [269, 0.53], [279, 0.52], [289, 0.52], [299, 0.55], [309, 0.57], [319, 0.58], [329, 0.58], [339, 0.59], [349, 0.61], [359, 0.63], [369, 0.6], [379, 0.59], [389, 0.62], [399, 0.61], [409, 0.65], [419, 0.67], [429, 0.69], [439, 0.68], [449, 0.69], [459, 0.66], [469, 0.64], [479, 0.64], [489, 0.59], [499, 0.62], [509, 0.6], [519, 0.57], [529, 0.55], [539, 0.55], [549, 0.57], [559, 0.56], [569, 0.58], [579, 0.62], [589, 0.65], [599, 0.61], [609, 0.59], [619, 0.58], [629, 0.57], [639, 0.56], [649, 0.55], [659, 0.58], [669, 0.6], [679, 0.56], [689, 0.59], [699, 0.6], [709, 0.59], [719, 0.61], [729, 0.64], [739, 0.67], [749, 0.66], [759, 0.66], [769, 0.64], [779, 0.65], [789, 0.61], [799, 0.63], [809, 0.64], [819, 0.64], [829, 0.64], [839, 0.58], [849, 0.58]], "bm25": [[99, 0.6], [109, 0.61], [119, 0.6], [129, 0.62], [139, 0.65], [149, 0.65], [159, 0.67], [169, 0.65], [179, 0.65], [189, 0.64], [199, 0.62], [209, 0.59], [219, 0.62], [229, 0.6], [239, 0.59], [249, 0.54], [259, 0.54], [269, 0.53], [279, 0.54], [289, 0.56], [299, 0.58], [309, 0.6], [319, 0.6], [329, 0.65], [339, 0.68], [349, 0.72], [359, 0.74], [369, 0.73], [379, 0.72], [389, 0.71], [399, 0.71], [409, 0.75], [419, 0.75], [429, 0.73], [439, 0.72], [449, 0.73], [459, 0.73], [469, 0.73], [479, 0.72], [489, 0.71], [499, 0.74], [509, 0.7], [519, 0.67], [529, 0.67], [539, 0.67], [549, 0.67], [559, 0.66], [569, 0.7], [579, 0.71], [589, 0.74], [599, 0.72], [609, 0.72], [619, 0.73], [629, 0.71], [639, 0.67], [649, 0.67], [659, 0.67], [669, 0.65], [679, 0.64], [689, 0.63], [699, 0.64], [709, 0.65], [719, 0.65], [729, 0.68], [739, 0.73], [749, 0.72], [759, 0.72], [769, 0.73], [779, 0.76], [789, 0.74], [799, 0.76], [809, 0.76], [819, 0.75], [829, 0.72], [839, 0.64], [849, 0.65]], "frozen": [[225, 0.66], [235, 0.67], [245, 0.66], [255, 0.64], [265, 0.62], [275, 0.62], [285, 0.6], [295, 0.59], [305, 0.61], [315, 0.59], [325, 0.64], [335, 0.66], [345, 0.66], [355, 0.69], [365, 0.67], [375, 0.68], [385, 0.7], [395, 0.72], [405, 0.72], [415, 0.74], [425, 0.71], [435, 0.72], [445, 0.7], [455, 0.66], [465, 0.68], [475, 0.66], [485, 0.65], [495, 0.66], [505, 0.67], [515, 0.66], [525, 0.67], [535, 0.67], [545, 0.69], [555, 0.71], [565, 0.72], [575, 0.71], [585, 0.71], [595, 0.7], [605, 0.7], [615, 0.68], [625, 0.68], [635, 0.65], [645, 0.66], [655, 0.66], [665, 0.65], [675, 0.67], [685, 0.65], [695, 0.67], [705, 0.65], [715, 0.67], [725, 0.65], [735, 0.69], [745, 0.69], [755, 0.69], [765, 0.7], [775, 0.71], [785, 0.73], [795, 0.73], [805, 0.75], [815, 0.75], [825, 0.74], [835, 0.7], [845, 0.68]]}, "hit@5": {"bearings": [[99, 0.73], [109, 0.76], [119, 0.77], [129, 0.77], [139, 0.79], [149, 0.78], [159, 0.78], [169, 0.78], [179, 0.8], [189, 0.82], [199, 0.8], [209, 0.74], [219, 0.75], [229, 0.74], [239, 0.74], [249, 0.71], [259, 0.69], [269, 0.7], [279, 0.69], [289, 0.67], [299, 0.7], [309, 0.74], [319, 0.72], [329, 0.75], [339, 0.74], [349, 0.77], [359, 0.81], [369, 0.77], [379, 0.79], [389, 0.82], [399, 0.79], [409, 0.81], [419, 0.83], [429, 0.81], [439, 0.83], [449, 0.81], [459, 0.77], [469, 0.78], [479, 0.75], [489, 0.75], [499, 0.78], [509, 0.76], [519, 0.75], [529, 0.75], [539, 0.76], [549, 0.78], [559, 0.79], [569, 0.8], [579, 0.82], [589, 0.81], [599, 0.81], [609, 0.8], [619, 0.8], [629, 0.78], [639, 0.75], [649, 0.75], [659, 0.77], [669, 0.77], [679, 0.73], [689, 0.74], [699, 0.73], [709, 0.75], [719, 0.74], [729, 0.77], [739, 0.8], [749, 0.78], [759, 0.77], [769, 0.78], [779, 0.82], [789, 0.81], [799, 0.83], [809, 0.81], [819, 0.83], [829, 0.83], [839, 0.78], [849, 0.79]], "graph": [[99, 0.65], [109, 0.67], [119, 0.68], [129, 0.69], [139, 0.69], [149, 0.66], [159, 0.67], [169, 0.67], [179, 0.69], [189, 0.69], [199, 0.67], [209, 0.62], [219, 0.64], [229, 0.64], [239, 0.66], [249, 0.64], [259, 0.63], [269, 0.63], [279, 0.64], [289, 0.64], [299, 0.67], [309, 0.7], [319, 0.69], [329, 0.69], [339, 0.68], [349, 0.71], [359, 0.73], [369, 0.7], [379, 0.69], [389, 0.72], [399, 0.7], [409, 0.73], [419, 0.74], [429, 0.76], [439, 0.79], [449, 0.77], [459, 0.76], [469, 0.74], [479, 0.73], [489, 0.69], [499, 0.72], [509, 0.7], [519, 0.68], [529, 0.66], [539, 0.63], [549, 0.65], [559, 0.62], [569, 0.65], [579, 0.68], [589, 0.7], [599, 0.68], [609, 0.66], [619, 0.65], [629, 0.63], [639, 0.62], [649, 0.62], [659, 0.66], [669, 0.67], [679, 0.63], [689, 0.65], [699, 0.66], [709, 0.66], [719, 0.68], [729, 0.72], [739, 0.74], [749, 0.73], [759, 0.73], [769, 0.73], [779, 0.76], [789, 0.73], [799, 0.73], [809, 0.73], [819, 0.72], [829, 0.71], [839, 0.67], [849, 0.66]], "bm25": [[99, 0.67], [109, 0.7], [119, 0.7], [129, 0.72], [139, 0.73], [149, 0.73], [159, 0.74], [169, 0.71], [179, 0.72], [189, 0.71], [199, 0.71], [209, 0.66], [219, 0.67], [229, 0.65], [239, 0.65], [249, 0.61], [259, 0.61], [269, 0.62], [279, 0.62], [289, 0.65], [299, 0.67], [309, 0.72], [319, 0.73], [329, 0.77], [339, 0.79], [349, 0.83], [359, 0.86], [369, 0.84], [379, 0.84], [389, 0.84], [399, 0.83], [409, 0.84], [419, 0.83], [429, 0.82], [439, 0.82], [449, 0.82], [459, 0.81], [469, 0.8], [479, 0.8], [489, 0.78], [499, 0.81], [509, 0.77], [519, 0.75], [529, 0.74], [539, 0.74], [549, 0.73], [559, 0.73], [569, 0.77], [579, 0.77], [589, 0.8], [599, 0.77], [609, 0.77], [619, 0.78], [629, 0.77], [639, 0.74], [649, 0.76], [659, 0.75], [669, 0.74], [679, 0.73], [689, 0.73], [699, 0.74], [709, 0.75], [719, 0.76], [729, 0.78], [739, 0.81], [749, 0.8], [759, 0.82], [769, 0.83], [779, 0.85], [789, 0.82], [799, 0.84], [809, 0.86], [819, 0.84], [829, 0.82], [839, 0.76], [849, 0.76]], "frozen": [[225, 0.73], [235, 0.72], [245, 0.72], [255, 0.71], [265, 0.7], [275, 0.73], [285, 0.71], [295, 0.71], [305, 0.74], [315, 0.73], [325, 0.77], [335, 0.79], [345, 0.8], [355, 0.81], [365, 0.8], [375, 0.79], [385, 0.81], [395, 0.82], [405, 0.81], [415, 0.84], [425, 0.81], [435, 0.82], [445, 0.78], [455, 0.76], [465, 0.77], [475, 0.74], [485, 0.73], [495, 0.73], [505, 0.74], [515, 0.72], [525, 0.72], [535, 0.71], [545, 0.74], [555, 0.75], [565, 0.78], [575, 0.79], [585, 0.8], [595, 0.81], [605, 0.82], [615, 0.79], [625, 0.8], [635, 0.77], [645, 0.78], [655, 0.77], [665, 0.74], [675, 0.74], [685, 0.73], [695, 0.74], [705, 0.72], [715, 0.76], [725, 0.75], [735, 0.79], [745, 0.78], [755, 0.78], [765, 0.79], [775, 0.81], [785, 0.81], [795, 0.81], [805, 0.82], [815, 0.8], [825, 0.78], [835, 0.75], [845, 0.74]]}}, "facts": [{"title": "Query latency", "text": "HydraDB path query + code anchors + scoring: p50 2606 ms, p95 5665 ms per task, on a laptop, while other benchmarks ran."}, {"title": "Second hop", "text": "Adding the co-changed-file hop changed hit@5 on 5 of 724 tasks (4 better, 1 worse). Measured, and close to zero."}, {"title": "Test command", "text": "The suggested test command names the module where the real fix's tests live on 43% of tasks."}, {"title": "Database vs reference", "text": "HydraDB's ranking equals an in-memory reference implementation of the same query on 714/724 tasks (ties broken differently on the rest). Pack size: median 353 tokens."}], "lat_p50": 2606.0}, "tasks": {"title": "Empty start", "n": 724, "test_from": "2019-07-01", "conds": {"bm25": {"hit@1": [0.2983425414364641, 0.26519337016574585, 0.3328729281767956], "hit@3": [0.46408839779005523, 0.4281767955801105, 0.5013812154696132], "hit@5": [0.5511049723756906, 0.5151933701657458, 0.5883977900552486], "recall@5": [0.4868856589597165, 0.4522118792268289, 0.521366910023678]}, "dict": {"hit@1": [0.2541436464088398, 0.2223756906077348, 0.28591160220994477], "hit@3": [0.4102209944751381, 0.3756906077348066, 0.4447513812154696], "hit@5": [0.4903314917127072, 0.4544198895027624, 0.5276243093922652], "recall@5": [0.4300037141928595, 0.3963052486187845, 0.46444859711840536]}, "anchors": {"hit@1": [0.3756906077348066, 0.3411602209944751, 0.4102209944751381], "hit@3": [0.5069060773480663, 0.4723756906077348, 0.5428176795580111], "hit@5": [0.5262430939226519, 0.49171270718232046, 0.5607734806629834], "recall@5": [0.46144435674822415, 0.4294922388845041, 0.49666535122336225]}, "graph": {"hit@1": [0.2638121546961326, 0.23342541436464087, 0.2941988950276243], "hit@3": [0.4116022099447514, 0.3756906077348066, 0.4447513812154696], "hit@5": [0.5041436464088398, 0.46685082872928174, 0.5386740331491713], "recall@5": [0.44488524691644615, 0.40931304842378935, 0.4774056169429097]}, "bearings-1": {"hit@1": [0.4544198895027624, 0.4198895027624309, 0.4889502762430939], "hit@3": [0.6312154696132597, 0.5980662983425414, 0.6657458563535912], "hit@5": [0.7099447513812155, 0.6767955801104972, 0.7417127071823204], "recall@5": [0.6288138183450176, 0.5986326160298374, 0.659664252441308]}, "bearings": {"hit@1": [0.4530386740331492, 0.4185082872928177, 0.4861878453038674], "hit@3": [0.6325966850828729, 0.5994475138121547, 0.6671270718232044], "hit@5": [0.7099447513812155, 0.6767955801104972, 0.7417127071823204], "recall@5": [0.6288960335515421, 0.5989417452063698, 0.6598526703499079]}, "frozen": {"hit@1": [0.4088397790055249, 0.3743093922651934, 0.44337016574585636], "hit@3": [0.5897790055248618, 0.5566298342541437, 0.6243093922651933], "hit@5": [0.6408839779005525, 0.6077348066298343, 0.675414364640884], "recall@5": [0.5620532812572543, 0.5296134821331847, 0.5942255907888018]}}, "diffs": [{"label": "Bearings (graph + anchors) \u2212 Keyword search (BM25)", "reading": "vs keyword search over past tasks", "hl": true, "hit@1": [0.15469613259668508, 0.11049723756906077, 0.19751381215469613], "hit@5": [0.15883977900552487, 0.11602209944751381, 0.20027624309392264]}, {"label": "Bearings (graph + anchors) \u2212 Learned graph only", "reading": "what the code anchors add", "hl": false, "hit@1": [0.18922651933701656, 0.14917127071823205, 0.2265193370165746], "hit@5": [0.2058011049723757, 0.1712707182320442, 0.24033149171270718]}, {"label": "Bearings (graph + anchors) \u2212 Code anchors only", "reading": "what the learned graph adds", "hl": false, "hit@1": [0.07734806629834254, 0.05386740331491713, 0.10082872928176796], "hit@5": [0.18370165745856354, 0.15469613259668508, 0.21408839779005526]}, {"label": "Bearings (graph + anchors) \u2212 Bearings, frozen graph", "reading": "what learning as tasks arrive adds", "hl": true, "hit@1": [0.04419889502762431, 0.024861878453038673, 0.06353591160220995], "hit@5": [0.06906077348066299, 0.04419889502762431, 0.0925414364640884]}, {"label": "Bearings (graph + anchors) \u2212 Bearings, no second hop", "reading": "what the second hop adds", "hl": false, "hit@1": [-0.0013812154696132596, -0.0055248618784530384, 0.0], "hit@5": [0.0, -0.004143646408839779, 0.004143646408839779]}, {"label": "Bearings (graph + anchors) \u2212 Dictionary (no graph)", "reading": "vs a plain word-to-file table", "hl": false, "hit@1": [0.19889502762430938, 0.1574585635359116, 0.23895027624309392], "hit@5": [0.21961325966850828, 0.18232044198895028, 0.25828729281767954]}], "curves": {"hit@1": {"bearings": [[99, 0.38], [109, 0.39], [119, 0.39], [129, 0.37], [139, 0.38], [149, 0.38], [159, 0.38], [169, 0.4], [179, 0.43], [189, 0.44], [199, 0.43], [209, 0.4], [219, 0.4], [229, 0.42], [239, 0.41], [249, 0.4], [259, 0.4], [269, 0.39], [279, 0.4], [289, 0.38], [299, 0.38], [309, 0.39], [319, 0.4], [329, 0.4], [339, 0.41], [349, 0.38], [359, 0.39], [369, 0.4], [379, 0.4], [389, 0.43], [399, 0.43], [409, 0.45], [419, 0.45], [429, 0.48], [439, 0.5], [449, 0.51], [459, 0.5], [469, 0.47], [479, 0.44], [489, 0.46], [499, 0.48], [509, 0.48], [519, 0.47], [529, 0.46], [539, 0.46], [549, 0.48], [559, 0.5], [569, 0.54], [579, 0.54], [589, 0.5], [599, 0.51], [609, 0.5], [619, 0.51], [629, 0.46], [639, 0.45], [649, 0.46], [659, 0.45], [669, 0.44], [679, 0.43], [689, 0.44], [699, 0.4], [709, 0.4], [719, 0.41], [729, 0.46], [739, 0.5], [749, 0.46], [759, 0.47], [769, 0.48], [779, 0.51], [789, 0.52], [799, 0.56], [809, 0.54], [819, 0.53], [829, 0.52], [839, 0.46], [849, 0.48]], "graph": [[99, 0.12], [109, 0.12], [119, 0.12], [129, 0.12], [139, 0.15], [149, 0.16], [159, 0.17], [169, 0.2], [179, 0.2], [189, 0.2], [199, 0.21], [209, 0.2], [219, 0.21], [229, 0.23], [239, 0.2], [249, 0.17], [259, 0.17], [269, 0.15], [279, 0.14], [289, 0.14], [299, 0.15], [309, 0.18], [319, 0.19], [329, 0.18], [339, 0.24], [349, 0.25], [359, 0.26], [369, 0.27], [379, 0.26], [389, 0.31], [399, 0.28], [409, 0.32], [419, 0.34], [429, 0.36], [439, 0.32], [449, 0.33], [459, 0.33], [469, 0.31], [479, 0.33], [489, 0.3], [499, 0.36], [509, 0.33], [519, 0.29], [529, 0.29], [539, 0.3], [549, 0.34], [559, 0.33], [569, 0.35], [579, 0.36], [589, 0.36], [599, 0.31], [609, 0.29], [619, 0.28], [629, 0.24], [639, 0.24], [649, 0.2], [659, 0.2], [669, 0.22], [679, 0.22], [689, 0.23], [699, 0.22], [709, 0.2], [719, 0.21], [729, 0.24], [739, 0.26], [749, 0.25], [759, 0.27], [769, 0.24], [779, 0.25], [789, 0.25], [799, 0.26], [809, 0.27], [819, 0.3], [829, 0.32], [839, 0.29], [849, 0.31]], "bm25": [[99, 0.08], [109, 0.07], [119, 0.07], [129, 0.09], [139, 0.12], [149, 0.12], [159, 0.15], [169, 0.19], [179, 0.19], [189, 0.17], [199, 0.18], [209, 0.18], [219, 0.2], [229, 0.22], [239, 0.21], [249, 0.21], [259, 0.21], [269, 0.17], [279, 0.16], [289, 0.18], [299, 0.2], [309, 0.24], [319, 0.24], [329, 0.25], [339, 0.27], [349, 0.26], [359, 0.27], [369, 0.29], [379, 0.29], [389, 0.3], [399, 0.28], [409, 0.3], [419, 0.31], [429, 0.29], [439, 0.27], [449, 0.3], [459, 0.3], [469, 0.28], [479, 0.32], [489, 0.31], [499, 0.35], [509, 0.32], [519, 0.28], [529, 0.28], [539, 0.3], [549, 0.32], [559, 0.31], [569, 0.34], [579, 0.31], [589, 0.33], [599, 0.3], [609, 0.29], [619, 0.32], [629, 0.31], [639, 0.32], [649, 0.3], [659, 0.29], [669, 0.3], [679, 0.3], [689, 0.3], [699, 0.3], [709, 0.31], [719, 0.32], [729, 0.35], [739, 0.37], [749, 0.37], [759, 0.39], [769, 0.36], [779, 0.37], [789, 0.36], [799, 0.39], [809, 0.38], [819, 0.37], [829, 0.38], [839, 0.33], [849, 0.36]], "frozen": [[225, 0.38], [235, 0.38], [245, 0.38], [255, 0.37], [265, 0.35], [275, 0.37], [285, 0.39], [295, 0.37], [305, 0.37], [315, 0.36], [325, 0.4], [335, 0.41], [345, 0.38], [355, 0.36], [365, 0.36], [375, 0.38], [385, 0.37], [395, 0.39], [405, 0.39], [415, 0.4], [425, 0.39], [435, 0.44], [445, 0.42], [455, 0.45], [465, 0.43], [475, 0.4], [485, 0.4], [495, 0.41], [505, 0.44], [515, 0.44], [525, 0.46], [535, 0.42], [545, 0.46], [555, 0.45], [565, 0.5], [575, 0.48], [585, 0.48], [595, 0.49], [605, 0.5], [615, 0.49], [625, 0.46], [635, 0.44], [645, 0.45], [655, 0.46], [665, 0.43], [675, 0.45], [685, 0.43], [695, 0.41], [705, 0.37], [715, 0.39], [725, 0.39], [735, 0.44], [745, 0.42], [755, 0.4], [765, 0.42], [775, 0.42], [785, 0.42], [795, 0.44], [805, 0.43], [815, 0.42], [825, 0.4], [835, 0.34], [845, 0.36]]}, "hit@3": {"bearings": [[99, 0.5], [109, 0.51], [119, 0.52], [129, 0.5], [139, 0.51], [149, 0.51], [159, 0.52], [169, 0.52], [179, 0.56], [189, 0.59], [199, 0.57], [209, 0.54], [219, 0.54], [229, 0.57], [239, 0.55], [249, 0.52], [259, 0.53], [269, 0.52], [279, 0.52], [289, 0.49], [299, 0.51], [309, 0.54], [319, 0.55], [329, 0.56], [339, 0.59], [349, 0.59], [359, 0.62], [369, 0.63], [379, 0.65], [389, 0.7], [399, 0.69], [409, 0.72], [419, 0.72], [429, 0.72], [439, 0.73], [449, 0.72], [459, 0.67], [469, 0.65], [479, 0.61], [489, 0.61], [499, 0.64], [509, 0.61], [519, 0.6], [529, 0.6], [539, 0.62], [549, 0.65], [559, 0.66], [569, 0.69], [579, 0.71], [589, 0.68], [599, 0.66], [609, 0.66], [619, 0.66], [629, 0.63], [639, 0.61], [649, 0.61], [659, 0.64], [669, 0.64], [679, 0.62], [689, 0.63], [699, 0.61], [709, 0.62], [719, 0.63], [729, 0.66], [739, 0.69], [749, 0.67], [759, 0.66], [769, 0.67], [779, 0.71], [789, 0.71], [799, 0.75], [809, 0.74], [819, 0.74], [829, 0.73], [839, 0.67], [849, 0.68]], "graph": [[99, 0.19], [109, 0.22], [119, 0.23], [129, 0.24], [139, 0.26], [149, 0.27], [159, 0.3], [169, 0.31], [179, 0.31], [189, 0.31], [199, 0.32], [209, 0.28], [219, 0.28], [229, 0.33], [239, 0.32], [249, 0.29], [259, 0.29], [269, 0.27], [279, 0.28], [289, 0.28], [299, 0.3], [309, 0.35], [319, 0.35], [329, 0.31], [339, 0.35], [349, 0.37], [359, 0.39], [369, 0.41], [379, 0.39], [389, 0.46], [399, 0.43], [409, 0.46], [419, 0.48], [429, 0.49], [439, 0.48], [449, 0.48], [459, 0.46], [469, 0.43], [479, 0.44], [489, 0.4], [499, 0.45], [509, 0.4], [519, 0.38], [529, 0.38], [539, 0.38], [549, 0.42], [559, 0.42], [569, 0.45], [579, 0.48], [589, 0.48], [599, 0.43], [609, 0.43], [619, 0.43], [629, 0.4], [639, 0.39], [649, 0.39], [659, 0.4], [669, 0.42], [679, 0.41], [689, 0.43], [699, 0.43], [709, 0.43], [719, 0.44], [729, 0.48], [739, 0.51], [749, 0.49], [759, 0.49], [769, 0.48], [779, 0.48], [789, 0.48], [799, 0.51], [809, 0.51], [819, 0.52], [829, 0.53], [839, 0.49], [849, 0.48]], "bm25": [[99, 0.23], [109, 0.24], [119, 0.25], [129, 0.28], [139, 0.3], [149, 0.29], [159, 0.32], [169, 0.36], [179, 0.36], [189, 0.35], [199, 0.35], [209, 0.33], [219, 0.33], [229, 0.34], [239, 0.36], [249, 0.35], [259, 0.34], [269, 0.3], [279, 0.3], [289, 0.33], [299, 0.33], [309, 0.4], [319, 0.41], [329, 0.43], [339, 0.44], [349, 0.42], [359, 0.44], [369, 0.44], [379, 0.43], [389, 0.46], [399, 0.45], [409, 0.46], [419, 0.47], [429, 0.45], [439, 0.42], [449, 0.47], [459, 0.48], [469, 0.47], [479, 0.51], [489, 0.47], [499, 0.51], [509, 0.48], [519, 0.44], [529, 0.44], [539, 0.46], [549, 0.46], [559, 0.48], [569, 0.5], [579, 0.48], [589, 0.5], [599, 0.45], [609, 0.44], [619, 0.46], [629, 0.44], [639, 0.45], [649, 0.48], [659, 0.47], [669, 0.48], [679, 0.49], [689, 0.5], [699, 0.51], [709, 0.51], [719, 0.53], [729, 0.57], [739, 0.59], [749, 0.58], [759, 0.58], [769, 0.56], [779, 0.58], [789, 0.57], [799, 0.6], [809, 0.6], [819, 0.58], [829, 0.58], [839, 0.53], [849, 0.52]], "frozen": [[225, 0.58], [235, 0.59], [245, 0.57], [255, 0.55], [265, 0.53], [275, 0.54], [285, 0.52], [295, 0.52], [305, 0.54], [315, 0.52], [325, 0.55], [335, 0.57], [345, 0.55], [355, 0.58], [365, 0.58], [375, 0.61], [385, 0.62], [395, 0.64], [405, 0.65], [415, 0.66], [425, 0.64], [435, 0.67], [445, 0.67], [455, 0.65], [465, 0.63], [475, 0.59], [485, 0.58], [495, 0.59], [505, 0.58], [515, 0.57], [525, 0.58], [535, 0.54], [545, 0.58], [555, 0.6], [565, 0.64], [575, 0.61], [585, 0.6], [595, 0.59], [605, 0.6], [615, 0.6], [625, 0.59], [635, 0.58], [645, 0.58], [655, 0.58], [665, 0.57], [675, 0.6], [685, 0.58], [695, 0.57], [705, 0.54], [715, 0.56], [725, 0.55], [735, 0.59], [745, 0.58], [755, 0.56], [765, 0.57], [775, 0.59], [785, 0.61], [795, 0.65], [805, 0.69], [815, 0.68], [825, 0.66], [835, 0.62], [845, 0.62]]}, "hit@5": {"bearings": [[99, 0.59], [109, 0.62], [119, 0.64], [129, 0.62], [139, 0.64], [149, 0.64], [159, 0.64], [169, 0.65], [179, 0.68], [189, 0.73], [199, 0.7], [209, 0.65], [219, 0.65], [229, 0.67], [239, 0.65], [249, 0.63], [259, 0.62], [269, 0.59], [279, 0.6], [289, 0.55], [299, 0.58], [309, 0.62], [319, 0.63], [329, 0.64], [339, 0.65], [349, 0.64], [359, 0.67], [369, 0.67], [379, 0.69], [389, 0.74], [399, 0.72], [409, 0.74], [419, 0.73], [429, 0.73], [439, 0.76], [449, 0.76], [459, 0.72], [469, 0.73], [479, 0.7], [489, 0.7], [499, 0.73], [509, 0.71], [519, 0.7], [529, 0.7], [539, 0.7], [549, 0.72], [559, 0.73], [569, 0.73], [579, 0.75], [589, 0.74], [599, 0.75], [609, 0.74], [619, 0.75], [629, 0.74], [639, 0.73], [649, 0.75], [659, 0.77], [669, 0.77], [679, 0.75], [689, 0.75], [699, 0.7], [709, 0.73], [719, 0.74], [729, 0.76], [739, 0.78], [749, 0.75], [759, 0.74], [769, 0.75], [779, 0.77], [789, 0.77], [799, 0.82], [809, 0.79], [819, 0.79], [829, 0.78], [839, 0.73], [849, 0.73]], "graph": [[99, 0.23], [109, 0.26], [119, 0.27], [129, 0.27], [139, 0.28], [149, 0.3], [159, 0.35], [169, 0.39], [179, 0.39], [189, 0.41], [199, 0.41], [209, 0.37], [219, 0.37], [229, 0.42], [239, 0.41], [249, 0.38], [259, 0.36], [269, 0.32], [279, 0.34], [289, 0.32], [299, 0.34], [309, 0.4], [319, 0.41], [329, 0.36], [339, 0.4], [349, 0.42], [359, 0.45], [369, 0.48], [379, 0.47], [389, 0.54], [399, 0.51], [409, 0.53], [419, 0.54], [429, 0.57], [439, 0.58], [449, 0.59], [459, 0.57], [469, 0.53], [479, 0.54], [489, 0.5], [499, 0.55], [509, 0.52], [519, 0.5], [529, 0.48], [539, 0.46], [549, 0.48], [559, 0.47], [569, 0.49], [579, 0.53], [589, 0.54], [599, 0.51], [609, 0.5], [619, 0.5], [629, 0.49], [639, 0.5], [649, 0.51], [659, 0.54], [669, 0.57], [679, 0.54], [689, 0.55], [699, 0.54], [709, 0.54], [719, 0.56], [729, 0.6], [739, 0.61], [749, 0.59], [759, 0.61], [769, 0.6], [779, 0.61], [789, 0.63], [799, 0.66], [809, 0.65], [819, 0.66], [829, 0.65], [839, 0.61], [849, 0.6]], "bm25": [[99, 0.3], [109, 0.32], [119, 0.31], [129, 0.33], [139, 0.35], [149, 0.35], [159, 0.39], [169, 0.43], [179, 0.44], [189, 0.44], [199, 0.45], [209, 0.4], [219, 0.4], [229, 0.42], [239, 0.43], [249, 0.41], [259, 0.39], [269, 0.35], [279, 0.34], [289, 0.38], [299, 0.4], [309, 0.47], [319, 0.48], [329, 0.49], [339, 0.5], [349, 0.51], [359, 0.53], [369, 0.54], [379, 0.56], [389, 0.57], [399, 0.53], [409, 0.54], [419, 0.55], [429, 0.53], [439, 0.51], [449, 0.54], [459, 0.57], [469, 0.56], [479, 0.57], [489, 0.53], [499, 0.58], [509, 0.57], [519, 0.54], [529, 0.54], [539, 0.57], [549, 0.58], [559, 0.58], [569, 0.6], [579, 0.59], [589, 0.62], [599, 0.56], [609, 0.54], [619, 0.55], [629, 0.55], [639, 0.54], [649, 0.55], [659, 0.54], [669, 0.54], [679, 0.56], [689, 0.56], [699, 0.59], [709, 0.6], [719, 0.64], [729, 0.67], [739, 0.68], [749, 0.67], [759, 0.68], [769, 0.69], [779, 0.7], [789, 0.69], [799, 0.72], [809, 0.7], [819, 0.67], [829, 0.67], [839, 0.63], [849, 0.62]], "frozen": [[225, 0.63], [235, 0.62], [245, 0.63], [255, 0.6], [265, 0.59], [275, 0.6], [285, 0.58], [295, 0.58], [305, 0.6], [315, 0.58], [325, 0.61], [335, 0.64], [345, 0.59], [355, 0.61], [365, 0.6], [375, 0.62], [385, 0.64], [395, 0.66], [405, 0.67], [415, 0.68], [425, 0.67], [435, 0.69], [445, 0.71], [455, 0.69], [465, 0.69], [475, 0.65], [485, 0.63], [495, 0.64], [505, 0.63], [515, 0.62], [525, 0.62], [535, 0.6], [545, 0.62], [555, 0.64], [565, 0.67], [575, 0.65], [585, 0.65], [595, 0.64], [605, 0.66], [615, 0.66], [625, 0.65], [635, 0.63], [645, 0.64], [655, 0.64], [665, 0.62], [675, 0.64], [685, 0.62], [695, 0.62], [705, 0.58], [715, 0.61], [725, 0.61], [735, 0.64], [745, 0.62], [755, 0.61], [765, 0.62], [775, 0.65], [785, 0.66], [795, 0.69], [805, 0.73], [815, 0.73], [825, 0.71], [835, 0.67], [845, 0.68]]}}, "facts": [{"title": "Query latency", "text": "HydraDB path query + code anchors + scoring: p50 615 ms, p95 1347 ms per task, on a laptop, while other benchmarks ran."}, {"title": "Second hop", "text": "Adding the co-changed-file hop changed hit@5 on 2 of 724 tasks (1 better, 1 worse). Measured, and close to zero."}, {"title": "Test command", "text": "The suggested test command names the module where the real fix's tests live on 39% of tasks."}, {"title": "Database vs reference", "text": "HydraDB's ranking equals an in-memory reference implementation of the same query on 686/724 tasks (ties broken differently on the rest). Pack size: median 336 tokens."}], "lat_p50": 615.2}}, "labels": {"bm25": "Keyword search (BM25)", "dict": "Dictionary (no graph)", "bearings-1": "Bearings, no second hop", "bearings": "Bearings (graph + anchors)", "frozen": "Bearings, frozen graph", "anchors": "Code anchors only", "graph": "Learned graph only", "l2:none": "No memory", "l2:dict": "Dictionary pack in prompt", "l2:anchors": "Code anchors in prompt", "l2:bearings": "Bearings pack in prompt", "l2:bearings-mcp": "Bearings via MCP tool (v1)"}, "colors": {"bearings": "s1", "bm25": "s2", "graph": "s3", "frozen": "s4", "dict": "s5", "anchors": "s7", "bearings-1": "s6", "l2:none": "s4", "l2:dict": "s5", "l2:anchors": "s7", "l2:bearings": "s1", "l2:bearings-mcp": "s3"}, "l1_order": ["bearings", "bearings-1", "graph", "anchors", "bm25", "dict", "frozen"], "curve_hidden": [], "demo": [{"task": "django-15863", "side": "without", "label": "Without Bearings", "total_input": 108493, "rel": null, "num_turns": 4, "tool_calls": 3, "output_tokens": 705, "correct": true}, {"task": "django-15863", "side": "without-2", "label": "Without Bearings (rerun)", "total_input": 142809, "rel": 32, "num_turns": 5, "tool_calls": 4, "output_tokens": 1034, "correct": true}, {"task": "django-15863", "side": "with", "label": "Bearings v1 via MCP tool", "total_input": 185137, "rel": 71, "num_turns": 7, "tool_calls": 6, "output_tokens": 1348, "correct": true}, {"task": "django-15863", "side": "hook-v1", "label": "Bearings v1 via prompt hook", "total_input": 144424, "rel": 33, "num_turns": 5, "tool_calls": 4, "output_tokens": 777, "correct": true}, {"task": "django-15863", "side": "hook", "label": "Bearings v2 via hooks (graph + code anchors)", "total_input": 144292, "rel": 33, "num_turns": 5, "tool_calls": 4, "output_tokens": 776, "correct": true}, {"task": "django-16560", "side": "without", "label": "Without Bearings", "total_input": 253968, "rel": null, "num_turns": 6, "tool_calls": 5, "output_tokens": 2632, "correct": true}, {"task": "django-16560", "side": "without-2", "label": "Without Bearings (rerun)", "total_input": 304542, "rel": 20, "num_turns": 7, "tool_calls": 6, "output_tokens": 3579, "correct": true}, {"task": "django-16560", "side": "with", "label": "Bearings v1 via MCP tool", "total_input": 295771, "rel": 16, "num_turns": 8, "tool_calls": 7, "output_tokens": 2991, "correct": true}, {"task": "django-16560", "side": "hook-v1", "label": "Bearings v1 via prompt hook", "total_input": 316110, "rel": 24, "num_turns": 8, "tool_calls": 7, "output_tokens": 3173, "correct": true}, {"task": "django-16560", "side": "hook", "label": "Bearings v2 via hooks (graph + code anchors)", "total_input": 408458, "rel": 61, "num_turns": 11, "tool_calls": 10, "output_tokens": 5474, "correct": true}], "notes": ["<b>Data.<\/b> SWE-bench (full test split) Django issues with their real fixes, and 21k issue-fixing commits from Django's history as the seed. The graph is seeded from these real fixes; nothing from an issue's own fix is visible before it is answered.", "<b>No tuning on the test split.<\/b> The only tuned values (anchor weight, a few graph constants) were chosen on the 126 issues before 2019-07. Ideas that did not help on dev are listed in the README, not shipped.", "<b>Code anchors.<\/b> Files in the checkout that define an identifier the issue names (<code>git grep<\/code> for <code>def<\/code>/<code>class<\/code>). Fused with the graph's learned scores; neither alone is as good.", "<b>Second hop.<\/b> The co-changed-file hop is in the query and measured. It rarely changes the top 5.", "<b>Live agents.<\/b> One run per task and condition, so small differences are noise; intervals are shown. The agent runs in a sandbox with no network except the model API, after earlier runs were caught fetching the real fix from GitHub and reading other checkouts. Those runs were discarded.", "<b>Claude Code.<\/b> A few end-to-end examples with a different model. Delivered through an MCP tool, Bearings cost extra turns and more tokens; that is why it now injects the pack through a prompt hook and learns through a stop hook.", "<b>Money.<\/b> Any dollar figure is list-price arithmetic from token counts, not a measured bill."], "pills": ["Self-hosted HydraDB (open source)", "One weighted path query per task", "No model calls", "Every number from committed result files"], "kpis": [{"label": "Right file ranked first", "value": "49%", "delta": "+7 pts", "dir": "up", "sub": "vs 42% for keyword search \u00b7 724 real Django issues"}, {"label": "Real fix in top 5", "value": "77%", "delta": "", "dir": "flat", "sub": "graph alone 68% \u00b7 code anchors alone 53%"}, {"label": "Starting from an empty graph", "value": "71%", "delta": "+16 pts", "dir": "up", "sub": "top-5 hit rate vs 55% for keyword search"}, {"label": "Tokens to locate, live agents", "value": "1.07\u00d7", "delta": "+0 pts success", "dir": "up", "sub": "median per-task ratio vs no memory \u00b7 2 paired tasks"}], "l1_intro": "Every SWE-bench task on Django (850 issues, 2015\u20132023) replayed in date order. For each issue Bearings suggests five files using only what it learned <em>before<\/em> that issue, then learns from the real fix. Scored on the 724 issues from 2019-07 on; tuning used only the earlier 126. <b>The graph learns from the dataset's own real fixes<\/b>, as a team's graph would learn from its merged work.", "level2": {"intro": "A coding agent (DeepSeek V4.1 Flash through OpenCode) gets a real issue and a history-free snapshot of Django at that issue's commit, explores, and names the files it would change. 2 SWE-bench Verified issues from after the graph's cutoff, each run once in every condition. Token counts are OpenCode's own usage reports and include the context pack.", "warn": "Excluded: 0 of 9 runs (rate-limited, or the agent never started). Timeouts count as failures (0). The sandbox has no network except the model API; 8 runs tried to reach outside it (web, other checkouts) and were blocked.", "order": ["l2:none", "l2:dict", "l2:anchors", "l2:bearings"], "conds": {"l2:none": {"succ": [0.0, 0.0, 0.0], "hit": [0.0, 0.0, 0.0], "median_in": 120947.0, "q1": 73589, "q3": 168305, "mean_in": 120947.0, "n": 2, "tools": 16, "wall": 66, "ratio": null, "dsucc": null, "dtok": null}, "l2:dict": {"succ": [0.5, 0.0, 1.0], "hit": [0.5, 0.0, 1.0], "median_in": 202193.5, "q1": 164257, "q3": 240130, "mean_in": 202193.5, "n": 2, "tools": 20, "wall": 65, "ratio": 2.1195359958130755, "dsucc": [0.5, 0.0, 1.0], "dtok": [81246.5, -4048.0, 166541.0]}, "l2:anchors": {"succ": [0.5, 0.0, 1.0], "hit": [0.5, 0.0, 1.0], "median_in": 127120.5, "q1": 74893, "q3": 179348, "mean_in": 127120.5, "n": 2, "tools": 14, "wall": 62, "ratio": 1.4410707682668649, "dsucc": [0.5, 0.0, 1.0], "dtok": [6173.5, -93412.0, 105759.0]}, "l2:bearings": {"succ": [0.0, 0.0, 0.0], "hit": [0.0, 0.0, 0.0], "median_in": 113003.0, "q1": 104142, "q3": 121864, "mean_in": 113003.0, "n": 2, "tools": 15, "wall": 46, "ratio": 1.069625380818799, "dsucc": [0.0, 0.0, 0.0], "dtok": [-7944.0, -46441.0, 30553.0]}}, "cap": "Paired: the same tasks in every condition. Ratio = median over tasks of this condition's tokens divided by no memory's."}, "demo_note": "Total input = uncached + cache write + cache read tokens, as Claude Code reports them. In Claude Code every turn re-reads a ~35k-token system prompt, so what matters is the number of turns, not the size of the pack.", "footer": "Generated by <code>uv run python bench/report.py<\/code>. Raw rows: <code>results/level1_*.jsonl<\/code>, <code>runs/level2/results.jsonl<\/code>, <code>results/claude_demo/<\/code>."}</script>
 <script>
-const tip=document.getElementById('tip');
-document.querySelectorAll('svg[data-chart]').forEach(svg=>{
-  const d=JSON.parse(document.getElementById('data-'+svg.dataset.chart).textContent);
-  const hit=svg.querySelector('.hit'), xh=svg.querySelector('.xhair');
-  hit.addEventListener('mousemove',ev=>{
-    const pt=svg.createSVGPoint(); pt.x=ev.clientX; pt.y=ev.clientY;
-    const p=pt.matrixTransform(svg.getScreenCTM().inverse());
-    const x=d.x0+(p.x-d.L)/(d.W-d.L-d.R)*(d.x1-d.x0);
-    let rows=[], nx=null;
-    for(const [c,s] of Object.entries(d.series)){let best=s[0];for(const q of s){if(Math.abs(q[0]-x)<Math.abs(best[0]-x))best=q;}nx=best[0];rows.push([best[1],d.labels[c]]);}
-    rows.sort((a,b)=>b[0]-a[0]);
-    tip.innerHTML='<b>after '+nx+' tasks</b><br>'+rows.map(r=>r[1]+': '+r[0].toFixed(3)).join('<br>');
-    tip.style.display='block'; tip.style.left=(ev.clientX+14)+'px'; tip.style.top=(ev.clientY+10)+'px';
-    const sx=d.L+(nx-d.x0)/(d.x1-d.x0)*(d.W-d.L-d.R); xh.setAttribute('x1',sx); xh.setAttribute('x2',sx); xh.setAttribute('visibility','visible');
+const D = JSON.parse(document.getElementById('data').textContent);
+const $ = s => document.querySelector(s);
+const esc = s => String(s ?? '').replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const pct = (v, d=0) => (v*100).toFixed(d) + '%';
+const num = v => Math.round(v).toLocaleString('en-US');
+const COLOR = c => `var(--${D.colors[c] || 's8'})`;
+const LAB = c => D.labels[c] || c;
+const tip = $('#tip');
+function showTip(html, x, y){ tip.innerHTML = html; tip.style.display='block';
+  const r = tip.getBoundingClientRect(); let L = x + 14, T = y + 14;
+  if (L + r.width > innerWidth - 8) L = x - r.width - 14; if (T + r.height > innerHeight - 8) T = y - r.height - 14;
+  tip.style.left = L + 'px'; tip.style.top = T + 'px'; }
+function hideTip(){ tip.style.display='none'; }
+
+// theme toggle
+(function(){ const k='bearings-theme'; const t=localStorage.getItem(k); if(t) document.documentElement.dataset.theme=t;
+  $('#theme').onclick=()=>{ const cur=document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light');
+    const nx = cur==='dark'?'light':'dark'; document.documentElement.dataset.theme=nx; localStorage.setItem(k,nx); }; })();
+
+// ---------------------------------------------------------------- hero
+(function(){
+  const k = D.kpis;
+  $('#pills').innerHTML = D.pills.map(p=>`<span class="pill">${esc(p)}</span>`).join('');
+  $('#kpis').innerHTML = k.map(x=>`<div class="kpi"><div class="label">${esc(x.label)}</div>
+    <div class="value">${esc(x.value)}${x.delta?`<span class="delta ${x.dir}">${esc(x.delta)}</span>`:''}</div>
+    <div class="sub">${x.sub}</div></div>`).join('');
+})();
+
+// ---------------------------------------------------------------- charts
+function lineChart(el, series, opt){
+  const W=480,H=300,L=42,R=12,T=10,B=38;
+  const keys = Object.keys(series).filter(k=>!opt.hidden.has(k));
+  const all = Object.values(series).flat();
+  if(!all.length){ el.innerHTML='<p class="hint">No data yet.</p>'; return; }
+  const x0=Math.min(...all.map(p=>p[0])), x1=Math.max(...all.map(p=>p[0]));
+  let lo=Math.floor(Math.min(...all.map(p=>p[1]))*10)/10, hi=Math.ceil(Math.max(...all.map(p=>p[1]))*10)/10;
+  if(hi-lo<0.2){hi=Math.min(1,hi+0.1);lo=Math.max(0,lo-0.1);}
+  const sx=x=>L+(x-x0)/Math.max(1,x1-x0)*(W-L-R), sy=y=>T+(hi-y)/(hi-lo)*(H-T-B);
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}">`;
+  for(let y=lo;y<=hi+1e-9;y+=0.1){ s+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${sy(y)}" y2="${sy(y)}"/><text x="${L-8}" y="${sy(y)+4}" text-anchor="end">${pct(y)}</text>`; }
+  const step = x1-x0>600?200:100;
+  for(let x=Math.ceil(x0/step)*step;x<=x1;x+=step){ s+=`<text x="${sx(x)}" y="${H-B+18}" text-anchor="middle">${x}</text>`; }
+  s+=`<text class="axis-title" x="${(L+W-R)/2}" y="${H-4}" text-anchor="middle">tasks already learned</text>`;
+  for(const k of keys){ const pts=series[k].map(p=>`${sx(p[0]).toFixed(1)},${sy(p[1]).toFixed(1)}`).join(' ');
+    s+=`<polyline points="${pts}" fill="none" stroke="${COLOR(k)}" stroke-width="${k==='bearings'?2.6:1.8}" stroke-linejoin="round" stroke-linecap="round"/>`; }
+  s+=`<line id="xh" x1="0" x2="0" y1="${T}" y2="${H-B}" stroke="var(--muted)" stroke-dasharray="3 3" visibility="hidden"/>`;
+  for(const k of keys) s+=`<circle class="hv" data-k="${k}" r="4" fill="${COLOR(k)}" stroke="var(--surface)" stroke-width="2" visibility="hidden"/>`;
+  s+=`<rect x="${L}" y="${T}" width="${W-L-R}" height="${H-T-B}" fill="transparent" class="hit"/></svg>`;
+  el.innerHTML=s;
+  const svg=el.querySelector('svg'), xh=svg.querySelector('#xh');
+  svg.querySelector('.hit').addEventListener('mousemove', ev=>{
+    const pt=svg.createSVGPoint(); pt.x=ev.clientX; pt.y=ev.clientY; const p=pt.matrixTransform(svg.getScreenCTM().inverse());
+    const xv = x0+(p.x-L)/(W-L-R)*(x1-x0);
+    let rows=[], xs=null;
+    for(const k of keys){ const ser=series[k]; let best=ser[0]; for(const q of ser) if(Math.abs(q[0]-xv)<Math.abs(best[0]-xv)) best=q;
+      xs=best[0]; rows.push([k,best[1]]); const c=svg.querySelector(`circle[data-k="${k}"]`); c.setAttribute('cx',sx(best[0])); c.setAttribute('cy',sy(best[1])); c.setAttribute('visibility','visible'); }
+    xh.setAttribute('x1',sx(xs)); xh.setAttribute('x2',sx(xs)); xh.setAttribute('visibility','visible');
+    rows.sort((a,b)=>b[1]-a[1]);
+    showTip(`<b>after ${xs} tasks</b>`+rows.map(r=>`<div><span><i style="background:${COLOR(r[0])}"></i>${esc(LAB(r[0]))}</span><span>${pct(r[1],1)}</span></div>`).join(''), ev.clientX, ev.clientY);
   });
-  hit.addEventListener('mouseleave',()=>{tip.style.display='none'; xh.setAttribute('visibility','hidden');});
-});
-const esc=s=>s.replace(/[&<>]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
-fetch('/api/examples').then(r=>r.json()).then(ex=>{const sel=document.getElementById('ex');
-  ex.forEach((t,i)=>{const o=document.createElement('option');o.value=i;o.textContent=t.id;sel.appendChild(o);});
-  sel.onchange=()=>{const t=ex[sel.value]; if(t){document.getElementById('task').value=t.text; window._gold=t.gold;}};
-}).catch(()=>{document.getElementById('meta').textContent='(start the server with: uv run bearings-web)';});
-document.getElementById('go').onclick=async()=>{
-  const task=document.getElementById('task').value; if(!task.trim())return;
-  document.getElementById('meta').textContent='querying HydraDB...';
-  const r=await (await fetch('/api/pack?task='+encodeURIComponent(task))).json();
-  const gold=window._gold||[];
-  document.getElementById('meta').textContent=`${r.ms} ms, scope ${r.scope}, ${r.graph_tasks} tasks in graph`+(gold.length?`; real fix touched: ${gold.join(', ')}`:'');
-  document.getElementById('out').innerHTML=r.files.map((f,i)=>`<div class="file"><code>${i+1}. ${esc(f.path)}</code> ${gold.includes(f.path)?' <b>(in the real fix)</b>':''}<span class="note"> score ${f.score}</span>${f.why.map(w=>'<div class="why">'+esc(w)+'</div>').join('')}</div>`).join('')+(r.test_command?`<p>Verify with <code>${esc(r.test_command)}</code></p>`:'');
-};
-</script></body></html>
+  svg.querySelector('.hit').addEventListener('mouseleave', ()=>{ hideTip(); xh.setAttribute('visibility','hidden'); svg.querySelectorAll('.hv').forEach(c=>c.setAttribute('visibility','hidden')); });
+}
+
+function dotWhisker(el, rows, opt={}){
+  // rows: [{key,label,m,lo,hi,color,bold}]
+  const W=480, rowH=34, L=176, R=52, T=6, B=28, H=T+B+rows.length*rowH;
+  const lo = opt.min ?? 0, hi = opt.max ?? 1;
+  const sx=v=>L+(v-lo)/(hi-lo)*(W-L-R);
+  let s=`<svg class="chart" viewBox="0 0 ${W} ${H}">`;
+  const ticks = opt.ticks || [0,.25,.5,.75,1];
+  for(const t of ticks){ s+=`<line class="grid" x1="${sx(t)}" x2="${sx(t)}" y1="${T}" y2="${H-B}"/><text x="${sx(t)}" y="${H-B+18}" text-anchor="middle">${opt.fmt?opt.fmt(t):pct(t)}</text>`; }
+  rows.forEach((r,i)=>{ const y=T+i*rowH+rowH/2;
+    s+=`<g class="dw" data-i="${i}"><rect x="0" y="${y-rowH/2}" width="${W}" height="${rowH}" fill="transparent"/>
+      <text x="${L-12}" y="${y+4}" text-anchor="end" style="${r.bold?'font-weight:700;fill:var(--text)':''}">${esc(r.label)}</text>
+      ${r.lo!=null?`<line x1="${sx(r.lo)}" x2="${sx(r.hi)}" y1="${y}" y2="${y}" stroke="${r.color}" stroke-width="2.5" stroke-linecap="round" opacity=".55"/>`:''}
+      <circle cx="${sx(r.m)}" cy="${y}" r="${r.bold?6.5:5.5}" fill="${r.color}" stroke="var(--surface)" stroke-width="2"/>
+      <text x="${sx(r.hi ?? r.m)+10}" y="${y+4}" style="fill:var(--text);font-weight:600">${opt.fmt?opt.fmt(r.m):pct(r.m)}</text></g>`; });
+  s+='</svg>'; el.innerHTML=s;
+  el.querySelectorAll('.dw').forEach(g=>{ const r=rows[+g.dataset.i];
+    g.addEventListener('mousemove',ev=>showTip(`<b>${esc(r.label)}</b><div><span>value</span><span>${opt.fmt?opt.fmt(r.m):pct(r.m,1)}</span></div>`+
+      (r.lo!=null?`<div><span>95% interval</span><span>${opt.fmt?opt.fmt(r.lo):pct(r.lo,1)} – ${opt.fmt?opt.fmt(r.hi):pct(r.hi,1)}</span></div>`:'')+(r.n?`<div><span>tasks</span><span>${r.n}</span></div>`:''),ev.clientX,ev.clientY));
+    g.addEventListener('mouseleave',hideTip); });
+}
+
+function segmented(el, items, cur, onPick){
+  el.innerHTML = items.map(([k,l])=>`<button data-k="${k}" class="${k===cur?'on':''}">${esc(l)}</button>`).join('');
+  el.querySelectorAll('button').forEach(b=>b.onclick=()=>{ el.querySelectorAll('button').forEach(x=>x.classList.remove('on')); b.classList.add('on'); onPick(b.dataset.k); });
+}
+
+// ---------------------------------------------------------------- level 1
+(function(){
+  const L1 = D.level1; const seeds = Object.keys(L1);
+  if(!seeds.length){ $('#retrieval').querySelector('.intro').textContent='Level 1 has not been run yet.'; return; }
+  let seed = seeds[0], metric = 'hit@5'; const hidden = new Set(D.curve_hidden);
+  $('#l1intro').innerHTML = D.l1_intro;
+  function render(){
+    const S = L1[seed];
+    $('#curveCap').textContent = `${metric}, rolling mean over the last 100 tasks. Every task is answered before it is learned.`;
+    const keys = Object.keys(S.curves[metric]);
+    $('#curveLegend').innerHTML = keys.map(k=>`<span data-k="${k}" class="${hidden.has(k)?'off':''}"><i style="background:${COLOR(k)}"></i>${esc(LAB(k))}</span>`).join('');
+    $('#curveLegend').querySelectorAll('span').forEach(sp=>sp.onclick=()=>{ const k=sp.dataset.k; hidden.has(k)?hidden.delete(k):hidden.add(k); render(); });
+    lineChart($('#curve'), S.curves[metric], {hidden});
+    $('#dotsCap').textContent = `${metric} on the ${S.n} test tasks (from ${S.test_from}), dot = mean, line = 95% interval.`;
+    const rows = D.l1_order.filter(c=>S.conds[c]).map(c=>({label:LAB(c), m:S.conds[c][metric][0], lo:S.conds[c][metric][1], hi:S.conds[c][metric][2], color:COLOR(c), bold:c==='bearings', n:S.n}));
+    dotWhisker($('#dots'), rows);
+    $('#diffs').innerHTML = `<table><tr><th>Comparison</th><th class="num">Δ hit@1</th><th class="num">Δ hit@5</th><th>Reading</th></tr>`+
+      S.diffs.map(d=>`<tr class="${d.hl?'hl':''}"><td>${esc(d.label)}</td>`+['hit@1','hit@5'].map(m=>`<td class="num">${(d[m][0]>=0?'+':'')}${(d[m][0]*100).toFixed(1)} pts <span class="ci">[${(d[m][1]*100).toFixed(1)}, ${(d[m][2]*100).toFixed(1)}]</span></td>`).join('')+
+      `<td class="hint">${esc(d.reading)}</td></tr>`).join('')+`</table>`;
+    $('#l1facts').innerHTML = S.facts.map(f=>`<div class="card"><h3>${esc(f.title)}</h3><p class="cap" style="margin:0">${f.text}</p></div>`).join('');
+  }
+  segmented($('#seedSeg'), seeds.map(s=>[s, L1[s].title]), seed, k=>{seed=k;render();});
+  segmented($('#metricSeg'), [['hit@1','hit@1'],['hit@3','hit@3'],['hit@5','hit@5']], metric, k=>{metric=k;render();});
+  render();
+})();
+
+// ---------------------------------------------------------------- level 2
+(function(){
+  const L2 = D.level2;
+  if(!L2 || !L2.conds || !Object.keys(L2.conds).length){ $('#l2intro').textContent = 'Live agent runs are still in progress.';
+    document.querySelectorAll('#agents .card, #agents .grid2').forEach(e=>e.style.display='none'); return; }
+  $('#l2intro').innerHTML = L2.intro;
+  if(L2.warn) $('#l2warn').innerHTML = `<div class="warn">${L2.warn}</div>`;
+  const cs = L2.order.filter(c=>L2.conds[c]);
+  dotWhisker($('#l2succ'), cs.map(c=>({label:LAB(c), m:L2.conds[c].succ[0], lo:L2.conds[c].succ[1], hi:L2.conds[c].succ[2], color:COLOR(c), bold:c==='l2:bearings', n:L2.conds[c].n})));
+  const mx = Math.max(...cs.map(c=>L2.conds[c].q3)) * 1.08;
+  const tk = [0, mx/4, mx/2, 3*mx/4, mx].map(v=>Math.round(v/10000)*10000);
+  dotWhisker($('#l2tok'), cs.map(c=>({label:LAB(c), m:L2.conds[c].median_in, lo:L2.conds[c].q1, hi:L2.conds[c].q3, color:COLOR(c), bold:c==='l2:bearings', n:L2.conds[c].n})),
+    {min:0, max:tk[4], ticks:tk, fmt:v=>v>=1000?Math.round(v/1000)+'k':String(Math.round(v))});
+  $('#l2cap').innerHTML = L2.cap;
+  $('#l2table').innerHTML = `<table><tr><th>Condition</th><th class="num">all files found</th><th class="num">≥1 file found</th><th class="num">median tokens</th><th class="num">vs no memory (paired)</th><th class="num">tool calls</th><th class="num">wall time</th></tr>`+
+    cs.map(c=>{const r=L2.conds[c]; return `<tr class="${c==='l2:bearings'?'hl':''}"><td><span class="swatch" style="background:${COLOR(c)}"></span>${esc(LAB(c))}</td>
+      <td class="num">${pct(r.succ[0])} <span class="ci">[${pct(r.succ[1])}, ${pct(r.succ[2])}]</span></td><td class="num">${pct(r.hit[0])}</td>
+      <td class="num">${num(r.median_in)}</td><td class="num">${r.ratio!=null?`${r.ratio.toFixed(2)}×`:'—'} ${r.dsucc!=null?`<span class="ci">Δ success ${(r.dsucc[0]>=0?'+':'')}${(r.dsucc[0]*100).toFixed(0)} pts [${(r.dsucc[1]*100).toFixed(0)}, ${(r.dsucc[2]*100).toFixed(0)}]</span>`:''}</td>
+      <td class="num">${r.tools}</td><td class="num">${r.wall}s</td></tr>`;}).join('')+`</table>`;
+})();
+
+// ---------------------------------------------------------------- claude code demo
+(function(){
+  const d = D.demo; if(!d.length){ $('#demo').innerHTML='<p class="hint">No demo runs.</p>'; return; }
+  const tasks=[...new Set(d.map(r=>r.task))];
+  $('#demo').innerHTML = `<table><tr><th>Task</th><th>Run</th><th class="num">total input tokens</th><th class="num">vs without</th><th class="num">turns</th><th class="num">tool calls</th><th class="num">output</th><th>right files</th></tr>`+
+    tasks.map(t=>d.filter(r=>r.task===t).map((r,i)=>`<tr class="${r.side!=='without'&&r.rel<0?'hl':''}"><td>${i?'':esc(t)}</td><td>${esc(r.label)}</td><td class="num">${num(r.total_input)}</td>
+      <td class="num">${r.rel==null?'':`<span class="delta ${r.rel<0?'up':'down'}">${r.rel>0?'+':''}${r.rel}%</span>`}</td><td class="num">${r.num_turns}</td><td class="num">${r.tool_calls}</td><td class="num">${num(r.output_tokens)}</td><td>${r.correct?'yes':'no'}</td></tr>`).join('')).join('')+`</table>
+    <p class="hint" style="margin:12px 0 0">${D.demo_note}</p>`;
+})();
+
+$('#notes').innerHTML = D.notes.map(n=>`<li>${n}</li>`).join('');
+$('#foot').innerHTML = D.footer;
+
+// ---------------------------------------------------------------- try a task
+const KIND = {word:'word', symbol:'symbol', module:'module', error:'error', path:'path'};
+const KLAB = {word:'word stem', symbol:'symbol', module:'module', error:'error', path:'path'};
+function reason(w, seen){
+  if (w.startsWith('defines ')) return null;
+  if (w.startsWith('the task names ')) return 'the issue names this file';
+  let m = w.match(/^(\w+) '(.+?)' -> (.+?) \(together in (\d+) past changes?\)(?: -> co-changed with .+? \((\d+)x\))?$/);
+  if (!m) return esc(w);
+  const key = m[2].toLowerCase(); if (seen.has(key)) return null; seen.add(key);
+  const k = `<span class="kind">${KLAB[m[1]]||m[1]}</span><b class="mono">${esc(m[2])}</b>`;
+  if (m[5]) return `${k} led to <span class="mono">${esc(m[3])}</span>, changed together with this file ${m[5]}×`;
+  return `${k} was in ${m[4]} past fix${m[4]==='1'?'':'es'} to this file`;
+}
+(function(){
+  const live = location.protocol.startsWith('http');
+  let examples = [];
+  const sel = $('#ex');
+  if(!live){ $('#status').textContent = 'Open through `bearings-web` to query the live graph.'; $('#go').disabled = true; }
+  else fetch('api/examples').then(r=>r.json()).then(rows=>{ examples=rows;
+    sel.innerHTML += rows.map((r,i)=>`<option value="${i}">${esc(r.id.replace('django__',''))} · ${esc(r.text.split('\n')[0].slice(0,70))}</option>`).join('');
+    if(rows.length){ sel.value='0'; $('#task').value=rows[0].text; run(); } });
+  sel.onchange=()=>{ const r=examples[+sel.value]; if(r){ $('#task').value=r.text; run(); } };
+  $('#go').onclick=run;
+  async function run(){
+    const text=$('#task').value.trim(); if(!text) return;
+    const ex = examples[+sel.value]; const useEx = ex && ex.text===$('#task').value;
+    $('#go').disabled=true; $('#status').textContent='Querying HydraDB…';
+    try{
+      const q = new URLSearchParams({task:text}); if(useEx) q.set('commit', ex.base_commit);
+      const r = await (await fetch('api/pack?'+q)).json();
+      const gold = new Set(useEx?ex.gold:[]);
+      const hit = r.files.some(f=>gold.has(f.path));
+      $('#result').innerHTML = `<h3>Context pack</h3>
+        <div class="meta"><span class="chip">${r.ms} ms</span><span class="chip">graph: ${num(r.graph_tasks)} past changes</span><span class="chip">${r.code?'code anchors at '+esc(r.code):'graph only'}</span>
+        ${useEx?`<span class="chip ${hit?'good':''}">${hit?'real fix in the pack':'real fix not in the pack'}</span>`:''}</div>`+
+        (r.files.length? r.files.map((f,i)=>`<div class="file ${gold.has(f.path)?'gold':''}"><div class="path"><span class="rank">${i+1}</span>${esc(f.path)}${gold.has(f.path)?'<span class="chip good">real fix</span>':''}</div>
+          ${f.lines&&f.lines.length?`<div class="lines">${f.lines.slice(0,3).map(l=>`<span class="def">def</span><span class="nm">${esc(l[1])}</span><span class="ln">line ${l[0]}</span>`).join('')}</div>`:''}
+          <ul>${(()=>{const seen=new Set(); return f.why.map(w=>reason(w,seen)).filter(Boolean).slice(0,3).map(w=>`<li>${w}</li>`).join('');})()}</ul></div>`).join('') : '<div class="result-empty">No suggestion: nothing similar in past work.</div>')+
+        (r.test_command?`<div class="testcmd">Verify with: ${esc(r.test_command)}</div>`:'')+
+        `<details><summary>What the agent receives (${num(r.pack_text.length/4)} tokens)</summary><pre>${esc(r.pack_text)}</pre></details>
+         <details><summary>The HydraDB query</summary><pre>${esc(r.cypher||'')}</pre></details>`;
+      $('#status').textContent='';
+    }catch(e){ $('#status').textContent='Query failed: '+e; }
+    $('#go').disabled=false;
+  }
+})();
+</script>
+</body>
+</html>

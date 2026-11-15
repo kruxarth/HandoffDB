@@ -1,5 +1,5 @@
 diff --git a/django/contrib/postgres/constraints.py b/django/contrib/postgres/constraints.py
-index ad3a5f6..c61072b 100644
+index ad3a5f6..0722f93 100644
 --- a/django/contrib/postgres/constraints.py
 +++ b/django/contrib/postgres/constraints.py
 @@ -32,6 +32,7 @@ class ExclusionConstraint(BaseConstraint):
@@ -50,13 +50,14 @@ index ad3a5f6..c61072b 100644
              (
                  ""
                  if self.violation_error_message is None
-@@ -204,9 +215,13 @@ class ExclusionConstraint(BaseConstraint):
+@@ -204,9 +215,15 @@ class ExclusionConstraint(BaseConstraint):
              queryset = queryset.exclude(pk=model_class_pk)
          if not self.condition:
              if queryset.exists():
 -                raise ValidationError(self.get_violation_error_message())
 +                raise ValidationError(
-+                    self.get_violation_error_message(), code=self.violation_error_code
++                    self.get_violation_error_message(),
++                    code=self.violation_error_code,
 +                )
          else:
              if (self.condition & Exists(queryset.filter(self.condition))).check(
@@ -64,10 +65,11 @@ index ad3a5f6..c61072b 100644
              ):
 -                raise ValidationError(self.get_violation_error_message())
 +                raise ValidationError(
-+                    self.get_violation_error_message(), code=self.violation_error_code
++                    self.get_violation_error_message(),
++                    code=self.violation_error_code,
 +                )
 diff --git a/django/db/models/constraints.py b/django/db/models/constraints.py
-index 075ecee..d586078 100644
+index 075ecee..23dab68 100644
 --- a/django/db/models/constraints.py
 +++ b/django/db/models/constraints.py
 @@ -18,11 +18,16 @@ __all__ = ["BaseConstraint", "CheckConstraint", "Deferrable", "UniqueConstraint"
@@ -98,15 +100,15 @@ index 075ecee..d586078 100644
          if violation_error_message is not None:
              self.violation_error_message = violation_error_message
          else:
-@@ -74,6 +81,8 @@ class BaseConstraint:
-             and self.violation_error_message != self.default_violation_error_message
-         ):
-             kwargs["violation_error_message"] = self.violation_error_message
+@@ -69,6 +76,8 @@ class BaseConstraint:
+         path = "%s.%s" % (self.__class__.__module__, self.__class__.__name__)
+         path = path.replace("django.db.models.constraints", "django.db.models")
+         kwargs = {"name": self.name}
 +        if self.violation_error_code is not None:
 +            kwargs["violation_error_code"] = self.violation_error_code
-         return (path, (), kwargs)
- 
-     def clone(self):
+         if (
+             self.violation_error_message is not None
+             and self.violation_error_message != self.default_violation_error_message
 @@ -82,13 +91,19 @@ class BaseConstraint:
  
  
@@ -212,24 +214,26 @@ index 075ecee..d586078 100644
                  and self.violation_error_message == other.violation_error_message
              )
          return super().__eq__(other)
-@@ -385,7 +419,9 @@ class UniqueConstraint(BaseConstraint):
+@@ -385,7 +419,10 @@ class UniqueConstraint(BaseConstraint):
          if not self.condition:
              if queryset.exists():
                  if self.expressions:
 -                    raise ValidationError(self.get_violation_error_message())
 +                    raise ValidationError(
-+                    self.get_violation_error_message(), code=self.violation_error_code
-+                )
++                        self.get_violation_error_message(),
++                        code=self.violation_error_code,
++                    )
                  # When fields are defined, use the unique_error_message() for
                  # backward compatibility.
                  for model, constraints in instance.get_constraints():
-@@ -400,6 +436,8 @@ class UniqueConstraint(BaseConstraint):
+@@ -400,6 +437,9 @@ class UniqueConstraint(BaseConstraint):
                  if (self.condition & Exists(queryset.filter(self.condition))).check(
                      against, using=using
                  ):
 -                    raise ValidationError(self.get_violation_error_message())
 +                    raise ValidationError(
-+                    self.get_violation_error_message(), code=self.violation_error_code
-+                )
++                        self.get_violation_error_message(),
++                        code=self.violation_error_code,
++                    )
              except FieldError:
                  pass

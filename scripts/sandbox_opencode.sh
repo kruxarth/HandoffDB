@@ -12,6 +12,8 @@ set -euo pipefail
 snap=$1; cfg=$2; data=$3; net=$4; shift 4; [[ "${1:-}" == "--" ]] && shift
 mkdir -p "$data/share" "$data/state" "$data/cache"
 cp -r "$HOME/.cache/opencode/." "$data/cache/" 2>/dev/null || true
+# optional: credentials for the model provider only ($OC_AUTH: an auth.json with just that entry)
+if [[ -n "${OC_AUTH:-}" ]]; then install -m 600 "$OC_AUTH" "$data/share/auth.json"; fi
 args=(
   --ro-bind /usr /usr --symlink usr/bin /bin --symlink usr/lib /lib --symlink usr/lib /lib64 --symlink usr/bin /sbin
   --ro-bind /etc /etc --proc /proc --dev /dev --tmpfs /tmp --tmpfs /run
