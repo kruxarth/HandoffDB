@@ -1,0 +1,19 @@
+{
+  "n": 70,
+  "n_components": 70,
+  "graph_events": 18997,
+  "hydradb_path_query_ms": {
+    "p50": 1724.1,
+    "p95": 2650.4,
+    "mean": 1701.3
+  },
+  "code_anchors_ms": {
+    "p50": 202.5,
+    "p95": 233.4
+  },
+  "context_pack_ms": {
+    "p50": 2147.9,
+    "p95": 3110.0
+  },
+  "note": "sequential, one client, nothing else running on the machine"
+}
