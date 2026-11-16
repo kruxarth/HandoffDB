@@ -18,6 +18,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT / "bench"))
 from summarize import CONDS, ci, paired_diff  # noqa: E402
+import report_handoff  # noqa: E402
 
 RES = ROOT / "results"
 SIDE = {"without": "Without Bearings", "without-2": "Without Bearings (rerun)", "with": "Bearings v1 via MCP tool",
@@ -337,6 +338,10 @@ def main() -> None:
           "source files.", ""]
     data: dict = {"level1": {}, "labels": dict(LABEL), "colors": COLORS, "l1_order": L1_ORDER,
                   "curve_hidden": [], "demo": [], "notes": [], "pills": [], "kpis": []}
+    hmd, hdata = report_handoff.section()
+    md += hmd
+    md += ["# What we learned first: the where-to-start pack (Levels 1 and 2)", ""]
+    data["handoff"] = handoff_dash(hdata)
     for seed in ("history", "tasks"):
         m, d = seed_block(seed)
         md += m
@@ -376,6 +381,35 @@ def main() -> None:
     (RES / "RESULTS.md").write_text("\n".join(md))
     dashboard(data, l2)
     print("\n".join(md))
+
+
+def handoff_dash(h: dict) -> dict:
+    A, B = h["A"], h["B"]
+    out = dict(h)
+    nc = h.get("notes_cost") or {}
+    mem = h.get("memory") or {}
+    out["intro"] = (f"A planning agent (DeepSeek V4.1 Flash through OpenCode, sandboxed) names the files to edit and the test file "
+                    f"for a real Django issue. Before it, {mem.get('n', '?')} cold runs on earlier issues were recorded. "
+                    "<b>A</b>: the next agent works on a <em>different</em> issue (102 SWE-bench issues from July 2022, each "
+                    "seeing only runs on issues dated before it). <b>B</b>: a second agent on the <em>same</em> issue. "
+                    "Notes = the earlier agents' Markdown handoff notes on disk; pack = the Bearings pack in the prompt. "
+                    "Token counts are OpenCode's own usage reports and include the pack and any notes read.")
+    if A.get("n"):
+        out["warn"] = (f"Excluded (rate-limited or never started): {A['excluded']} of {A['total_runs']} runs in A, "
+                       f"{B.get('excluded', 0)} of {B.get('total_runs', 0)} in B. Timeouts count as failures. "
+                       "Pre-registered in <code>bench/handoff_prereg.md</code> before any target run.")
+    facts = []
+    if nc:
+        facts.append({"title": "Notes cost a model call each; the graph does not",
+                      "text": f"{nc['n']} notes took {nc['prompt_total']:,} input and {nc['completion_total']:,} output tokens to write "
+                              f"(list-price arithmetic ${nc['usd_list']:.3f}). The recorder reads tool calls only."})
+    ld = h.get("load") or {}
+    if ld:
+        facts.append({"title": "Under load",
+                      "text": f"{ld['clients']} clients for {ld['seconds']} s while runs were being recorded: {ld['requests']:,} packs, "
+                              f"{ld['errors']} errors, p50 {ld['p50_ms']} ms, p95 {ld['p95_ms']} ms."})
+    out["facts"] = facts
+    return out
 
 
 def dashboard(data: dict, l2: dict) -> None:

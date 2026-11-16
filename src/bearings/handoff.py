@@ -309,7 +309,9 @@ class Params:
     k_src: int = 5
     k_test: int = 3
     k_doc: int = 2
-    via_sources: bool = True  # tests through chosen sources (False: tests ranked like sources)
+    via_sources: bool = True  # False forces test_mode "direct" (ablation)
+    test_mode: str = "both"   # direct | via | both (see build_pack)
+    via_base: float = 0.1
     use_terms: bool = True
     use_anchors: bool = True
 
@@ -365,43 +367,51 @@ def build_pack(g, terms: list[str], anchors: list[str], allowed: set[str] | None
         cand[f]["score"] *= _idf(N, df_f[f]) ** P.hot_q
     source = sorted(((f, cand[f]) for f in srcs), key=lambda fd: (-round(fd[1]["score"], 9), fd[0]))[:P.k_src]
     calls = 4
-    if P.via_sources and source:
-        # hop 3: chosen sources -> runs that opened them -> tests/docs those runs opened
+    # tests and docs. direct: ranked like sources, from the top runs. via (hop 3): the chosen
+    # sources -> every allowed run that opened them -> the tests/docs those runs opened, each run
+    # weighted by its relevance to this task (plus via_base, so runs found only through the
+    # source still count). both: the two scores, each scaled to its maximum, added.
+    mode = P.test_mode if P.via_sources else "direct"
+    direct = {f: cand[f] for f in cand if kind_of(f) in ("test", "doc")}
+    tcand = defaultdict(lambda: {"score": 0.0, "runs": set(), "concluded": set(), "lines": set()})
+    if mode in ("via", "both") and source:
         base = source[:P.test_via]
         smax = max(d["score"] for _, d in base) or 1.0
+        rmax = max(rel.values()) or 1.0
         via_runs = sorted({k for f, _ in base for k in readers[f]})
         rf2 = g.run_files(via_runs)
-        tcand = defaultdict(lambda: {"score": 0.0, "runs": set(), "concluded": set(), "lines": set()})
+        calls += 1
         opened = defaultdict(set)
         for k, r, f, lines in rf2:
             if r == "READ" and kind_of(f) in ("test", "doc"):
                 opened[k].add(f)
                 tcand[f]["lines"].update(x for x in lines.split(";") if x)
-        for s, d in base:
-            rs = readers[s]
-            for k in rs:
+        for sname, d in base:
+            ws = {k: rel.get(k, 0.0) / rmax + P.via_base for k in readers[sname]}
+            tot = sum(ws.values()) or 1.0
+            for k, wk in ws.items():
                 for f in opened.get(k, ()):
-                    tcand[f]["score"] += (d["score"] / smax) / len(rs)
+                    tcand[f]["score"] += (d["score"] / smax) * wk / tot
                     tcand[f]["runs"].add(k)
-        tf = list(tcand)
-        df2 = defaultdict(int)
-        for f, k in g.file_runs(tf):
-            if ok(k):
-                df2[f] += 1
-        for f in tf:
-            tcand[f]["score"] *= _idf(N, df2[f]) ** P.hot_q
-        pool = tcand
-        calls = 6
-    else:
-        others = [f for f in cand if kind_of(f) in ("test", "doc")]
-        df2 = defaultdict(int)
-        for f, k in g.file_runs(others):
-            if ok(k):
-                df2[f] += 1
-        for f in others:
-            cand[f]["score"] *= _idf(N, df2[f]) ** P.hot_q
-        pool = {f: cand[f] for f in others}
-        calls = 5
+    keys = sorted(set(direct) | set(tcand))
+    df2 = defaultdict(int)
+    for f, k in g.file_runs(keys):
+        if ok(k):
+            df2[f] += 1
+    calls += 1
+    pool = {}
+    for src_scores, wgt in ((direct, 1.0 if mode in ("direct", "both") else 0.0),
+                            (tcand, 1.0 if mode in ("via", "both") else 0.0)):
+        if not wgt or not src_scores:
+            continue
+        sc = {f: d["score"] * _idf(N, df2[f]) ** P.hot_q for f, d in src_scores.items()}
+        mx = max(sc.values()) or 1.0
+        for f, d in src_scores.items():
+            e = pool.setdefault(f, {"score": 0.0, "runs": set(), "concluded": set(), "lines": set()})
+            e["score"] += wgt * sc[f] / mx
+            e["runs"] |= d["runs"]
+            e["concluded"] |= d["concluded"]
+            e["lines"] |= d["lines"]
 
     def top_kind(kind, n):
         xs = [(f, d) for f, d in pool.items() if kind_of(f) == kind]

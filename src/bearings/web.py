@@ -80,6 +80,54 @@ async def pack(request: Request):
     })
 
 
+HO_TEAM = os.environ.get("BEARINGS_HANDOFF_TEAM", "bench")
+HO_REPO = os.environ.get("BEARINGS_HANDOFF_REPO", "handoff-v2")
+
+
+async def handoff_pack(request: Request):
+    """The handoff pack, live from HydraDB: what earlier agent runs opened and concluded near this task.
+    With ``before`` (an ISO date) only runs on issues dated before it are used, as in the experiments."""
+    from . import handoff as HO
+    from .anchors import definitions
+    task = request.query_params.get("task", "")[:20000]
+    commit = request.query_params.get("commit") or None
+    if commit and not commit.isalnum():
+        commit = None
+    before = request.query_params.get("before") or None
+    t0 = time.time()
+    g = HO.HydraGraph(Hydra(tenant=HO_TEAM, subtenant=HO_REPO))
+    anchors = []
+    if CHECKOUT:
+        sc = definitions(Path(CHECKOUT), commit or "HEAD", task)
+        anchors = [f for f, _ in sorted(sc.items(), key=lambda kv: (-kv[1], kv[0]))[:8]]
+    allowed = None
+    if before:
+        allowed = {k for k, d in g.db.query("MATCH (n:HRun) RETURN n.key, n.date") if (d or "") < before}
+    terms = HO.run_terms(task)
+    t1 = time.time()
+    pk = HO.build_pack(g, terms, anchors, allowed, HO.Params())
+    ms_graph = round((time.time() - t1) * 1000)
+    info = g.run_info(pk["runs"][:5])
+    rows = lambda xs: [{"path": f, "runs": sorted(d["runs"] | d["concluded"]), "concluded": len(d["concluded"]),  # noqa: E731
+                        "lines": sorted(d["lines"], key=lambda x: int(x.split("-")[0]))[:4]} for f, d in xs]
+    txt = HO.render(pk, info)
+    return JSONResponse({"scope": f"{HO_TEAM}/{HO_REPO}", "ms": round((time.time() - t0) * 1000), "ms_graph": ms_graph,
+                         "calls": pk.get("calls"), "entities": terms[:20], "anchors": anchors,
+                         "source": rows(pk["source"]), "test": rows(pk["test"]), "doc": rows(pk["doc"]),
+                         "runs": [{"key": k, **info.get(k, {})} for k in pk["runs"][:5]], "n_runs": pk["n_runs"],
+                         "pack_text": txt, "tokens": HO.tokens(txt)})
+
+
+async def handoff_examples(_: Request):
+    rows = []
+    for line in open(ROOT / "data/derived/tasks.jsonl"):
+        t = json.loads(line)
+        if t["date"] >= "2022-07-01":
+            rows.append({"id": t["id"], "text": t["text"][:3000], "gold": t["files"], "gold_tests": t["test_files"],
+                         "base_commit": t["base_commit"], "date": t["date"]})
+    return JSONResponse(rows[:60])
+
+
 async def examples(_: Request):
     rows = []
     for line in open(ROOT / "data/derived/tasks.jsonl"):
@@ -93,6 +141,8 @@ app = Starlette(routes=[
     Route("/", index),
     Route("/api/pack", pack),
     Route("/api/examples", examples),
+    Route("/api/handoff/pack", handoff_pack),
+    Route("/api/handoff/examples", handoff_examples),
     Route("/results/{path:path}", asset),
 ])
 

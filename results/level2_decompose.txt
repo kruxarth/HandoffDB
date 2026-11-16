@@ -18,3 +18,9 @@ condition   reads  whole file  median lines  >200 lines
 none          350          8%            80          8%
 dict          344          6%            70          5%
 bearings      433          7%            71          4%
+
+After-phase tokens by what the tool call was aimed at (pooled over runs, share of after-phase tokens):
+condition   neighbouring sourc      tests and docs  the fix file again  repo-wide search a        final answer
+none                       21%                 26%                 23%                 18%                  0%
+dict                       31%                 25%                 18%                 15%                  0%
+bearings                   26%                 31%                 19%                 12%                  0%

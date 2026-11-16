@@ -84,6 +84,7 @@ def decompose(path: Path, gold: list[str]) -> dict:
     found = False
     spans = []
     after_files = set()
+    target = defaultdict(float)   # after-phase tokens by what the tool call was aimed at
     for s in steps:
         hit_here = any(any(g in json.dumps(inp) for g in gold) for _, inp in s["calls"])
         ph = "after" if found else "before"
@@ -98,9 +99,24 @@ def decompose(path: Path, gold: list[str]) -> dict:
             spans += read_spans(tool, inp)
             if ph == "after":
                 after_files |= set(re.findall(r"[\w/]+\.py", json.dumps(inp)))
+                target[aim(inp, gold)] += s["tok"] / len(s["calls"])
+        if ph == "after" and not s["calls"]:
+            target["final answer"] += s["tok"]
     total = sum(s["tok"] for s in steps)
     return {"total": total, "steps": len(steps), "by": dict(by), "phase": phase, "found": found,
-            "spans": spans, "after_files": len(after_files)}
+            "spans": spans, "after_files": len(after_files), "target": dict(target)}
+
+
+def aim(inp: dict, gold: list[str]) -> str:
+    """What a tool call was aimed at: the fix file again, tests/docs, another source file, or a repo-wide search."""
+    s = json.dumps(inp)
+    if any(g in s for g in gold):
+        return "the fix file again"
+    if re.search(r"(?<![\w])(tests|docs)/", s):
+        return "tests and docs"
+    if re.search(r"django/[\w/]+\.py", s):
+        return "neighbouring source files"
+    return "repo-wide search and other"
 
 
 def main() -> None:
@@ -142,6 +158,12 @@ def main() -> None:
         rng = [x for x in sp if x > 0]
         w(f"{c:10} {len(sp):6} {sum(x < 0 for x in sp) / max(len(sp), 1):11.0%} "
           f"{(st.median(rng) if rng else 0):13.0f} {sum(x > 200 for x in rng) / max(len(rng), 1):11.0%}")
+    w("\nAfter-phase tokens by what the tool call was aimed at (pooled over runs, share of after-phase tokens):")
+    aims = ["neighbouring source files", "tests and docs", "the fix file again", "repo-wide search and other", "final answer"]
+    w(f"{'condition':10} " + " ".join(f"{k[:18]:>19}" for k in aims))
+    for c, D in agg.items():
+        tot = sum(d["phase"]["after"] for d in D)
+        w(f"{c:10} " + " ".join(f"{sum(d['target'].get(k, 0) for d in D) / tot:19.0%}" for k in aims))
     (ROOT / "results" / "level2_decompose.txt").write_text("\n".join(out) + "\n")
     print("\n".join(out))
 

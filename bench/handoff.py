@@ -172,6 +172,14 @@ def dev_set() -> list[dict]:
     return [t for t in memory_tasks() if t["date"] >= DEV_FROM and t["gold_tests"] and t["gold_src"]]
 
 
+def same_tasks(runs: list[dict], n: int = 40) -> list[dict]:
+    """Experiment B issues (fixed rule): the n latest memory issues whose fix extends an
+    existing test file and whose memory run was recorded."""
+    have = {r["issue"] for r in runs if r["src"] == "refuseless"}
+    xs = [t for t in memory_tasks() if t["gold_tests"] and t["gold_src"] and t["id"] in have]
+    return xs[-n:]
+
+
 def earlier(runs: list[dict], task: dict) -> set[str]:
     """Date rule: only runs on issues dated strictly before the task (and never the task itself)."""
     return {r["issue"] for r in runs if r["date"] < task["date"] and r["issue"] != task["id"]}
@@ -185,6 +193,17 @@ def hits(pack: dict, t: dict) -> dict:
     s = int(set(t["gold_src"]) <= set(src))
     te = int(bool(set(t["gold_tests"]) & set(tst)))
     return {"src": s, "test": te, "both": int(s and te)}
+
+
+def _discount(files: dict, runs: list[dict], allowed: set[str], N: int) -> None:
+    """The same hot-file discount the graph uses, ln(1 + N / runs that opened the file)."""
+    df: dict[str, int] = defaultdict(int)
+    for r in runs:
+        if r["issue"] in allowed:
+            for f in r["reads"]:
+                df[f] += 1
+    for f, d in files.items():
+        d["score"] *= math.log(1 + N / max(df[f], 1))
 
 
 def dictionary_pack(runs: list[dict], task: dict, allowed: set[str]) -> dict:
@@ -210,6 +229,47 @@ def dictionary_pack(runs: list[dict], task: dict, allowed: set[str]) -> dict:
                 d = files.setdefault(f, {"score": 0.0, "runs": set(), "concluded": set(), "lines": set()})
                 d["score"] += math.log(1 + N / df[t]) * c / tot
 
+    _discount(files, runs, allowed, N)
+
+    def top(kind, k):
+        xs = [(f, d) for f, d in files.items() if HO.kind_of(f) == kind]
+        return sorted(xs, key=lambda fd: (-fd[1]["score"], fd[0]))[:k]
+    return {"source": top("source", 5), "test": top("test", 3), "doc": top("doc", 2), "runs": [], "n_runs": 0}
+
+
+def table_anchor_pack(runs: list[dict], task: dict, allowed: set[str], anchor_w: float = 2.0) -> dict:
+    """Stronger plain store: the word -> file table plus an anchor-file -> file table (files opened
+    in the same runs as the anchor), both tf-idf, added. No run nodes, no traversal through the
+    chosen sources."""
+    N = max(len(allowed), 1)
+    terms, anchors = task_sources(task)
+    tabs = []
+    for keys_of, keys in ((lambda r: set(r.get("terms") or HO.run_terms(r["text"])), terms),
+                          (lambda r: set(r["reads"]), anchors)):
+        df: dict[str, int] = defaultdict(int)
+        tf: dict[str, dict[str, float]] = defaultdict(lambda: defaultdict(float))
+        want = set(keys)
+        for r in runs:
+            if r["issue"] not in allowed:
+                continue
+            for t in keys_of(r) & want:
+                df[t] += 1
+                for f in r["reads"]:
+                    tf[t][f] += 1
+                for f in r["concluded"]:
+                    tf[t][f] += 2
+        tabs.append((df, tf, keys))
+    files: dict[str, dict] = {}
+    for i, (df, tf, keys) in enumerate(tabs):
+        for t in keys:
+            if t in tf:
+                tot = sum(tf[t].values())
+                for f, c in tf[t].items():
+                    d = files.setdefault(f, {"score": 0.0, "runs": set(), "concluded": set(), "lines": set()})
+                    d["score"] += (anchor_w if i else 1.0) * math.log(1 + N / df[t]) * c / tot
+
+    _discount(files, runs, allowed, N)
+
     def top(kind, k):
         xs = [(f, d) for f, d in files.items() if HO.kind_of(f) == kind]
         return sorted(xs, key=lambda fd: (-fd[1]["score"], fd[0]))[:k]
@@ -233,21 +293,22 @@ def tune() -> str:
     D = dev_set()
     grid = []
     for top_runs in (10, 20, 40):
-        for anchor_w in (1.0, 2.0, 4.0):
+        for anchor_w in (1.0, 2.0, 4.0, 8.0):
             for hot_q in (0.0, 1.0, 2.0):
-                for via in (True, False):
-                    grid.append(HO.Params(top_runs=top_runs, anchor_w=anchor_w, hot_q=hot_q, via_sources=via))
+                for mode in ("direct", "via", "both"):
+                    grid.append(HO.Params(top_runs=top_runs, anchor_w=anchor_w, hot_q=hot_q, test_mode=mode))
     out = [f"Dev set: {len(D)} memory issues dated {DEV_FROM}..{MEMORY_TO}, runs before each only; {len(runs)} memory runs."]
     res = []
     for P in grid:
         hs = [hits(build_pack(g, t, earlier(runs, t), P), t) for t in D]
         m = {k: sum(h[k] for h in hs) / len(hs) for k in ("src", "test", "both")}
         res.append((m["both"], m["src"], m["test"], P))
-    dic = [hits(dictionary_pack(runs, t, earlier(runs, t)), t) for t in D]
-    out.append("dictionary: src %.3f test %.3f both %.3f" % tuple(sum(h[k] for h in dic) / len(dic) for k in ("src", "test", "both")))
+    for name, fn in (("word->file table", dictionary_pack), ("word+anchor->file table", table_anchor_pack)):
+        dic = [hits(fn(runs, t, earlier(runs, t)), t) for t in D]
+        out.append(f"{name}: src %.3f test %.3f both %.3f" % tuple(sum(h[k] for h in dic) / len(dic) for k in ("src", "test", "both")))
     for both, src, test, P in sorted(res, key=lambda x: (-x[0], -x[1])):
         out.append(f"both {both:.3f} src {src:.3f} test {test:.3f}  top_runs={P.top_runs} anchor_w={P.anchor_w} "
-                   f"hot_q={P.hot_q} via_sources={P.via_sources}")
+                   f"hot_q={P.hot_q} test_mode={P.test_mode}")
     txt = "\n".join(out)
     (ROOT / "results" / "handoff_tune_dev.txt").write_text(txt + "\n")
     return txt
@@ -280,7 +341,9 @@ def retrieval(db: Hydra | None) -> str:
              "anchors_only": hits(build_pack(mem, t, ok, HO.Params(**{**FINAL.__dict__, "use_terms": False})), t),
              "no_test_hop": hits(build_pack(mem, t, ok, HO.Params(**{**FINAL.__dict__, "via_sources": False})), t),
              "no_hot_discount": hits(build_pack(mem, t, ok, HO.Params(**{**FINAL.__dict__, "hot_q": 0.0})), t),
-             "dictionary": hits(dictionary_pack(runs, t, ok), t)}
+             "dictionary": hits(dictionary_pack(runs, t, ok), t),
+             "table_anchor": hits(table_anchor_pack(runs, t, ok), t),
+             "direct_tests": hits(build_pack(mem, t, ok, HO.Params(**{**FINAL.__dict__, "test_mode": "direct"})), t)}
         for n in CURVE:   # learning curve: only the first n recorded runs (oldest issues first)
             sub = {x["issue"] for x in runs[:n]} & ok
             r[f"first{n}"] = hits(build_pack(mem, t, sub, FINAL), t) if sub else {"src": 0, "test": 0, "both": 0}
@@ -306,7 +369,8 @@ def retrieval(db: Hydra | None) -> str:
         w(f"  {'':40} {'every fix file (top 5)':>24} {'a real test file (top 3)':>26} {'both':>20}")
         labels = [("graph", "Graph (final)"), ("terms_only", "  - without code anchors"),
                   ("anchors_only", "  - without task entities"), ("no_test_hop", "  - tests ranked directly (no hop 3)"),
-                  ("no_hot_discount", "  - without hot-file discount"), ("dictionary", "Plain word -> file table")]
+                  ("no_hot_discount", "  - without hot-file discount"), ("direct_tests", "  - tests ranked directly only"),
+                  ("dictionary", "Plain word -> file table"), ("table_anchor", "Plain word+anchor -> file table")]
         labels += [(f"first{n}", f"Graph, first {n} recorded runs") for n in CURVE]
         for cond, label in labels:
             cells = []
@@ -315,8 +379,8 @@ def retrieval(db: Hydra | None) -> str:
                 lo, hi = boot(xs)
                 cells.append(f"{sum(xs) / max(len(xs), 1):.2f} [{lo:.2f}, {hi:.2f}]")
             w(f"  {label:40} {cells[0]:>24} {cells[1]:>26} {cells[2]:>20}")
-        for a, b, m in (("graph", "dictionary", "both"), ("graph", "dictionary", "test"), ("graph", "dictionary", "src"),
-                        ("graph", "no_test_hop", "test")):
+        for a, b, m in (("graph", "dictionary", "both"), ("graph", "table_anchor", "both"), ("graph", "table_anchor", "test"),
+                        ("graph", "table_anchor", "src"), ("graph", "no_test_hop", "test")):
             d = [r[a][m] - r[b][m] for r in sel]
             lo, hi = boot(d)
             w(f"  paired, {m}: {a} - {b} = {sum(d) / max(len(d), 1):+.3f} [{lo:+.3f}, {hi:+.3f}]")
@@ -553,6 +617,10 @@ def main() -> None:
     r.add_argument("--conditions", default="cold,notes,graph")
     r.add_argument("--reps", type=int, default=1)
     r.add_argument("--parallel", type=int, default=6)
+    b = sub.add_parser("same")
+    b.add_argument("--tasks", type=int, default=40)
+    b.add_argument("--conditions", default="cold,notes,graph")
+    b.add_argument("--parallel", type=int, default=12)
     sub.add_parser("pack").add_argument("id")
     args = ap.parse_args()
     db = Hydra(tenant=SCOPE[0], subtenant=SCOPE[1])
@@ -588,6 +656,26 @@ def main() -> None:
         t = next(t for t in pool(runs) + memory_tasks() if t["id"] == args.id)
         print(graph_pack_text(HO.HydraGraph(db), t, earlier(runs, t), FINAL))
         print("gold:", t["gold_src"], t["gold_tests"])
+    elif args.cmd == "same":
+        # Experiment B: a second agent on the SAME issue as a recorded memory run, with nothing,
+        # with that run's own handoff note, or with a pack built from that run's own record only.
+        T = same_tasks(runs, args.tasks)
+        res = RUNS / "same" / "results.jsonl"
+        done = done_set(res)
+        hg = HO.HydraGraph(db)
+        jobs = []
+        for t in T:
+            for c in args.conditions.split(","):
+                if (t["id"], c, 1) in done:
+                    continue
+                kw = {}
+                if c == "notes":
+                    kw["note_ids"] = [t["id"]]
+                if c == "graph":
+                    kw["pack_override"] = graph_pack_text(hg, t, {t["id"]}, FINAL)
+                jobs.append((f"same {t['id']} {c}", (lambda t=t, c=c, kw=kw: run_one(
+                    t, c, runs, db, rep=1, out_dir=RUNS / "same" / c, results=res, tag="B", **kw))))
+        launch(jobs, args.parallel)
     elif args.cmd == "run":
         T = pool(runs)
         T = [t for t in T if t["id"] == args.only] if args.only else T[args.skip:args.skip + args.tasks]
