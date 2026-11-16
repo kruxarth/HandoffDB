@@ -137,7 +137,7 @@ def graph_pack_text(g, task: dict, allowed: set[str] | None, P: HO.Params | None
 
 render = HO.render
 tokens = HO.tokens
-FINAL = HO.Params()   # the pack design fixed on the dev set (see tune and bench/handoff_prereg.md)
+FINAL = HO.Params(top_runs=10, anchor_w=4.0, hot_q=1.0, test_mode="both")   # fixed on the dev set (results/handoff_tune_dev.txt), before any target run
 
 
 # ---------------------------------------------------------------- targets

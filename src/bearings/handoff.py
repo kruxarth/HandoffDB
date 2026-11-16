@@ -182,7 +182,7 @@ class HydraGraph:
 
     # write side
     def reset(self) -> None:
-        for lab in ("HTerm", "HRun", "HFile"):
+        for lab in ("HTerm", "HRun", "HFile", "HInfo"):
             while True:
                 ids = [r[0] for r in self.db.query(f"MATCH (n:{lab}) RETURN n.id AS id LIMIT 1000")]
                 if not ids:
@@ -192,6 +192,7 @@ class HydraGraph:
     def forget(self, key: str) -> None:
         """Delete one run (and its edges); its terms and files stay."""
         self.db.query("MATCH (n {id: $id}) DETACH DELETE n", {"id": node_id("HRun", key)})
+        self.db.query("MATCH (n {id: $id}) DETACH DELETE n", {"id": node_id("HInfo", key)})
 
     def count_runs(self) -> int:
         return int(self.db.query("MATCH (n:HRun) RETURN count(n)")[0][0])
@@ -218,9 +219,13 @@ class HydraGraph:
                  [{"id": i, "key": k} for k, i in terms.items()])
         db.batch("UNWIND $rows AS row MERGE (n {id: row.id}) SET n:HFile, n.key = row.key",
                  [{"id": i, "key": k} for k, i in files.items()])
-        db.batch("UNWIND $rows AS row MERGE (n {id: row.id}) SET n:HRun, n.key = row.key, n.date = row.date, n.title = row.title",
-                 [{"id": node_id("HRun", r["key"]), "key": r["key"], "date": r.get("date", ""),
-                   "title": (r.get("title") or r["text"].strip().splitlines()[0] if r["text"].strip() else "")[:160]}
+        # HRun carries only its key, so every traversal through it returns little; date and title
+        # live on a separate HInfo node, read only for the few runs shown in a pack
+        db.batch("UNWIND $rows AS row MERGE (n {id: row.id}) SET n:HRun, n.key = row.key",
+                 [{"id": node_id("HRun", r["key"]), "key": r["key"]} for r in runs])
+        db.batch("UNWIND $rows AS row MERGE (n {id: row.id}) SET n:HInfo, n.key = row.key, n.date = row.date, n.title = row.title",
+                 [{"id": node_id("HInfo", r["key"]), "key": r["key"], "date": r.get("date", ""),
+                   "title": (r.get("title") or (r["text"].strip().splitlines()[0] if r["text"].strip() else ""))[:160]}
                   for r in runs])
         for rel, rows in (("ABOUT", about), ("READ_BY", read_by), ("CONCLUDED", concl)):
             db.batch(f"UNWIND $rows AS row CREATE (a {{id: row.s}})-[:{rel}]->(b {{id: row.d}})", rows)
@@ -258,7 +263,7 @@ class HydraGraph:
         return [(a, rel, b, lines) for a, rel, b, lines, _ in self._hop("HRun", runs, ["READ", "CONCLUDED"])]
 
     def run_info(self, runs):
-        q = "MATCH (n:HRun) WHERE n.key IN $ks RETURN n.key, n.date, n.title"
+        q = "MATCH (n:HInfo) WHERE n.key IN $ks RETURN n.key, n.date, n.title"
         return {k: {"date": d, "title": t} for k, d, t in self.db.query(q, {"ks": list(runs)})} if runs else {}
 
 
@@ -328,8 +333,11 @@ def build_pack(g, terms: list[str], anchors: list[str], allowed: set[str] | None
     P = P or Params()
     ok = (lambda k: True) if allowed is None else (lambda k: k in allowed)
     N = n_total or (len(allowed) if allowed is not None else None)
-    tr = [(t, k) for t, k in (g.term_runs(terms) if P.use_terms else []) if ok(k)]
-    ar = [(f, k) for f, k in (g.file_runs(anchors) if P.use_anchors else []) if ok(k)]
+    with ThreadPoolExecutor(2) as ex:   # the two first-hop traversals are independent
+        f_tr = ex.submit(g.term_runs, terms if P.use_terms else [])
+        f_ar = ex.submit(g.file_runs, anchors if P.use_anchors else [])
+        tr = [(t, k) for t, k in f_tr.result() if ok(k)]
+        ar = [(f, k) for f, k in f_ar.result() if ok(k)]
     if N is None:
         N = max(len({k for _, k in tr} | {k for _, k in ar}), 1) * 4
     df_t, df_a = defaultdict(int), defaultdict(int)
@@ -358,7 +366,8 @@ def build_pack(g, terms: list[str], anchors: list[str], allowed: set[str] | None
             d["score"] += rel[k]
             d["lines"].update(x for x in lines.split(";") if x)
     srcs = [f for f in cand if kind_of(f) == "source"]
-    fr = [(f, k) for f, k in g.file_runs(srcs) if ok(k)]
+    # one traversal for how often every candidate (source, test, doc) is opened, and by which runs
+    fr = [(f, k) for f, k in g.file_runs([f for f in cand if kind_of(f) in ("source", "test", "doc")]) if ok(k)]
     df_f, readers = defaultdict(int), defaultdict(set)
     for f, k in fr:
         df_f[f] += 1
@@ -366,7 +375,7 @@ def build_pack(g, terms: list[str], anchors: list[str], allowed: set[str] | None
     for f in srcs:
         cand[f]["score"] *= _idf(N, df_f[f]) ** P.hot_q
     source = sorted(((f, cand[f]) for f in srcs), key=lambda fd: (-round(fd[1]["score"], 9), fd[0]))[:P.k_src]
-    calls = 4
+    calls = 3
     # tests and docs. direct: ranked like sources, from the top runs. via (hop 3): the chosen
     # sources -> every allowed run that opened them -> the tests/docs those runs opened, each run
     # weighted by its relevance to this task (plus via_base, so runs found only through the
@@ -393,12 +402,13 @@ def build_pack(g, terms: list[str], anchors: list[str], allowed: set[str] | None
                 for f in opened.get(k, ()):
                     tcand[f]["score"] += (d["score"] / smax) * wk / tot
                     tcand[f]["runs"].add(k)
-    keys = sorted(set(direct) | set(tcand))
-    df2 = defaultdict(int)
-    for f, k in g.file_runs(keys):
-        if ok(k):
-            df2[f] += 1
-    calls += 1
+    df2 = defaultdict(int, {f: df_f[f] for f in direct})
+    extra = sorted(set(tcand) - set(direct))
+    if extra:
+        for f, k in g.file_runs(extra):
+            if ok(k):
+                df2[f] += 1
+        calls += 1
     pool = {}
     for src_scores, wgt in ((direct, 1.0 if mode in ("direct", "both") else 0.0),
                             (tcand, 1.0 if mode in ("via", "both") else 0.0)):

@@ -10,59 +10,54 @@
   "text": "And most of that exploration repeats what a teammate's agent already found last week."
  },
  {
-  "id": "03",
-  "scene": "idea",
-  "text": "Bearings remembers where past work landed, as a graph in HydraDB."
+  "id": "02b",
+  "scene": "problem",
+  "text": "When the session ends, everything it learned about where things live is thrown away."
  },
  {
-  "id": "04",
-  "scene": "idea",
-  "text": "Each finished task is written as structure: the words and symbols in it, the files it changed, and the test that verified it."
+  "id": "h01",
+  "scene": "pivot",
+  "text": "Our first version pointed agents at the right file. On real issues, they found it in a step or two anyway."
  },
  {
-  "id": "05",
-  "scene": "query",
-  "text": "When a new task arrives, one weighted path query walks from its words to files, and returns a small context pack. Where to start, how to test, and the path that justifies each file."
+  "id": "h02",
+  "scene": "pivot",
+  "text": "So we measured where the tokens go. Almost all of them are spent after the file is open: on neighbouring code, on hunting for tests, and on reading it again."
  },
  {
-  "id": "05b",
-  "scene": "query",
-  "text": "It also looks up where the names in the task are defined in today's code, so the pack points to the exact lines to read."
+  "id": "h03",
+  "scene": "record",
+  "text": "So we rebuilt Bearings around handoffs. Every agent run is recorded in HydraDB as structure, straight from its tool calls: what it opened, at which lines, which tests it found, and what it concluded."
  },
  {
-  "id": "06",
-  "scene": "query",
-  "text": "Links that led to the right file get cheaper. Links that led nowhere get dearer. And Bearings makes no model calls, so the layer itself is free to run."
+  "id": "h04",
+  "scene": "record",
+  "text": "Recording it takes no model call."
  },
  {
-  "id": "07",
-  "scene": "learn",
-  "text": "We replayed every Django issue from SWE-bench in date order. Bearings ranked the real fix first about half the time, ahead of keyword search, and had it in the top five more than three times out of four."
+  "id": "h05",
+  "scene": "traverse",
+  "text": "When the next agent starts, its task reaches the earlier runs that worked near the same code, then the files they opened, and the tests they found."
  },
  {
-  "id": "08",
-  "scene": "learn",
-  "text": "Starting from an empty graph, it learns as issues arrive, and pulls well ahead of keyword search."
+  "id": "h06",
+  "scene": "traverse",
+  "text": "It all comes back as one small pack."
  },
  {
-  "id": "09",
-  "scene": "side",
-  "text": "Here is one new issue. With the pack, the agent went to the right lines and was done in ten tool calls instead of nineteen."
+  "id": "h07",
+  "scene": "results",
+  "text": "RESULTS_A"
  },
  {
-  "id": "10",
-  "scene": "live",
-  "text": "Across forty new issues, though, it saved nothing. Those issues already point at the code, so the agent finds the file in its first step either way."
+  "id": "h08",
+  "scene": "results",
+  "text": "RESULTS_B"
  },
  {
-  "id": "11",
-  "scene": "claude",
-  "text": "Claude Code told the same story on our two demo tasks. Where Bearings wins is ranking: which file to open first, and learning from an empty start."
- },
- {
-  "id": "12",
-  "scene": "limits",
-  "text": "And we report what did not help. The second hop, through files that change together, barely moves the results."
+  "id": "h09",
+  "scene": "pile",
+  "text": "The obvious alternative is a handoff note. Each one costs a model call to write, and they pile up. After a few hundred runs, a new agent faces a stack of notes, while the pack stays the same size."
  },
  {
   "id": "13",

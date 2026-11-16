@@ -102,7 +102,7 @@ async def handoff_pack(request: Request):
         anchors = [f for f, _ in sorted(sc.items(), key=lambda kv: (-kv[1], kv[0]))[:8]]
     allowed = None
     if before:
-        allowed = {k for k, d in g.db.query("MATCH (n:HRun) RETURN n.key, n.date") if (d or "") < before}
+        allowed = {k for k, d in g.db.query("MATCH (n:HInfo) RETURN n.key, n.date") if (d or "") < before}
     terms = HO.run_terms(task)
     t1 = time.time()
     pk = HO.build_pack(g, terms, anchors, allowed, HO.Params())

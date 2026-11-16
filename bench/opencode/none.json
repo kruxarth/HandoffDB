@@ -14,5 +14,23 @@
         "external_directory": "deny"
       }
     }
+  },
+  "provider": {
+    "refuseless": {
+      "npm": "@ai-sdk/openai-compatible",
+      "name": "Refuseless",
+      "options": {
+        "baseURL": "https://api.refuseless.com/v1"
+      },
+      "models": {
+        "deepseek-v4.1-flash-fast": {
+          "name": "deepseek-v4.1-flash-fast",
+          "limit": {
+            "context": 128000,
+            "output": 16000
+          }
+        }
+      }
+    }
   }
 }
