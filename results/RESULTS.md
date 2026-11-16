@@ -10,18 +10,18 @@ Test split: SWE-bench Django tasks from 2019-07-01 on (n=724). Retrieval only, n
 |---|---|---|---|---|---|
 | Keyword search (BM25) | 724 | 0.420 [0.388, 0.456] | 0.674 [0.640, 0.709] | 0.760 [0.728, 0.791] | 0.685 [0.654, 0.716] |
 | Dictionary (no graph) | 724 | 0.399 [0.365, 0.435] | 0.598 [0.564, 0.633] | 0.681 [0.649, 0.714] | 0.604 [0.572, 0.637] |
-| Code anchors only | 724 | 0.376 [0.341, 0.410] | 0.507 [0.472, 0.543] | 0.526 [0.492, 0.561] | 0.461 [0.429, 0.497] |
-| Learned graph only | 724 | 0.394 [0.359, 0.428] | 0.594 [0.559, 0.630] | 0.680 [0.645, 0.711] | 0.605 [0.572, 0.637] |
-| Bearings, no second hop | 724 | 0.492 [0.456, 0.528] | 0.699 [0.666, 0.731] | 0.765 [0.733, 0.796] | 0.688 [0.658, 0.719] |
-| Bearings (graph + anchors) | 724 | 0.492 [0.454, 0.528] | 0.706 [0.673, 0.738] | 0.769 [0.738, 0.798] | 0.691 [0.661, 0.722] |
-| Bearings, frozen graph | 724 | 0.452 [0.414, 0.485] | 0.674 [0.640, 0.707] | 0.762 [0.731, 0.793] | 0.680 [0.649, 0.711] |
+| Code anchors only | 724 | 0.378 [0.344, 0.413] | 0.506 [0.471, 0.540] | 0.525 [0.490, 0.559] | 0.460 [0.428, 0.495] |
+| Learned graph only | 724 | 0.395 [0.359, 0.430] | 0.593 [0.558, 0.627] | 0.680 [0.644, 0.713] | 0.606 [0.573, 0.639] |
+| Bearings, no second hop | 724 | 0.492 [0.456, 0.528] | 0.698 [0.666, 0.729] | 0.764 [0.732, 0.794] | 0.687 [0.657, 0.719] |
+| Bearings (graph + anchors) | 724 | 0.492 [0.454, 0.528] | 0.700 [0.667, 0.733] | 0.767 [0.735, 0.797] | 0.689 [0.659, 0.720] |
+| Bearings, frozen graph | 724 | 0.452 [0.414, 0.485] | 0.673 [0.638, 0.706] | 0.764 [0.732, 0.794] | 0.682 [0.651, 0.713] |
 
 | Comparison (paired, same tasks) | Δ hit@1 | Δ hit@5 |
 |---|---|---|
-| Bearings (graph + anchors) − Dictionary (no graph) (n=724) | +0.093 [+0.050, +0.131] | +0.088 [+0.059, +0.117] |
-| Bearings (graph + anchors) − Bearings, no second hop (n=724) | +0.000 [-0.006, +0.006] | +0.004 [-0.001, +0.011] |
-| Bearings (graph + anchors) − Bearings, frozen graph (n=724) | +0.040 [+0.019, +0.064] | +0.007 [-0.015, +0.029] |
-| Bearings (graph + anchors) − Keyword search (BM25) (n=724) | +0.072 [+0.029, +0.116] | +0.010 [-0.023, +0.044] |
+| Bearings (graph + anchors) − Dictionary (no graph) (n=724) | +0.093 [+0.050, +0.131] | +0.086 [+0.057, +0.113] |
+| Bearings (graph + anchors) − Bearings, no second hop (n=724) | +0.000 [-0.006, +0.006] | +0.003 [-0.003, +0.010] |
+| Bearings (graph + anchors) − Bearings, frozen graph (n=724) | +0.040 [+0.019, +0.064] | +0.003 [-0.019, +0.025] |
+| Bearings (graph + anchors) − Keyword search (BM25) (n=724) | +0.072 [+0.029, +0.116] | +0.007 [-0.025, +0.040] |
 | Dictionary (no graph) − Keyword search (BM25) (n=724) | -0.021 [-0.059, +0.018] | -0.079 [-0.109, -0.048] |
 
 SWE-bench Verified subset (n=199):
@@ -30,16 +30,16 @@ SWE-bench Verified subset (n=199):
 |---|---|---|---|---|---|
 | Keyword search (BM25) | 199 | 0.427 [0.362, 0.492] | 0.688 [0.623, 0.754] | 0.794 [0.734, 0.844] | 0.754 [0.696, 0.808] |
 | Dictionary (no graph) | 199 | 0.432 [0.367, 0.503] | 0.613 [0.543, 0.678] | 0.704 [0.638, 0.764] | 0.660 [0.598, 0.720] |
-| Code anchors only | 199 | 0.377 [0.312, 0.447] | 0.538 [0.472, 0.608] | 0.543 [0.477, 0.613] | 0.506 [0.442, 0.574] |
-| Learned graph only | 199 | 0.377 [0.312, 0.447] | 0.583 [0.513, 0.648] | 0.693 [0.628, 0.754] | 0.642 [0.577, 0.703] |
-| Bearings, no second hop | 199 | 0.503 [0.432, 0.573] | 0.698 [0.633, 0.764] | 0.774 [0.709, 0.829] | 0.720 [0.658, 0.778] |
-| Bearings (graph + anchors) | 199 | 0.513 [0.442, 0.583] | 0.698 [0.633, 0.764] | 0.779 [0.719, 0.834] | 0.723 [0.661, 0.780] |
-| Bearings, frozen graph | 199 | 0.477 [0.407, 0.548] | 0.714 [0.648, 0.779] | 0.794 [0.734, 0.844] | 0.738 [0.678, 0.797] |
+| Code anchors only | 199 | 0.382 [0.317, 0.452] | 0.538 [0.472, 0.608] | 0.543 [0.477, 0.613] | 0.506 [0.442, 0.574] |
+| Learned graph only | 199 | 0.382 [0.317, 0.452] | 0.583 [0.513, 0.648] | 0.693 [0.628, 0.754] | 0.645 [0.579, 0.706] |
+| Bearings, no second hop | 199 | 0.503 [0.432, 0.573] | 0.698 [0.633, 0.764] | 0.774 [0.709, 0.829] | 0.723 [0.659, 0.781] |
+| Bearings (graph + anchors) | 199 | 0.513 [0.442, 0.583] | 0.698 [0.633, 0.764] | 0.779 [0.719, 0.834] | 0.725 [0.663, 0.783] |
+| Bearings, frozen graph | 199 | 0.477 [0.407, 0.548] | 0.714 [0.648, 0.779] | 0.799 [0.739, 0.849] | 0.745 [0.685, 0.800] |
 
-- Query latency: During this benchmark (three runs sharing one HydraDB): p50 2606 ms, p95 5665 ms.
-- Second hop: Adding the co-changed-file hop changed hit@5 on 5 of 724 tasks (4 better, 1 worse). Measured, and close to zero.
+- Query latency: Quiet machine, 18,997-event graph: whole pack p50 2148 ms (HydraDB path query 1724 ms, code anchors 202 ms). During this benchmark (three runs sharing one HydraDB): p50 2742 ms, p95 4464 ms.
+- Second hop: Adding the co-changed-file hop changed hit@5 on 6 of 724 tasks (4 better, 2 worse). Measured, and close to zero.
 - Test command: The suggested test command names the module where the real fix's tests live on 43% of tasks.
-- Database vs reference: HydraDB's ranking equals an in-memory reference implementation of the same query on 714/724 tasks (ties broken differently on the rest). Pack size: median 353 tokens.
+- Database vs reference: HydraDB's ranking equals an in-memory reference implementation of the same query on 712/724 tasks (ties broken differently on the rest). Pack size: median 358 tokens.
 
 ## Level 1, Learning from the task stream only (a team starting from an empty graph)
 
@@ -49,18 +49,18 @@ Test split: SWE-bench Django tasks from 2019-07-01 on (n=724). Retrieval only, n
 |---|---|---|---|---|---|
 | Keyword search (BM25) | 724 | 0.298 [0.265, 0.333] | 0.464 [0.428, 0.501] | 0.551 [0.515, 0.588] | 0.487 [0.452, 0.521] |
 | Dictionary (no graph) | 724 | 0.254 [0.222, 0.286] | 0.410 [0.376, 0.445] | 0.490 [0.454, 0.528] | 0.430 [0.396, 0.464] |
-| Code anchors only | 724 | 0.376 [0.341, 0.410] | 0.507 [0.472, 0.543] | 0.526 [0.492, 0.561] | 0.461 [0.429, 0.497] |
-| Learned graph only | 724 | 0.264 [0.233, 0.294] | 0.412 [0.376, 0.445] | 0.504 [0.467, 0.539] | 0.445 [0.409, 0.477] |
-| Bearings, no second hop | 724 | 0.454 [0.420, 0.489] | 0.631 [0.598, 0.666] | 0.710 [0.677, 0.742] | 0.629 [0.599, 0.660] |
-| Bearings (graph + anchors) | 724 | 0.453 [0.419, 0.486] | 0.633 [0.599, 0.667] | 0.710 [0.677, 0.742] | 0.629 [0.599, 0.660] |
-| Bearings, frozen graph | 724 | 0.409 [0.374, 0.443] | 0.590 [0.557, 0.624] | 0.641 [0.608, 0.675] | 0.562 [0.530, 0.594] |
+| Code anchors only | 724 | 0.378 [0.344, 0.413] | 0.506 [0.471, 0.540] | 0.525 [0.490, 0.559] | 0.460 [0.428, 0.495] |
+| Learned graph only | 724 | 0.267 [0.236, 0.298] | 0.412 [0.376, 0.445] | 0.503 [0.465, 0.537] | 0.444 [0.408, 0.475] |
+| Bearings, no second hop | 724 | 0.454 [0.420, 0.489] | 0.633 [0.599, 0.667] | 0.707 [0.674, 0.739] | 0.626 [0.595, 0.657] |
+| Bearings (graph + anchors) | 724 | 0.454 [0.420, 0.488] | 0.633 [0.599, 0.667] | 0.707 [0.675, 0.739] | 0.626 [0.596, 0.657] |
+| Bearings, frozen graph | 724 | 0.409 [0.374, 0.443] | 0.588 [0.554, 0.623] | 0.640 [0.606, 0.674] | 0.561 [0.528, 0.593] |
 
 | Comparison (paired, same tasks) | Δ hit@1 | Δ hit@5 |
 |---|---|---|
-| Bearings (graph + anchors) − Dictionary (no graph) (n=724) | +0.199 [+0.157, +0.239] | +0.220 [+0.182, +0.258] |
-| Bearings (graph + anchors) − Bearings, no second hop (n=724) | -0.001 [-0.006, +0.000] | +0.000 [-0.004, +0.004] |
-| Bearings (graph + anchors) − Bearings, frozen graph (n=724) | +0.044 [+0.025, +0.064] | +0.069 [+0.044, +0.093] |
-| Bearings (graph + anchors) − Keyword search (BM25) (n=724) | +0.155 [+0.110, +0.198] | +0.159 [+0.116, +0.200] |
+| Bearings (graph + anchors) − Dictionary (no graph) (n=724) | +0.200 [+0.159, +0.240] | +0.217 [+0.178, +0.256] |
+| Bearings (graph + anchors) − Bearings, no second hop (n=724) | +0.000 [-0.004, +0.004] | +0.000 [-0.004, +0.004] |
+| Bearings (graph + anchors) − Bearings, frozen graph (n=724) | +0.046 [+0.026, +0.066] | +0.068 [+0.043, +0.091] |
+| Bearings (graph + anchors) − Keyword search (BM25) (n=724) | +0.156 [+0.112, +0.199] | +0.156 [+0.113, +0.198] |
 | Dictionary (no graph) − Keyword search (BM25) (n=724) | -0.044 [-0.072, -0.017] | -0.061 [-0.091, -0.033] |
 
 SWE-bench Verified subset (n=199):
@@ -69,16 +69,16 @@ SWE-bench Verified subset (n=199):
 |---|---|---|---|---|---|
 | Keyword search (BM25) | 199 | 0.302 [0.241, 0.372] | 0.487 [0.417, 0.558] | 0.593 [0.523, 0.658] | 0.536 [0.470, 0.600] |
 | Dictionary (no graph) | 199 | 0.241 [0.186, 0.302] | 0.392 [0.322, 0.457] | 0.482 [0.412, 0.553] | 0.444 [0.377, 0.510] |
-| Code anchors only | 199 | 0.377 [0.312, 0.447] | 0.538 [0.472, 0.608] | 0.543 [0.477, 0.613] | 0.506 [0.442, 0.574] |
-| Learned graph only | 199 | 0.241 [0.186, 0.302] | 0.397 [0.332, 0.467] | 0.497 [0.427, 0.563] | 0.455 [0.387, 0.521] |
-| Bearings, no second hop | 199 | 0.462 [0.397, 0.533] | 0.628 [0.558, 0.693] | 0.709 [0.643, 0.774] | 0.655 [0.592, 0.720] |
-| Bearings (graph + anchors) | 199 | 0.457 [0.387, 0.528] | 0.633 [0.563, 0.698] | 0.709 [0.643, 0.774] | 0.655 [0.592, 0.720] |
+| Code anchors only | 199 | 0.382 [0.317, 0.452] | 0.538 [0.472, 0.608] | 0.543 [0.477, 0.613] | 0.506 [0.442, 0.574] |
+| Learned graph only | 199 | 0.246 [0.191, 0.307] | 0.397 [0.332, 0.467] | 0.492 [0.422, 0.558] | 0.450 [0.380, 0.514] |
+| Bearings, no second hop | 199 | 0.462 [0.397, 0.533] | 0.633 [0.563, 0.698] | 0.704 [0.638, 0.769] | 0.650 [0.587, 0.713] |
+| Bearings (graph + anchors) | 199 | 0.457 [0.387, 0.528] | 0.633 [0.563, 0.698] | 0.704 [0.638, 0.769] | 0.650 [0.587, 0.713] |
 | Bearings, frozen graph | 199 | 0.417 [0.352, 0.487] | 0.613 [0.548, 0.683] | 0.683 [0.618, 0.749] | 0.632 [0.568, 0.695] |
 
-- Query latency: During this benchmark (three runs sharing one HydraDB): p50 615 ms, p95 1347 ms.
+- Query latency: Quiet machine, 18,997-event graph: whole pack p50 2148 ms (HydraDB path query 1724 ms, code anchors 202 ms). During this benchmark (three runs sharing one HydraDB): p50 820 ms, p95 1241 ms.
 - Second hop: Adding the co-changed-file hop changed hit@5 on 2 of 724 tasks (1 better, 1 worse). Measured, and close to zero.
-- Test command: The suggested test command names the module where the real fix's tests live on 39% of tasks.
-- Database vs reference: HydraDB's ranking equals an in-memory reference implementation of the same query on 686/724 tasks (ties broken differently on the rest). Pack size: median 336 tokens.
+- Test command: The suggested test command names the module where the real fix's tests live on 40% of tasks.
+- Database vs reference: HydraDB's ranking equals an in-memory reference implementation of the same query on 682/724 tasks (ties broken differently on the rest). Pack size: median 337 tokens.
 
 ## Does the second hop reach files the first hop cannot?
 

@@ -19,18 +19,18 @@ Measured on Django, the project with the most SWE-bench issues. Full tables with
 
 | top-5 hit rate / top-1 hit rate | seeded from history | empty start |
 |---|---|---|
-| **Bearings** (learned graph + code anchors) | **76.9% / 49.2%** | **71.0% / 45.3%** |
+| **Bearings** (learned graph + code anchors) | **76.7% / 49.2%** | **70.7% / 45.4%** |
 | Keyword search (BM25) over past issues | 76.0% / 42.0% | 55.1% / 29.8% |
 | Dictionary: word → file counts, no graph | 68.1% / 39.9% | 49.0% / 25.4% |
-| Learned graph only (Bearings v1) | 68.0% / 39.4% | 50.4% / 26.4% |
-| Code anchors only | 52.6% / 37.6% | 52.6% / 37.6% |
-| Bearings, frozen graph (never learns) | 76.2% / 45.2% | 64.1% / 40.9% |
-| Bearings without the second hop | 76.5% / 49.2% | 71.0% / 45.4% |
+| Learned graph only (Bearings v1) | 68.0% / 39.5% | 50.3% / 26.7% |
+| Code anchors only | 52.5% / 37.8% | 52.5% / 37.8% |
+| Bearings, frozen graph (never learns) | 76.4% / 45.2% | 64.0% / 40.9% |
+| Bearings without the second hop | 76.4% / 49.2% | 70.7% / 45.4% |
 
-- Seeded from history, Bearings puts the real fix **first 7.2 points more often than keyword search** (paired, [+2.9, +11.6]) and ties it at top 5 (+1.0 [−2.3, +4.4]).
-- From an empty graph it beats keyword search by **15.9 points at top 5** ([+11.6, +20.0]), and beats the same graph frozen at the start by 6.9 points ([+4.4, +9.3]): that is what learning as tasks arrive adds.
-- The graph and the code anchors need each other: together they beat the graph alone by 9.0 points and the anchors alone by 24.3 points (history seed, top 5).
-- **The second hop** (files that change together) is in the query and measured: **+0.4 points** at top 5 ([−0.1, +1.1]). It rarely changes the top five.
+- Seeded from history, Bearings puts the real fix **first 7.2 points more often than keyword search** (paired, [+2.9, +11.6]) and ties it at top 5 (+0.7 [−2.5, +4.0]).
+- From an empty graph it beats keyword search by **15.6 points at top 5** ([+11.3, +19.8]), and beats the same graph frozen at the start by 6.8 points ([+4.3, +9.1]): that is what learning as tasks arrive adds.
+- The graph and the code anchors need each other: together they beat the graph alone by 8.7 points and the anchors alone by 24.2 points (history seed, top 5).
+- **The second hop** (files that change together) is in the query and measured: **+0.3 points** at top 5 ([−0.3, +1.0]). It rarely changes the top five.
 
 **Live agents (Level 2): tokens to locate the right files.** Measured with DeepSeek V4.1 Flash through OpenCode.
 
