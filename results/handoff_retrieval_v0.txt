@@ -1,0 +1,16 @@
+Handoff graph v0 (first version, exploratory, run once BEFORE pre-registration, on the same 102 targets).
+Recorded runs: the 40 Level 2 cold runs only. Numbers copied from the run log of that session (the
+script has since been rewritten; this file exists so the sequence is on the record).
+
+                                              pack holds every fix file   pack holds the real test file
+All 102 targets                               14%                         6%
+34 targets where an earlier run opened
+  every fix file                              41%                         18%
+Plain word -> file table, same 34             44%                         18%
+
+HydraDB matched the in-memory reference on 82/102 targets. Cause found later: algo.MSpaths returns
+simple paths only, so "anchor file -> run -> the same file" never comes back from HydraDB, while the
+reference included it. v1 uses length-1 hops only and matches (results/handoff_retrieval.txt).
+
+Because these targets were seen, the v1 design was tuned on a separate dev set only
+(results/handoff_tune_dev.txt).

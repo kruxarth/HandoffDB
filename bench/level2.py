@@ -171,6 +171,11 @@ def oc_config(cond: str) -> Path:
                              "permission": {"edit": "deny", "bash": "allow", "webfetch": "deny", "websearch": "deny",
                                             "codesearch": "deny", "external_directory": "deny"}}},
     }
+    if MODEL.startswith("refuseless/"):
+        mid = MODEL.split("/", 1)[1]
+        cfg["provider"] = {"refuseless": {"npm": "@ai-sdk/openai-compatible", "name": "Refuseless",
+                                          "options": {"baseURL": REFUSELESS_URL},
+                                          "models": {mid: {"name": mid, "limit": {"context": 128000, "output": 16000}}}}}
     if cond == "bearings-mcp":
         # served over HTTP from outside the sandbox (see start_mcp), so the
         # agent's sandbox never contains the Bearings repo or its data
@@ -268,12 +273,41 @@ def deepseek_balance() -> float | None:
         return None
 
 
+REFUSELESS_URL = "https://api.refuseless.com/v1"
+
+
+def refuseless_key() -> str | None:
+    """Refuseless (OpenAI-compatible) key from ../.env or the environment. Never printed."""
+    for env in (ROOT.parent / ".env", ROOT / ".env"):
+        for line in env.read_text().splitlines() if env.exists() else []:
+            k, _, v = line.partition("=")
+            if k.strip() == "REFUSELESS_API_KEY":
+                return v.strip().strip('"')
+    return os.environ.get("REFUSELESS_API_KEY")
+
+
+def chat(messages: list[dict], model: str = "deepseek-v4.1-flash-fast", max_tokens: int = 900, timeout: int = 180) -> dict:
+    """One chat/completions call through Refuseless; returns the raw response (with usage)."""
+    import urllib.request
+    body = {"model": model, "messages": messages, "max_tokens": max_tokens, "temperature": 0}
+    req = urllib.request.Request(REFUSELESS_URL + "/chat/completions", data=json.dumps(body).encode(),
+                                 headers={"Authorization": f"Bearer {refuseless_key()}", "Content-Type": "application/json",
+                                          "User-Agent": "bench/1.0"})
+    return json.load(urllib.request.urlopen(req, timeout=timeout))
+
+
 def oc_auth() -> str | None:
     """auth.json with only the provider the model needs, for the sandbox's fresh
     OpenCode data dir. Kept in runs/tmp (git-ignored); run logs are checked for
     the key before committing (scripts/check_secrets.sh)."""
     dst = WORK / "oc_auth.json"
-    if MODEL.startswith("deepseek/"):
+    WORK.mkdir(parents=True, exist_ok=True)
+    if MODEL.startswith("refuseless/"):
+        key = refuseless_key()
+        if not key:
+            return None
+        dst.write_text(json.dumps({"refuseless": {"type": "api", "key": key}}))
+    elif MODEL.startswith("deepseek/"):
         key = deepseek_key()
         if not key:
             return None
@@ -295,7 +329,7 @@ def start_net(with_mcp: bool) -> list[subprocess.Popen]:
     for f in ("proxy.sock", "mcp.sock"):
         (NET / f).unlink(missing_ok=True)
     procs = [subprocess.Popen([sys.executable, str(ROOT / "scripts/netproxy.py"), str(NET / "proxy.sock"),
-                               str(RUNS / "netproxy.jsonl"), "opencode.ai", "models.dev", "api.deepseek.com"])]
+                               str(RUNS / "netproxy.jsonl"), "opencode.ai", "models.dev", "api.deepseek.com", "api.refuseless.com"])]
     if with_mcp:
         procs.append(subprocess.Popen(["socat", f"UNIX-LISTEN:{NET / 'mcp.sock'},fork",
                                        f"TCP:127.0.0.1:{MCP_PORT}"]))

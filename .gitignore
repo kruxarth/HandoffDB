@@ -14,3 +14,7 @@ video/out/
 video/scenes/
 runs/level2/netproxy.jsonl
 runs/level2/mcp_server.log
+video/remotion/node_modules/
+video/remotion/public/audio/
+video/remotion/out/
+video/remotion/public/music.wav

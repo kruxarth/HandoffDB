@@ -6,6 +6,10 @@
   bearings stats [--team T] [--repo R]
   bearings hook | hook-stop          Claude Code hooks (see `bearings hooks-config`)
   bearings hooks-config              print the .claude/settings.json hooks block
+  bearings handoff-pack "<task>"     what earlier agent runs on this repo opened and concluded
+  bearings handoff-record <transcript.jsonl> "<task>"   record a finished session into the handoff graph
+  bearings handoff-hook | handoff-stop   Claude Code hooks for the handoff graph
+  bearings handoff-hooks-config      print the hooks block for the handoff graph
 
 The pack combines the learned graph with code anchors from the current checkout
 (the git work tree of the working directory; --no-code to disable).
@@ -70,7 +74,19 @@ def main() -> None:
     sub.add_parser("hook", help="Claude Code UserPromptSubmit hook: add the context pack to the prompt")
     sub.add_parser("hook-stop", help="Claude Code Stop hook: learn from the files the agent changed")
     sub.add_parser("hooks-config", help="print the hooks block for .claude/settings.json")
+    hp = sub.add_parser("handoff-pack", help="handoff pack: what earlier agent runs opened and concluded")
+    hp.add_argument("task")
+    hp.add_argument("--json", action="store_true")
+    hr = sub.add_parser("handoff-record", help="record a Claude Code transcript into the handoff graph")
+    hr.add_argument("transcript")
+    hr.add_argument("task")
+    sub.add_parser("handoff-hook", help="Claude Code UserPromptSubmit hook: add the handoff pack")
+    sub.add_parser("handoff-stop", help="Claude Code Stop hook: record the session from its transcript")
+    sub.add_parser("handoff-hooks-config", help="print the hooks block for the handoff graph")
     args = ap.parse_args()
+
+    if args.cmd.startswith("handoff"):
+        return _handoff(args)
 
     if args.cmd == "import-history":
         eng = _engine(args, full=True)
@@ -142,6 +158,94 @@ def main() -> None:
         eng = _engine(args, full=True)
         print(json.dumps({"tasks": eng.n_events, "terms": len(eng.df), "files": len(eng.files),
                           "points_to": len(eng.n), "co_changed": sum(len(v) for v in eng.co_written.values())}))
+
+
+def _hgraph(args):
+    from . import handoff as HO
+    return HO.HydraGraph(Hydra(tenant=args.team, subtenant=args.repo + ":handoff"))
+
+
+def _handoff_pack(args, text: str, repo: Path | None) -> tuple[dict, str]:
+    from . import handoff as HO
+    from .anchors import definitions
+    anchors = []
+    if repo:
+        sc = definitions(repo, "HEAD", text)
+        anchors = [f for f, _ in sorted(sc.items(), key=lambda kv: (-kv[1], kv[0]))[:8]]
+    g = _hgraph(args)
+    pk = HO.build_pack(g, HO.run_terms(text), anchors, None, HO.Params())
+    return pk, HO.render(pk, g.run_info(pk["runs"][:3]))
+
+
+def _record_session(args, transcript: Path, task: str, key: str, repo: Path | None) -> dict:
+    from . import handoff as HO
+    rec = HO.parse_claude_transcript(transcript, str(repo or ""))
+    g = _hgraph(args)
+    g.forget(key)           # Stop fires after every turn: replace this session's earlier record
+    return g.record([{"key": key, "date": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()), "text": task, **rec}])
+
+
+def _first_prompt(transcript: Path) -> str:
+    for line in transcript.read_text().splitlines():
+        try:
+            e = json.loads(line)
+        except ValueError:
+            continue
+        m = e.get("message") or {}
+        if e.get("type") == "user" and m.get("role") == "user":
+            c = m.get("content")
+            if isinstance(c, str) and c.strip():
+                return c
+            if isinstance(c, list):
+                t = " ".join(x.get("text", "") for x in c if isinstance(x, dict) and x.get("type") == "text")
+                if t.strip():
+                    return t
+    return ""
+
+
+def _handoff(args) -> None:
+    import sys
+    if args.cmd == "handoff-pack":
+        pk, txt = _handoff_pack(args, args.task, None if False else checkout_root(Path.cwd()))
+        if args.json:
+            print(json.dumps({k: ([(f, {"runs": sorted(d["runs"]), "concluded": sorted(d["concluded"]),
+                                        "lines": sorted(d["lines"])}) for f, d in v] if k in ("source", "test", "doc") else v)
+                              for k, v in pk.items()}, indent=1))
+        else:
+            print(txt or "(nothing recorded near this task yet)")
+    elif args.cmd == "handoff-record":
+        print(_record_session(args, Path(args.transcript), args.task, "cli:" + Path(args.transcript).stem,
+                              checkout_root(Path.cwd())))
+    elif args.cmd == "handoff-hook":
+        # Reads the hook event on stdin; prints additionalContext. Never fails the prompt.
+        try:
+            event = json.load(sys.stdin)
+            prompt = event.get("prompt", "")
+            if len(prompt) > 40:
+                _, txt = _handoff_pack(args, prompt, checkout_root(event.get("cwd") or Path.cwd()))
+                if txt:
+                    print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": txt}}))
+        except Exception as exc:  # noqa: BLE001
+            print(f"bearings handoff hook skipped: {exc}", file=sys.stderr)
+    elif args.cmd == "handoff-stop":
+        # No model call: the record is the session's own tool calls.
+        try:
+            event = json.load(sys.stdin)
+            tp = Path(event.get("transcript_path", ""))
+            if tp.is_file() and os.environ.get("BEARINGS_READONLY") != "1":
+                repo = checkout_root(event.get("cwd") or Path.cwd())
+                task = _first_prompt(tp)
+                if task:
+                    out = _record_session(args, tp, task, "cc:" + event.get("session_id", tp.stem)[:36], repo)
+                    print(f"bearings: recorded session ({out['files']} files)", file=sys.stderr)
+        except Exception as exc:  # noqa: BLE001
+            print(f"bearings handoff stop hook skipped: {exc}", file=sys.stderr)
+    elif args.cmd == "handoff-hooks-config":
+        here = Path(__file__).resolve().parents[2]
+        run = f"BEARINGS_TEAM={args.team} BEARINGS_REPO={args.repo} uv run --quiet --directory {here} bearings"
+        print(json.dumps({"hooks": {
+            "UserPromptSubmit": [{"hooks": [{"type": "command", "command": f"{run} handoff-hook"}]}],
+            "Stop": [{"hooks": [{"type": "command", "command": f"{run} handoff-stop"}]}]}}, indent=2))
 
 
 if __name__ == "__main__":
