@@ -7,25 +7,27 @@
 <meta name="description" content="HandoffDB records every finished coding-agent run as a graph on HydraDB, so the next agent starts where the last one left off.">
 <meta property="og:title" content="HandoffDB: handoffs between coding agents, as a graph on HydraDB">
 <meta property="og:description" content="Every coding agent starts from zero. HandoffDB records each finished run as a graph so the next agent starts where the last one left off.">
-<meta name="theme-color" content="#05070b">
-<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='6' fill='%2305070b'/%3E%3Ccircle cx='8' cy='9' r='3.5' fill='%23ff3dcf'/%3E%3Ccircle cx='16' cy='22' r='3.5' fill='%23ff8a1f'/%3E%3Ccircle cx='25' cy='10' r='3.5' fill='%2322e4ff'/%3E%3Cpath d='M8 9L16 22L25 10' stroke='%23b8ff2c' stroke-width='2' fill='none'/%3E%3C/svg%3E">
+<meta name="theme-color" content="#fbf8f2">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cpath d='M9 9H23M9 9L16 23M23 9L16 23' stroke='%237cc4e6' stroke-width='2.4'/%3E%3Ccircle cx='9' cy='9' r='5' fill='%23fff' stroke='%230284c7' stroke-width='3'/%3E%3Ccircle cx='23' cy='9' r='5' fill='%23fff' stroke='%2314b8a6' stroke-width='3'/%3E%3Ccircle cx='16' cy='23' r='5' fill='%23fff' stroke='%23f97316' stroke-width='3'/%3E%3C/svg%3E">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="style.css">
 </head>
 <body>
-<div class="scan" aria-hidden="true"></div>
+<canvas id="bg" aria-hidden="true"></canvas>
 
 <header class="nav">
-  <a class="logo" href="#top"><span class="lg-b">[</span>handoff<span class="lg-db">db</span><span class="lg-b">]</span></a>
+  <a class="logo" href="#top">
+    <svg viewBox="0 0 32 32" width="26" height="26" aria-hidden="true"><path d="M9 9H23M9 9L16 23M23 9L16 23" stroke="#7cc4e6" stroke-width="2.4"/><circle cx="9" cy="9" r="5" fill="#fff" stroke="#0284c7" stroke-width="3"/><circle cx="23" cy="9" r="5" fill="#fff" stroke="#14b8a6" stroke-width="3"/><circle cx="16" cy="23" r="5" fill="#fff" stroke="#f97316" stroke-width="3"/></svg>
+    <span>Handoff<b>DB</b></span>
+  </a>
   <nav>
-    <a href="#problem">problem</a>
-    <a href="#how">how</a>
-    <a href="#results">results</a>
-    <a href="#try">try</a>
-    <a href="#use">use</a>
-    <a class="gh" href="https://github.com/kruxarth/HandoffDB" target="_blank" rel="noopener">github ↗</a>
+    <a href="#problem">Problem</a>
+    <a href="#how">How it works</a>
+    <a href="#results">Results</a>
+    <a href="#try">Try it</a>
+    <a class="gh" href="https://github.com/kruxarth/HandoffDB" target="_blank" rel="noopener">GitHub ↗</a>
   </nav>
 </header>
 
@@ -33,235 +35,211 @@
 
 <!-- ============ HERO ============ -->
 <section class="hero">
-  <div class="hero-text">
-    <div class="tag mono"><span class="dot"></span> HydraDB Hackathon · Track 2 · pre-registered results</div>
-    <h1><span class="hl-c">HandoffDB</span>: handoffs between coding agents, as a graph on <span class="hl-l">HydraDB</span>.</h1>
+  <div class="hero-text reveal">
+    <div class="eyebrow">HydraDB Hackathon · Track 2</div>
+    <h1>HandoffDB: handoffs between coding agents, as a graph on <span class="acc">HydraDB</span>.</h1>
     <p class="sub">Every coding agent starts from zero. HandoffDB records each finished agent run as a graph, so the next agent starts where the last one left off.</p>
-    <div class="hero-stats mono">
-      <div><b class="c-lime" data-count="34" data-suffix="%">0%</b><span>packs holding every fix file + a real test, vs 17% for a word table</span></div>
-      <div><b class="c-cyan" data-count="334">0</b><span>tokens per pack (median), at 301 runs</span></div>
-      <div><b class="c-orange" data-count="0">0</b><span>model calls to record a run</span></div>
-    </div>
     <div class="cta">
-      <a class="btn btn-p" href="#try">▶ watch a real pack</a>
-      <a class="btn" href="#use">$ install</a>
+      <a class="btn btn-p" href="#try">See a real pack</a>
+      <a class="btn" href="#use">Install</a>
     </div>
   </div>
-  <div class="hero-viz">
-    <div class="viz-bar mono"><span class="c-mag">●</span><span class="c-orange">●</span><span class="c-cyan">●</span> hydradb://team/repo <span class="grow"></span><span id="hero-hud" class="c-dim">idle</span></div>
-    <canvas id="hero-cv" aria-label="Animated graph: agent runs are recorded as nodes, then traversed hop by hop"></canvas>
-    <div class="legend mono">
-      <span><i style="--c:var(--mag)">#</i>HTerm</span><span><i style="--c:var(--orange)">◆</i>HRun</span><span><i style="--c:var(--cyan)">▪</i>HFile</span><span><i style="--c:var(--lime)">✓</i>test</span>
-      <span class="grow"></span><span>runs <b id="hero-runs" class="c-text">0</b></span><span>packs <b id="hero-packs" class="c-text">0</b></span>
-    </div>
+  <div class="hero-viz card reveal">
+    <canvas id="hero-cv" aria-label="A new task's words lead to earlier runs, then to the files and tests they opened"></canvas>
+    <div class="hero-cap mono" id="hero-hud">recording runs</div>
   </div>
+</section>
+
+<section class="kpis reveal">
+  <div class="kpi"><b class="c-blue" data-count="34" data-suffix="%">0%</b><span>of later issues: the pack held every fix file and a real test file (a word table: 17%)</span></div>
+  <div class="kpi"><b class="c-teal" data-count="334">0</b><span>tokens per pack, median, after 301 recorded runs</span></div>
+  <div class="kpi"><b class="c-orange" data-count="0">0</b><span>model calls to record a run</span></div>
 </section>
 
 <!-- ============ PROBLEM ============ -->
 <section id="problem" class="sec">
-  <div class="sec-h mono"><span class="num">01</span> / the problem</div>
-  <h2>Finding the right file is the cheap part.</h2>
-  <p class="lead">Over nine tenths of an agent's tokens are spent <em class="c-orange">after</em> it has already opened the right file: on neighbouring code, on hunting tests and docs, and on reading the fix file again.</p>
+  <div class="eyebrow reveal">The problem</div>
+  <h2 class="reveal">Finding the right file is the <span class="acc">cheap</span> part.</h2>
+  <p class="lead reveal">Over nine tenths of an agent's tokens are spent after it has already opened the right file.</p>
 
-  <div class="term big-term" id="prob-term">
-    <div class="term-h mono"><span>tokens per run · split at the first touch of a fix file</span><span class="c-dim">median, 40 issues</span></div>
-    <div class="splitbar mono" id="splitbar" aria-label="7 percent before, 93 percent after"></div>
-    <div class="split-lbl mono"><span class="c-dim">▏before: finding the file</span><span class="c-orange"><b data-count="93" data-suffix="%">0%</b> after it was already open ▕</span></div>
-    <div class="rows mono" id="prob-rows">
-      <div class="row" data-v="21" data-c="cyan"><span class="rl">neighbouring source</span><span class="rb"></span><b data-count="21" data-suffix="%">0%</b></div>
-      <div class="row" data-v="26" data-c="lime"><span class="rl">tests and docs</span><span class="rb"></span><b data-count="26" data-suffix="%">0%</b></div>
-      <div class="row" data-v="23" data-c="mag"><span class="rl">re-reading the fix file</span><span class="rb"></span><b data-count="23" data-suffix="%">0%</b></div>
-      <div class="row" data-v="18" data-c="dim"><span class="rl">repo-wide search</span><span class="rb"></span><b data-count="18" data-suffix="%">0%</b></div>
+  <div class="card pad reveal" id="prob">
+    <div class="split">
+      <div class="split-bar"><i class="seg-pre"></i><i class="seg-post" id="seg-post"></i></div>
+      <div class="split-lbl"><span class="c-faint">before: finding the file</span><span><b class="c-orange" data-count="93" data-suffix="%">0%</b> after it was already open</span></div>
     </div>
-    <div class="term-f mono c-dim">share of after-phase tokens · agents with no pack · source: results/level2_decompose.txt</div>
+    <div class="sub-h">Where the tokens after that go</div>
+    <div class="bars" id="prob-bars">
+      <div class="bar" data-v="21" data-max="30" data-c="blue"><span class="bl">neighbouring source code</span><span class="bt"><i></i></span><b>21%</b></div>
+      <div class="bar" data-v="26" data-max="30" data-c="green"><span class="bl">tests and docs</span><span class="bt"><i></i></span><b>26%</b></div>
+      <div class="bar" data-v="23" data-max="30" data-c="orange"><span class="bl">re-reading the fix file</span><span class="bt"><i></i></span><b>23%</b></div>
+      <div class="bar" data-v="18" data-max="30" data-c="gray"><span class="bl">repo-wide search</span><span class="bt"><i></i></span><b>18%</b></div>
+    </div>
+    <div class="src mono">median over 40 issues, agents without a pack · results/level2_decompose.txt</div>
   </div>
-  <p class="note">That work is exactly what an earlier agent on the same repository has often already done. So HandoffDB records it, and hands it on.</p>
+  <p class="note reveal">That work is exactly what an earlier agent on the same repository has often already done. So HandoffDB records it, and hands it on.</p>
 </section>
 
-<!-- ============ HOW ============ -->
+<!-- ============ HOW: WRITE ============ -->
 <section id="how" class="sec">
-  <div class="sec-h mono"><span class="num">02</span> / how it works</div>
-  <h2>A run becomes nodes. A new task becomes a traversal.</h2>
-
-  <div class="how-grid">
-    <div class="how-card">
-      <div class="card-h mono"><span class="pill pill-o">WRITE</span> from tool calls · <span class="c-lime">0 model calls</span></div>
-      <p>When a run finishes, HandoffDB reads its tool calls and records the files it opened (with line ranges), the tests and docs it found, and the file it concluded the fix belongs in.</p>
-      <div class="write-wrap">
-        <pre class="term mini mono" id="write-log" aria-label="Tool calls of a finished run"></pre>
-        <canvas id="write-cv" aria-label="The run being written as graph nodes and edges"></canvas>
-      </div>
-      <div class="mono tiny c-dim">illustrative: tool calls reconstructed from line ranges that appear in the real pack below</div>
-      <pre class="schema mono"><span class="c-mag">(:HTerm)</span>-[:ABOUT]-><span class="c-orange">(:HRun)</span>
-<span class="c-orange">(:HRun)</span>-[:READ <span class="c-lime">{lines}</span>]-><span class="c-cyan">(:HFile)</span>
-<span class="c-orange">(:HRun)</span>-[:CONCLUDED]-><span class="c-cyan">(:HFile)</span>
-<span class="c-cyan">(:HFile)</span>-[:READ_BY]-><span class="c-orange">(:HRun)</span></pre>
+  <div class="eyebrow reveal">How it works · write</div>
+  <h2 class="reveal">A finished run becomes <span class="acc">a few nodes</span>.</h2>
+  <p class="lead reveal">From the run's tool calls, with no model call, HandoffDB records the files it opened (with line ranges), the tests and docs it found, and the file it concluded the fix belongs in.</p>
+  <div class="two reveal">
+    <div class="card pad">
+      <div class="card-h mono">Tool calls of a finished run</div>
+      <pre class="term mono" id="write-log" aria-label="Tool calls of a finished run"></pre>
+      <div class="src mono">illustrative: rebuilt from line ranges in the real pack below</div>
     </div>
-
-    <div class="how-card">
-      <div class="card-h mono"><span class="pill pill-c">READ</span> a few <span class="c-cyan">algo.MSpaths</span> traversals</div>
-      <p>For a new task: words and code anchors → earlier runs → the files they opened and concluded → their tests. The result is a pack of about <b class="c-cyan">334 tokens</b> (median).</p>
-      <div class="hops mono" id="read-hops">
-        <span data-h="1">hop 1 · task → runs</span><span data-h="2">hop 2 · runs → files</span><span data-h="3">hop 3 · files → tests</span>
-      </div>
-      <canvas id="read-cv" class="tall" aria-label="Traversal from task words to earlier runs to files to tests"></canvas>
-      <pre class="cypher mono"><span class="c-dim">CALL</span> <span class="c-cyan">algo.MSpaths</span>({sourceLabel: <span class="c-lime">'HTerm'</span>,
-  sourceValues: [<span class="c-lime">'word:floatformat'</span>, ...],
-  relTypes: [<span class="c-lime">'ABOUT'</span>], maxLen: <span class="c-orange">1</span>, pairwise: <span class="c-orange">false</span>})
-<span class="c-dim">YIELD</span> path <span class="c-dim">RETURN</span> path</pre>
+    <div class="card pad">
+      <div class="card-h mono">What is written to HydraDB</div>
+      <canvas id="write-cv" aria-label="The run being written as graph nodes and edges"></canvas>
+      <pre class="schema mono"><span class="k-term">(:HTerm)</span>-[:ABOUT]-><span class="k-run">(:HRun)</span>
+<span class="k-run">(:HRun)</span>-[:READ {lines}]-><span class="k-file">(:HFile)</span>
+<span class="k-run">(:HRun)</span>-[:CONCLUDED]-><span class="k-file">(:HFile)</span>
+<span class="k-file">(:HFile)</span>-[:READ_BY]-><span class="k-run">(:HRun)</span></pre>
     </div>
   </div>
+</section>
 
-  <div class="pack-show">
-    <div class="card-h mono"><span class="pill pill-l">PACK</span> real, for SWE-bench <span class="c-cyan">django__django-15863</span> · <span id="pk-tok" class="c-lime"></span></div>
-    <p class="note">Built only from runs on issues dated before it. The real fix changed <code class="hit">django/template/defaultfilters.py</code> and extended <code class="hit">tests/template_tests/filter_tests/test_floatformat.py</code>, both highlighted. This one was picked because it holds the fix; across all 102 targets the pack holds both 34% of the time.</p>
+<!-- ============ HOW: READ ============ -->
+<section class="sec">
+  <div class="eyebrow reveal">How it works · read</div>
+  <h2 class="reveal">A few graph traversals. One <span class="acc">small</span> pack.</h2>
+  <p class="lead reveal">For a new task, a few <code>algo.MSpaths</code> traversals go from its words and code anchors to earlier runs, to the files they opened and concluded, to their tests. The pack is about 334 tokens (median).</p>
+  <div class="card pad reveal">
+    <div class="hops mono" id="read-hops"><span data-h="1">1 · task → earlier runs</span><span data-h="2">2 · runs → files</span><span data-h="3">3 · files → tests</span></div>
+    <canvas id="read-cv" class="tall" aria-label="Traversal from task words to earlier runs to files to tests"></canvas>
+  </div>
+
+  <div class="card pad reveal pack-card">
+    <div class="card-h mono">The real pack for SWE-bench django__django-15863 · <span id="pk-tok"></span></div>
+    <p class="note">Built only from runs on issues dated before it. The real fix changed <mark>django/template/defaultfilters.py</mark> and extended <mark>tests/template_tests/filter_tests/test_floatformat.py</mark>, both highlighted. This one was picked because it holds the fix; across all 102 targets the pack holds both 34% of the time.</p>
     <pre class="term pack mono" id="pack-1586"></pre>
   </div>
 </section>
 
 <!-- ============ RESULTS ============ -->
 <section id="results" class="sec">
-  <div class="sec-h mono"><span class="num">03</span> / results</div>
-  <h2>Measured, paired, pre-registered.</h2>
+  <div class="eyebrow reveal">Results · retrieval, no model calls</div>
+  <h2 class="reveal">The pack finds the fix <span class="acc">twice as often</span> as a word table.</h2>
+  <p class="lead reveal">On 102 later issues, the pack held every fix file and a real test file 34% of the time. Both tables were built from the same 301 runs.</p>
+  <div class="card pad reveal">
+    <div class="bars big" id="ret-bars">
+      <div class="bar" data-v="34" data-max="40" data-c="blue"><span class="bl">HandoffDB graph</span><span class="bt"><i></i></span><b class="c-blue">34%</b></div>
+      <div class="bar" data-v="22" data-max="40" data-c="gray"><span class="bl">word + code-anchor → file table</span><span class="bt"><i></i></span><b>22%</b></div>
+      <div class="bar" data-v="17" data-max="40" data-c="gray"><span class="bl">plain word → file table</span><span class="bt"><i></i></span><b>17%</b></div>
+    </div>
+    <div class="src mono">paired difference vs the anchor table +12.7 points [+5.9, +20.6] · vs the word table +17.6 [+8.8, +27.5] · results/handoff_retrieval.txt</div>
+  </div>
+</section>
 
-  <div class="res-grid">
-    <!-- retrieval -->
-    <div class="res res-wide">
-      <div class="res-k mono">retrieval · 102 later issues · no model calls</div>
-      <div class="res-big"><b class="c-lime" data-count="34" data-suffix="%">0%</b><span>of the time the pack held <em>every</em> fix file and a real test file</span></div>
-      <div class="bars mono" id="ret-bars">
-        <div class="bar" data-v="34" data-c="lime"><span class="bl">HandoffDB graph</span><span class="bt"></span><b>34%</b></div>
-        <div class="bar" data-v="22" data-c="dim"><span class="bl">word + anchor → file table</span><span class="bt"></span><b>22%</b></div>
-        <div class="bar" data-v="17" data-c="dim"><span class="bl">plain word → file table</span><span class="bt"></span><b>17%</b></div>
+<section class="sec">
+  <div class="eyebrow reveal">It keeps learning</div>
+  <h2 class="reveal">More recorded runs, <span class="acc">better</span> packs.</h2>
+  <div class="two reveal">
+    <div class="card pad">
+      <svg id="curve" viewBox="0 0 420 250" aria-label="Learning curve: 0, 25, 50, 100, 200, 300 runs give 0, 9, 14, 24, 31, 34 percent"></svg>
+      <div class="src mono">recorded runs → share of the same 102 targets where the pack holds the fix files and a real test · dashed: best plain table with all 301 runs</div>
+    </div>
+    <div class="card pad">
+      <div class="card-h mono">Handoff notes vs the pack, in tokens</div>
+      <div class="acc-box">
+        <div class="acc-runs"><b id="acc-runs">0</b> runs recorded</div>
+        <div class="acc-row"><span>Markdown handoff notes</span><b id="acc-notes" class="c-orange">0</b></div>
+        <div class="track"><i id="acc-notes-bar" class="f-orange"></i></div>
+        <div class="acc-row"><span>HandoffDB pack</span><b id="acc-pack" class="c-teal">0</b></div>
+        <div class="track"><i id="acc-pack-bar" class="f-teal"></i></div>
       </div>
-      <div class="res-f mono">tables built from the same 301 runs · paired difference vs the anchor table <b class="c-lime">+12.7 pts</b> [+5.9, +20.6] · vs the word table <b class="c-lime">+17.6 pts</b> [+8.8, +27.5]</div>
+      <div class="src mono">after 301 runs the notes total 146,325 tokens and keep growing; the pack stays about 334 and needs no model call to write · results/handoff_accumulation.json</div>
     </div>
+  </div>
+</section>
 
-    <!-- learning curve -->
-    <div class="res">
-      <div class="res-k mono">it keeps learning · same 102 targets</div>
-      <svg id="curve" viewBox="0 0 420 240" aria-label="Learning curve: 0, 25, 50, 100, 200, 300 runs give 0, 9, 14, 24, 31, 34 percent"></svg>
-      <div class="res-f mono">recorded runs → pack holds fix files + a real test · dashed: best plain table with all 301 runs (22%)</div>
+<section class="sec">
+  <div class="eyebrow reveal">Live agents · and under load</div>
+  <h2 class="reveal">On the same issue, more agents get it <span class="acc">right</span>.</h2>
+  <div class="three reveal">
+    <div class="card pad">
+      <div class="card-h mono">Same issue · 40 issues</div>
+      <div class="dual"><div><b class="c-faint" data-count="72.5" data-dec="1" data-suffix="%">0%</b><span>cold start</span></div><div class="arrow">→</div><div><b class="c-blue" data-count="85" data-suffix="%">0%</b><span>with the pack</span></div></div>
+      <div class="src mono">success: every fix file and a real test file named · +12.5 points [+2.5, +25]</div>
     </div>
-
-    <!-- notes vs pack -->
-    <div class="res">
-      <div class="res-k mono">handoff notes vs pack · as runs accumulate</div>
-      <div class="acc mono">
-        <div class="acc-runs">runs recorded <b id="acc-runs" class="c-text">0</b></div>
-        <div class="acc-row"><span>Markdown notes</span><b id="acc-notes" class="c-orange">0</b></div>
-        <div class="acc-track"><i id="acc-notes-bar" class="fill-o"></i></div>
-        <div class="acc-row"><span>HandoffDB pack</span><b id="acc-pack" class="c-cyan">0</b></div>
-        <div class="acc-track"><i id="acc-pack-bar" class="fill-c"></i></div>
-      </div>
-      <div class="res-f mono">tokens · after 301 runs the notes total <b class="c-orange">146,325</b> and keep growing; the pack stays about <b class="c-cyan">334</b> and needs no model call to write</div>
+    <div class="card pad">
+      <div class="card-h mono">Under load · 20 clients, 60 s</div>
+      <canvas id="loadgrid" aria-label="998 packs served, 0 errors"></canvas>
+      <div class="mini-kpis"><div><b class="c-green" data-count="998">0</b><span>packs</span></div><div><b class="c-green" data-count="0">0</b><span>errors</span></div><div><b>1.1 s</b><span>median</span></div><div><b>1.9 s</b><span>p95</span></div></div>
+      <div class="src mono">60 runs recorded meanwhile · one client alone: 0.24 s median</div>
     </div>
-
-    <!-- same issue live -->
-    <div class="res">
-      <div class="res-k mono">same issue · live agents · 40 issues</div>
-      <div class="dual">
-        <div><b class="c-dim" data-count="72.5" data-dec="1" data-suffix="%">0%</b><span>cold start</span></div>
-        <div class="arrow c-lime">→</div>
-        <div><b class="c-lime" data-count="85" data-suffix="%">0%</b><span>with the pack</span></div>
-      </div>
-      <div class="res-f mono">success: every fix file and a real test file named · <b class="c-lime">+12.5 pts</b> [+2.5, +25]</div>
-    </div>
-
-    <!-- load -->
-    <div class="res">
-      <div class="res-k mono">under load · 20 clients · 60 s · 60 runs written meanwhile</div>
-      <div class="loadgrid mono" id="loadgrid" aria-label="998 packs served, 0 errors"></div>
-      <div class="load-stats mono">
-        <div><b class="c-lime" data-count="998">0</b><span>packs</span></div>
-        <div><b class="c-lime" data-count="0">0</b><span>errors</span></div>
-        <div><b class="c-cyan">1.1 s</b><span>median</span></div>
-        <div><b class="c-cyan">1.9 s</b><span>p95</span></div>
-      </div>
-      <div class="res-f mono">one client alone: median <b class="c-cyan">0.24 s</b></div>
-    </div>
-
-    <!-- parity -->
-    <div class="res res-par">
-      <div class="res-k mono">database vs reference</div>
-      <div class="parity mono" id="parity"></div>
-      <div class="res-big sm"><b class="c-lime"><span data-count="102">0</span>/102</b><span>HydraDB's traversals matched the in-memory reference implementation on every target</span></div>
+    <div class="card pad">
+      <div class="card-h mono">Database vs reference</div>
+      <div class="parity" id="parity"></div>
+      <div class="dual"><div><b class="c-teal"><span data-count="102">0</span>/102</b><span>HydraDB's traversals matched the in-memory reference on every target</span></div></div>
     </div>
   </div>
 
-  <details class="full" open>
-    <summary class="mono">full numbers · the next agent, live</summary>
+  <div class="card pad full reveal">
+    <div class="card-h mono">Full numbers · the next agent, live</div>
     <div class="tbl-wrap">
-    <table class="mono">
+    <table>
       <thead><tr><th>situation</th><th>condition</th><th>success</th><th>median input tokens</th></tr></thead>
       <tbody>
-        <tr><td rowspan="3">different issue<br><span class="c-dim">102 issues</span></td><td>cold start</td><td>68%</td><td>177k</td></tr>
+        <tr><td rowspan="3">different issue<br><span class="c-faint">102 issues</span></td><td>cold start</td><td>68%</td><td>177k</td></tr>
         <tr><td>handoff notes</td><td>69%</td><td>343k</td></tr>
         <tr><td>HandoffDB pack</td><td>68%</td><td>171k</td></tr>
-        <tr class="sep"><td rowspan="3">same issue<br><span class="c-dim">40 issues</span></td><td>cold start</td><td>72.5%</td><td>170k</td></tr>
+        <tr class="sep"><td rowspan="3">same issue<br><span class="c-faint">40 issues</span></td><td>cold start</td><td>72.5%</td><td>170k</td></tr>
         <tr><td>handoff notes</td><td>75%</td><td>72k</td></tr>
-        <tr><td>HandoffDB pack</td><td class="c-lime">85%</td><td>119k</td></tr>
+        <tr><td>HandoffDB pack</td><td><b class="c-blue">85%</b></td><td>119k</td></tr>
       </tbody>
     </table>
     </div>
     <p class="note">On brand-new issues the pack costs the same as starting cold (median per-issue ratio 1.01) at the same success; the notes cost about a third more. Against the notes the pack used fewer tokens, but its success was 1 point lower, so by the pre-registered rule no saving is claimed. On the same issue, a single note written for exactly that issue is the cheapest; the pack is the one that raises success.</p>
-    <p class="foot mono">Measured with DeepSeek V4.1 Flash through OpenCode, sandboxed, on real SWE-bench Django issues, success checked in code. Pre-registered in <code>bench/handoff_prereg.md</code>. Brackets are 95% bootstrap intervals. Retrieval packs: median 334 tokens; packs given to live agents in the different-issue run: median 390.</p>
-  </details>
+    <p class="src mono">Measured with DeepSeek V4.1 Flash through OpenCode, sandboxed, on real SWE-bench Django issues, success checked in code. Pre-registered in bench/handoff_prereg.md. Brackets are 95% bootstrap intervals. Retrieval packs: median 334 tokens; packs given to live agents in the different-issue run: median 390.</p>
+  </div>
 </section>
 
 <!-- ============ TRY ============ -->
 <section id="try" class="sec">
-  <div class="sec-h mono"><span class="num">04</span> / try it</div>
-  <h2>Pick an issue. Watch its pack assemble.</h2>
-  <p class="lead">These are real packs that live agents received in the different-issue experiment, precomputed. 12 where the pack held the fix and 4 where it did not; across all 102 targets it held both 34% of the time. A custom task needs a <a href="#use">local install</a>.</p>
-
-  <div class="try">
-    <div class="issues mono" id="issues" role="listbox" aria-label="Issues"></div>
-    <div class="try-main">
-      <div class="viz-bar mono"><span class="c-mag">●</span><span class="c-orange">●</span><span class="c-cyan">●</span> <span id="try-id">…</span><span class="grow"></span><span id="try-hud" class="c-dim"></span></div>
+  <div class="eyebrow reveal">Try it</div>
+  <h2 class="reveal">Pick an issue. Watch its <span class="acc">pack</span> assemble.</h2>
+  <p class="lead reveal">These are real packs that live agents received, precomputed: 12 where the pack held the fix and 4 where it did not. Across all 102 targets it held both 34% of the time. A custom task needs a <a href="#use">local install</a>.</p>
+  <div class="try reveal">
+    <div class="issues" id="issues" role="listbox" aria-label="Issues"></div>
+    <div class="card try-main">
+      <div class="try-top mono"><span id="try-id">…</span><span id="try-hud" class="c-faint"></span></div>
       <canvas id="try-cv" class="tall" aria-label="Traversal for the selected issue"></canvas>
       <div class="try-meta mono" id="try-meta"></div>
       <pre class="term pack mono" id="try-pack"></pre>
-      <div class="mono tiny c-dim">Task words shown on the left are taken from the title for display; the recorder extracts entities with regular expressions and adds code anchors found by <code>git grep</code>. Run-to-file links are drawn from the pack's "opened by N runs" counts.</div>
+      <div class="src mono try-foot">Task words on the left are taken from the title for display; the recorder extracts entities with regular expressions and adds code anchors found by git grep. Run-to-file links are drawn from the pack's "opened by N runs" counts.</div>
     </div>
   </div>
 </section>
 
 <!-- ============ USE ============ -->
 <section id="use" class="sec">
-  <div class="sec-h mono"><span class="num">05</span> / use it</div>
-  <h2>Two Claude Code hooks. The graph fills itself.</h2>
-  <p class="lead">Requirements: Linux or macOS, Docker, uv, git. The first HydraDB build takes about 15 minutes.</p>
-  <div class="steps">
-    <div class="step">
-      <div class="step-n mono">1</div>
-      <div class="code mono"><button class="copy" type="button">copy</button><pre><span class="c-dim"># clone HydraDB next to this repo, then HandoffDB</span>
+  <div class="eyebrow reveal">Use it</div>
+  <h2 class="reveal">Two Claude Code hooks. The graph <span class="acc">fills itself</span>.</h2>
+  <p class="lead reveal">Requirements: Linux or macOS, Docker, uv, git. The first HydraDB build takes about 15 minutes.</p>
+  <div class="steps reveal">
+    <div class="step"><div class="step-n">1</div>
+      <div class="code mono"><button class="copy" type="button">copy</button><pre><span class="c-faint"># clone HydraDB next to this repo, then HandoffDB</span>
 git clone https://github.com/hydra-db/hydradb.git
 git clone https://github.com/kruxarth/HandoffDB.git handoffdb && cd handoffdb
 uv sync
-scripts/start_hydradb.sh   <span class="c-dim"># builds and starts HydraDB</span></pre></div>
-    </div>
-    <div class="step">
-      <div class="step-n mono">2</div>
-      <div class="code mono"><button class="copy" type="button">copy</button><pre>uv run handoffdb --team myteam --repo myrepo handoff-hooks-config</pre></div>
-    </div>
-    <div class="step">
-      <div class="step-n mono">3</div>
+scripts/start_hydradb.sh   <span class="c-faint"># builds and starts HydraDB</span></pre></div></div>
+    <div class="step"><div class="step-n">2</div>
+      <div class="code mono"><button class="copy" type="button">copy</button><pre>uv run handoffdb --team myteam --repo myrepo handoff-hooks-config</pre></div></div>
+    <div class="step"><div class="step-n">3</div>
       <div class="step-t">Paste the printed hooks block into your repository's <code>.claude/settings.json</code>.
-        <div class="hooks mono">
-          <div><span class="pill pill-o">Stop</span> records the finished session from its transcript</div>
-          <div><span class="pill pill-c">UserPromptSubmit</span> injects the pack into the next prompt</div>
-        </div>
-      </div>
-    </div>
+        <div class="hooks mono"><div><span class="pill p-orange">Stop</span> records the finished session from its transcript</div><div><span class="pill p-blue">UserPromptSubmit</span> injects the pack into the next prompt</div></div>
+      </div></div>
   </div>
-  <p class="note mono tiny">By hand: <code>handoffdb handoff-record &lt;transcript.jsonl&gt; "&lt;task&gt;"</code> records a session, <code>handoffdb handoff-pack "&lt;task&gt;"</code> prints the pack. Team and repo map to HydraDB tenant and subtenant scopes: one graph per repository, shared by every agent on the team.</p>
+  <p class="note small reveal">By hand: <code>handoffdb handoff-record &lt;transcript.jsonl&gt; "&lt;task&gt;"</code> records a session, <code>handoffdb handoff-pack "&lt;task&gt;"</code> prints the pack. Team and repo map to HydraDB tenant and subtenant scopes: one graph per repository, shared by every agent on the team.</p>
 </section>
 
 </main>
 
-<footer class="foot-bar mono">
-  <div>Built on <b class="c-lime">HydraDB</b> for the HydraDB Hackathon, Track 2 · MIT licensed</div>
+<footer class="foot">
+  <div>Built on <b>HydraDB</b> for the HydraDB Hackathon, Track 2 · MIT licensed</div>
   <a href="https://github.com/kruxarth/HandoffDB" target="_blank" rel="noopener">github.com/kruxarth/HandoffDB ↗</a>
 </footer>
 
