@@ -1,0 +1,1 @@
+timestamp=2026-11-16T07:16:44.641Z level=WARN run=b46ac36e message="background dependency install failed" dir=/home/krutarth/.config/opencode error="Cause([Fail(NpmInstallFailedError (cause: rF: 403 Forbidden - GET https://registry.npmjs.org/@opencode-ai%2fplugin))])"

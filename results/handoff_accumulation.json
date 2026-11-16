@@ -1,0 +1,58 @@
+[
+ {
+  "runs": 10,
+  "notes_tokens": 4696,
+  "notes_files": 10,
+  "pack_tokens_median": 296,
+  "pack_tokens_max": 323
+ },
+ {
+  "runs": 25,
+  "notes_tokens": 11950,
+  "notes_files": 25,
+  "pack_tokens_median": 300,
+  "pack_tokens_max": 322
+ },
+ {
+  "runs": 50,
+  "notes_tokens": 24403,
+  "notes_files": 50,
+  "pack_tokens_median": 302,
+  "pack_tokens_max": 349
+ },
+ {
+  "runs": 100,
+  "notes_tokens": 48725,
+  "notes_files": 100,
+  "pack_tokens_median": 323,
+  "pack_tokens_max": 360
+ },
+ {
+  "runs": 150,
+  "notes_tokens": 73023,
+  "notes_files": 150,
+  "pack_tokens_median": 332,
+  "pack_tokens_max": 365
+ },
+ {
+  "runs": 200,
+  "notes_tokens": 97338,
+  "notes_files": 200,
+  "pack_tokens_median": 330,
+  "pack_tokens_max": 378
+ },
+ {
+  "runs": 250,
+  "notes_tokens": 122374,
+  "notes_files": 250,
+  "pack_tokens_median": 334,
+  "pack_tokens_max": 368
+ },
+ {
+  "runs": 301,
+  "notes_tokens": 146325,
+  "notes_files": 301,
+  "pack_tokens_median": 334,
+  "pack_tokens_max": 368
+ }
+]

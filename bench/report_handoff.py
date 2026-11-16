@@ -35,6 +35,7 @@ def experiment(path: Path, rep: int | None = None) -> dict:
     for r in rs:
         if rep is None or r.get("rep", 0) == rep:
             latest[(r["id"], r["condition"], r.get("rep", 0))] = r
+    superseded = len(_rows(path)) - len(latest)
     rs = list(latest.values())
     valid = [r for r in rs if not r["rate_limited"] and r["steps"] > 0]
     conds = [c for c in ORDER if any(r["condition"] == c for r in valid)]
@@ -42,7 +43,9 @@ def experiment(path: Path, rep: int | None = None) -> dict:
     for r in valid:
         by[r["condition"]].setdefault(r["id"], []).append(r)
     ids = sorted(set.intersection(*[set(by[c]) for c in conds])) if conds else []
-    out = {"n": len(ids), "total_runs": len(rs), "excluded": len(rs) - len(valid), "conds": {}, "ids": ids,
+    out = {"superseded": superseded,
+           "bad_note_rows": sum(1 for r in rs if r["condition"] == "notes" and r.get("note_tokens_on_disk", 0) > 300000),
+           "n": len(ids), "total_runs": len(rs), "excluded": len(rs) - len(valid), "conds": {}, "ids": ids,
            "timeouts": sum(1 for r in valid if r["exit"] == "timeout" and r["id"] in ids),
            "escapes": sum(1 for r in valid if r.get("outside_access") and r["id"] in ids),
            "model": valid[0]["model"] if valid else "?"}

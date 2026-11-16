@@ -393,6 +393,24 @@ def retrieval(db: Hydra | None) -> str:
 CURVE = (0, 25, 50, 100, 200, 300)
 
 
+def accumulate() -> list[dict]:
+    """As recorded runs pile up (date order): the total size of their handoff notes, which a new
+    agent would face, against the median pack size over the 102 targets built from those runs."""
+    runs = prior_runs()
+    mem = HO.MemGraph(runs)
+    P_ = pool(runs)
+    out = []
+    note_tok = [tokens((NOTES / f"{r['issue']}.md").read_text()) if (NOTES / f"{r['issue']}.md").exists() else 0 for r in runs]
+    for k in (10, 25, 50, 100, 150, 200, 250, len(runs)):
+        allowed = {r["issue"] for r in runs[:k]}
+        sizes = sorted(tokens(HO.render(build_pack(mem, t, allowed & earlier(runs, t), FINAL))) for t in P_)
+        out.append({"runs": k, "notes_tokens": sum(note_tok[:k]), "notes_files": sum(1 for x in note_tok[:k] if x),
+                    "pack_tokens_median": sizes[len(sizes) // 2], "pack_tokens_max": sizes[-1]})
+        print(out[-1], flush=True)
+    (ROOT / "results" / "handoff_accumulation.json").write_text(json.dumps(out, indent=1) + "\n")
+    return out
+
+
 # ---------------------------------------------------------------- handoff-file baseline
 
 NOTE_PROMPT = """Below is the full transcript of an agent session that investigated an issue in the Django repository. Write the handoff note that agent should leave for the next agent working in this repository, as Markdown, under 300 words: what the issue was, which files and line ranges mattered and why, which test files and docs relate to that code, what was ruled out, and the conclusion. Be specific about paths and line numbers. Output only the note.
@@ -602,6 +620,7 @@ def main() -> None:
     sub.add_parser("record")
     sub.add_parser("targets")
     sub.add_parser("tune")
+    sub.add_parser("accumulate")
     r0 = sub.add_parser("retrieval")
     r0.add_argument("--no-db", action="store_true")
     n0 = sub.add_parser("notes")
@@ -617,6 +636,8 @@ def main() -> None:
     r.add_argument("--conditions", default="cold,notes,graph")
     r.add_argument("--reps", type=int, default=1)
     r.add_argument("--parallel", type=int, default=6)
+    r.add_argument("--redo-bad-notes", action="store_true",
+                   help="rerun notes-condition runs whose HANDOFF/ held the degenerate first note of 15128 (>300k tokens on disk)")
     b = sub.add_parser("same")
     b.add_argument("--tasks", type=int, default=40)
     b.add_argument("--conditions", default="cold,notes,graph")
@@ -641,6 +662,8 @@ def main() -> None:
         g = HO.HydraGraph(db)
         g.reset()
         print(g.record(runs), f"{time.time() - t0:.1f}s")
+    elif args.cmd == "accumulate":
+        accumulate()
     elif args.cmd == "tune":
         print(tune())
     elif args.cmd == "targets":
@@ -680,6 +703,11 @@ def main() -> None:
         T = pool(runs)
         T = [t for t in T if t["id"] == args.only] if args.only else T[args.skip:args.skip + args.tasks]
         done = done_set(RUNS / "results.jsonl")
+        if args.redo_bad_notes:
+            latest = {}
+            for q in map(json.loads, open(RUNS / "results.jsonl")):
+                latest[(q["id"], q["condition"], q.get("rep", 0))] = q
+            done -= {k for k, q in latest.items() if q["condition"] == "notes" and q.get("note_tokens_on_disk", 0) > 300000}
         jobs = [(f"{t['id']} {c} r{k}", (lambda t=t, c=c, k=k: run_one(t, c, runs, db, rep=k)))
                 for t in T for k in range(args.reps) for c in args.conditions.split(",") if (t["id"], c, k) not in done]
         launch(jobs, args.parallel)
