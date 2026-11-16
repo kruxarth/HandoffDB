@@ -452,8 +452,8 @@ def main() -> None:
         for line in open(RUNS / "results.jsonl"):
             r0 = json.loads(line)
             if not r0["rate_limited"] and r0["answered"]:
-                done.add((r0["id"], r0["condition"]))
-    jobs = [(t, c, k) for t in tasks for k in range(args.reps) for c in conds if (t["id"], c) not in done]
+                done.add((r0["id"], r0["condition"], int(r0.get("rep", 0))))
+    jobs = [(t, c, k) for t in tasks for k in range(args.reps) for c in conds if (t["id"], c, k) not in done]
     mcp_proc = start_mcp() if "bearings-mcp" in conds else None
     net_procs = start_net("bearings-mcp" in conds)
     global AUTH

@@ -31,3 +31,7 @@
 **Caveats stated in advance.**
 - 10 issues × 2 reps is small. The result can rule out a large effect, not a small one.
 - The oracle uses the real fix. It is a ceiling, not a product.
+
+**Run / resume command** (free model, no paid spend; `--skip-done` skips finished issue/condition/rep runs):
+
+    L2_RUNS=$PWD/runs/oracle uv run python bench/level2.py run --tasks 40 --stride 4 --conditions none,oracle --reps 2 --parallel 2 --skip-done

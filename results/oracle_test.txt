@@ -1,0 +1,13 @@
+Oracle-pack ceiling test (pre-registered: bench/oracle_prereg.md)
+Model: opencode/deepseek-v4.1-flash-free. Issues with both conditions: 3; runs: 11 (rate-limited runs excluded: 2).
+
+issue                     none tokens  oracle tokens  ratio  none steps  oracle steps
+django__django-15814          674,618        473,367   0.70        23.0          19.5
+django__django-15957          576,980        887,693   1.54        16.5          25.0
+django__django-16082          144,270         58,273   0.40         9.5           6.0
+
+Primary: median oracle/none ratio 0.70; mean difference +7,822 tokens [-201,252, +310,713] (paired bootstrap, 95%).
+Secondary, none: named every real-fix file 100%; median steps 16; median tokens until a real-fix file is touched 6,645
+Secondary, oracle: named every real-fix file 100%; median steps 22; median tokens until a real-fix file is touched 6,743
+
+INCOMPLETE: 3 of the 10 pre-registered issues finished (OpenCode's free usage limit was reached). The decision rule is not applied to a partial sample; resume with the command in bench/oracle_prereg.md when the free quota resets.
