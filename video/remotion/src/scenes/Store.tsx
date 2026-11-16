@@ -81,11 +81,11 @@ const Network: React.FC<{ L: number; T: number; W: number; H: number; grow: numb
 };
 
 /** Plain store vs graph, the learning curve, and load. */
-export const Store: React.FC<{ sc: SceneData }> = ({ sc }) => {
+const StoreBase: React.FC<{ sc: SceneData; load?: boolean }> = ({ sc, load }) => {
   const frame = useCurrentFrame();
   const st = S();
-  const a2 = sc.lines.length > 1 ? sc.lines[1].from : Math.round(sc.frames / 3);
-  const a3 = sc.lines.length > 2 ? sc.lines[2].from : Math.round((sc.frames * 2) / 3);
+  const a2 = load ? -10000 : sc.lines.length > 1 ? sc.lines[1].from : Math.round(sc.frames / 2);
+  const a3 = load ? 0 : sc.frames + 10000;
   const curveP = interpolate(frame, [a2 + 10, a2 + 150], [0, 1], { ...clamp, easing: out });
   const grow = frame < a2 ? 1 : frame < a3 ? curveP : 1;
   const pulse = frame < a3 ? 0.35 : 1;
@@ -108,16 +108,16 @@ export const Store: React.FC<{ sc: SceneData }> = ({ sc }) => {
   return (
     <Scene sc={sc}>
       <div style={{ position: "absolute", left: 120, top: 80, width: 1700 }}>
-        <Swap at={0} until={a2}>
+        {!load && <Swap at={0} until={a2}>
           <Eyebrow color={C.warn}>Would a plain store do?</Eyebrow>
           <div style={{ height: 14 }} />
           <Kinetic text="A word → file table finds less." size={62} delay={4} accent={["less."]} />
-        </Swap>
-        <Swap at={a2} until={a3}>
+        </Swap>}
+        {!load && <Swap at={a2} until={a3}>
           <Eyebrow color={C.teal}>It keeps learning</Eyebrow>
           <div style={{ height: 14 }} />
           <Kinetic text="More recorded runs, better packs." size={62} accent={["better", "packs."]} />
-        </Swap>
+        </Swap>}
         <Swap at={a3}>
           <Eyebrow color={C.green}>Under load</Eyebrow>
           <div style={{ height: 14 }} />
@@ -127,7 +127,7 @@ export const Store: React.FC<{ sc: SceneData }> = ({ sc }) => {
 
       <Network L={180} T={360} W={680} H={520} grow={grow} pulse={pulse} hot={frame >= a3} />
 
-      <Swap at={0} until={a2}>
+      {!load && <Swap at={0} until={a2}>
         {st.bars.map((b: { label: string; v: number }, i: number) => {
           const p = interpolate(frame, [24 + i * 10, 60 + i * 10], [0, 1], { ...clamp, easing: out });
           const top = 380 + i * 150;
@@ -143,9 +143,9 @@ export const Store: React.FC<{ sc: SceneData }> = ({ sc }) => {
             </div>
           );
         })}
-      </Swap>
+      </Swap>}
 
-      <Swap at={a2} until={a3}>
+      {!load && <Swap at={a2} until={a3}>
         <svg style={{ position: "absolute", left: 0, top: 0 }} width={1920} height={1080}>
           {[0, 0.1, 0.2, 0.3, 0.4].map((f, i) => (
             <g key={i}>
@@ -166,7 +166,7 @@ export const Store: React.FC<{ sc: SceneData }> = ({ sc }) => {
         <div style={{ position: "absolute", left: sx(head[0]) - 180, top: sy(head[1]) - 70, width: 170, textAlign: "right", fontFamily: MONO, fontSize: 34, fontWeight: 700, color: C.teal }}>
           {Math.round(head[1] * 100)}%
         </div>
-      </Swap>
+      </Swap>}
 
       <Swap at={a3}>
         <div style={{ position: "absolute", left: 1040, top: 370, width: 760, display: "grid", gridTemplateColumns: "1fr 1fr", gap: 26 }}>
@@ -189,7 +189,10 @@ export const Store: React.FC<{ sc: SceneData }> = ({ sc }) => {
         </div>
       </Swap>
 
-      <div style={{ position: "absolute", left: 120, top: 974, fontSize: 22, color: C.faint }}>{st.foot}</div>
+      <div style={{ position: "absolute", left: 120, top: 974, fontSize: 22, color: C.faint }}>{load ? "20 concurrent clients for 60 s while new runs were recorded (results/handoff_load.json)" : st.foot}</div>
     </Scene>
   );
 };
+
+export const Store: React.FC<{ sc: SceneData }> = ({ sc }) => <StoreBase sc={sc} />;
+export const Load: React.FC<{ sc: SceneData }> = ({ sc }) => <StoreBase sc={sc} load />;

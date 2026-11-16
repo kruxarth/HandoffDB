@@ -1,6 +1,6 @@
 import React from "react";
 import { interpolate, spring, useCurrentFrame, useVideoConfig } from "remotion";
-import { C, MONO, Scene, SceneData, Kinetic, Eyebrow, Compass, clamp, out } from "../ui";
+import { C, MONO, Scene, SceneData, Kinetic, Eyebrow, Mark, clamp, out } from "../ui";
 
 const AGENTS = [
   { x: 420, y: 470, label: "agent 1" },
@@ -51,7 +51,7 @@ export const Team: React.FC<{ sc: SceneData }> = ({ sc }) => {
             flexDirection: "column",
           }}
         >
-          <Compass size={110} needle={interpolate(frame, [0, 120], [-30, 40], { ...clamp, easing: out })} />
+          <Mark size={110} pulse={frame / 40} />
           <div style={{ fontSize: 28, fontWeight: 650, marginTop: 10 }}>team graph</div>
           <div style={{ fontFamily: MONO, fontSize: 18, color: C.dim, marginTop: 4 }}>in HydraDB</div>
         </div>
@@ -90,16 +90,16 @@ export const Team: React.FC<{ sc: SceneData }> = ({ sc }) => {
 export const End: React.FC<{ sc: SceneData }> = ({ sc }) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
-  const needle = spring({ frame: frame - 6, fps, config: { damping: 6, mass: 1.2, stiffness: 60 } });
+  const needle = spring({ frame: frame - 6, fps, config: { damping: 200 }, durationInFrames: 40 });
   const t = spring({ frame: frame - 24, fps, config: { damping: 200 } });
   const t2 = spring({ frame: frame - 70, fps, config: { damping: 200 } });
   return (
     <Scene sc={sc}>
       <div style={{ position: "absolute", inset: 0, display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center" }}>
-        <Compass size={220} needle={-120 + 165 * needle} ring={interpolate(frame, [0, sc.frames], [0, 12])} />
-        <div style={{ fontSize: 150, fontWeight: 800, letterSpacing: "-0.05em", marginTop: 30, opacity: t, translate: `0px ${(1 - t) * 30}px` }}>Bearings</div>
+        <Mark size={240} t={needle} pulse={frame / 45} />
+        <div style={{ fontSize: 150, fontWeight: 800, letterSpacing: "-0.05em", marginTop: 30, opacity: t, translate: `0px ${(1 - t) * 30}px` }}>HandoffDB</div>
         <div style={{ fontSize: 46, color: C.dim, marginTop: 6, opacity: t, translate: `0px ${(1 - t) * 30}px` }}>
-          Your agents start where your team left off.
+          Handoffs between coding agents, as a graph.
         </div>
         <div style={{ fontFamily: MONO, fontSize: 24, color: C.faint, marginTop: 70, opacity: t2, letterSpacing: "0.06em" }}>
           Built on <span style={{ color: C.accent }}>HydraDB</span> · HydraDB Hackathon, Track 2 · MIT licensed

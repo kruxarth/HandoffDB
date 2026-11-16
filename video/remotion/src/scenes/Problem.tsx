@@ -1,6 +1,6 @@
 import React from "react";
 import { interpolate, useCurrentFrame } from "remotion";
-import { C, MONO, Scene, SceneData, Swap, Kinetic, Window, at, clamp, data, fmt, out, useSpring, Eyebrow } from "../ui";
+import { C, MONO, Scene, SceneData, Swap, Kinetic, Window, clamp, data, fmt, out, useSpring, Eyebrow } from "../ui";
 
 type Call = { cmd: string; cum: number };
 
@@ -100,28 +100,15 @@ const SameFile: React.FC = () => {
 };
 
 export const Problem: React.FC<{ sc: SceneData }> = ({ sc }) => {
-  const frame = useCurrentFrame();
-  const a2 = at(sc, "02");
-  const a3 = at(sc, "02b");
-  const dim = interpolate(frame, [a3, a3 + 20], [0, 1], { ...clamp, easing: out });
   return (
     <Scene sc={sc}>
-      <Log dim={dim} />
+      <Log dim={0} />
       <div style={{ position: "absolute", left: 1110, top: 200, width: 700 }}>
-        <Swap at={0} until={a2}>
+        <Swap at={0}>
           <Eyebrow>Every coding agent, every task</Eyebrow>
           <div style={{ height: 24 }} />
           <Kinetic text="Starts from zero." delay={6} size={96} />
-          <div style={{ fontSize: 36, color: C.dim, marginTop: 30, lineHeight: 1.35, width: 660 }}>
-            Every search and every file it opens is paid for in tokens.
-          </div>
-        </Swap>
-        <Swap at={a2} until={a3}>
-          <Kinetic text="And most of it is a repeat." size={80} accent={["repeat"]} />
           <SameFile />
-        </Swap>
-        <Swap at={a3}>
-          <Kinetic text="When the session ends, it is thrown away." size={80} accent={["thrown", "away"]} />
         </Swap>
       </div>
       <div style={{ position: "absolute", left: 110, top: 974, fontSize: 22, color: C.faint }}>

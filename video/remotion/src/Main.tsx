@@ -1,7 +1,7 @@
 import React from "react";
 import { AbsoluteFill, Sequence, interpolate, staticFile, useCurrentFrame } from "remotion";
 import { Audio } from "@remotion/media";
-import { C, Compass, SANS, SceneData, timeline } from "./ui";
+import { C, Mark, SANS, SceneData, timeline } from "./ui";
 import { Problem } from "./scenes/Problem";
 import { Idea } from "./scenes/Idea";
 import { Query } from "./scenes/Query";
@@ -13,7 +13,8 @@ import { Side } from "./scenes/Side";
 import { Live, Claude, Limits } from "./scenes/Honest";
 import { Team, End } from "./scenes/Team";
 import { Pivot, Record, Traverse, Results, Pile } from "./scenes/Handoff";
-import { Store } from "./scenes/Store";
+import { Store, Load } from "./scenes/Store";
+import { Name } from "./scenes/Name";
 
 export const SCENES: Record<string, React.FC<{ sc: SceneData }>> = {
   problem: Problem,
@@ -23,6 +24,8 @@ export const SCENES: Record<string, React.FC<{ sc: SceneData }>> = {
   results: Results,
   pile: Pile,
   store: Store,
+  load: Load,
+  name: Name,
   idea: Idea,
   query: Query,
   learn: Learn,
@@ -55,12 +58,12 @@ const Background: React.FC = () => {
           maskImage: "linear-gradient(180deg, rgba(0,0,0,0.9), rgba(0,0,0,0.2))",
         }}
       />
-      <div style={{ position: "absolute", right: -260, bottom: -300, opacity: 0.08 }}>
-        <Compass size={1000} ring={frame / 12} noNeedle color="#0f172a" />
+      <div style={{ position: "absolute", right: -220, bottom: -260, opacity: 0.035, rotate: `${frame / 20}deg` }}>
+        <Mark size={900} color="#0f172a" />
       </div>
       <div style={{ position: "absolute", right: 80, top: 70, display: "flex", alignItems: "center", gap: 14, opacity: 0.75 * fadeMark, fontFamily: SANS }}>
-        <Compass size={40} needle={40} />
-        <span style={{ fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", color: C.text }}>Bearings</span>
+        <Mark size={40} />
+        <span style={{ fontWeight: 700, fontSize: 26, letterSpacing: "-0.02em", color: C.text }}>HandoffDB</span>
       </div>
     </AbsoluteFill>
   );

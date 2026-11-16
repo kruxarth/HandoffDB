@@ -78,15 +78,15 @@ def handoff() -> dict:
         pk = H.build_pack(hg, t, H.earlier(runs, t), H.FINAL)
         ms = round((time.time() - t1) * 1000)
         info = hg.run_info(pk["runs"][:4])
-        pack = {"id": gr["id"].replace("django__", ""), "text": gr["pack"], "tokens": gr["pack_tokens"], "ms": ms,
+        pack = {"id": gr["id"].replace("django__", ""), "text": gr["pack"].replace("(Bearings)", "(HandoffDB)"), "tokens": gr["pack_tokens"], "ms": ms,
                 "terms": [x.split(":", 1)[1] for x in HO.run_terms(t["text"])[:5]],
                 "runs": [(info.get(k, {}).get("title") or k)[:34] for k in pk["runs"][:4]],
                 "source": [f for f, _ in pk["source"]], "test": [f for f, _ in pk["test"]]}
-    lab = {"cold": "Cold start", "notes": "Handoff notes", "graph": "Bearings pack"}
+    lab = {"cold": "Cold start", "notes": "Handoff notes", "graph": "HandoffDB pack"}
 
     def bars(E):
         return [{"key": c, "label": lab[c], "median_in": E["conds"][c]["median_in"],
-                 "note": f"{E['conds'][c]['succ'][0]:.0%} success"} for c in ("cold", "notes", "graph") if c in E["conds"]]
+                 "note": f"{E['conds'][c]['succ'][0]:.0%} success", "succ": E['conds'][c]['succ'][0]} for c in ("cold", "notes", "graph") if c in E["conds"]]
     acc = RH.accumulation(A)
     import re
     txt = (rep.RES / "handoff_retrieval.txt").read_text().split("targets whose fix files")[0]
@@ -95,7 +95,7 @@ def handoff() -> dict:
     ld = json.load(open(rep.RES / "handoff_load.json"))
     store = {"bars": [{"label": "Plain word → file table", "v": both("Plain word -> file table")},
                       {"label": "Word + code anchor table", "v": both("Plain word+anchor -> file table")},
-                      {"label": "Bearings graph", "v": both("Graph (final)")}],
+                      {"label": "HandoffDB graph", "v": both("Graph (final)")}],
              "curve": curve,
              "load": {k: ld[k] for k in ("clients", "requests", "errors", "p50_ms", "p95_ms", "rps", "runs_recorded_during_test")},
              "foot": "Share of 102 later issues where the pack holds every fix file and a real test file, no model calls (results/handoff_retrieval.txt, handoff_load.json)"}

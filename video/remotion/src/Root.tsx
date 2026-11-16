@@ -5,7 +5,7 @@ import { timeline } from "./ui";
 
 export const RemotionRoot: React.FC = () => (
   <>
-    <Composition id="BearingsLaunch" component={Main} width={1920} height={1080} fps={timeline.fps} durationInFrames={timeline.frames} />
+    <Composition id="HandoffDBLaunch" component={Main} width={1920} height={1080} fps={timeline.fps} durationInFrames={timeline.frames} />
     <Folder name="Scenes">
       {timeline.scenes.map((sc) => {
         const Comp = SCENES[sc.name];

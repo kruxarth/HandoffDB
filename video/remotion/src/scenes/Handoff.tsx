@@ -9,21 +9,16 @@ const short = (p: string) => p.split("/").slice(-2).join("/");
 /** What we measured first: where the tokens of a live run go. */
 export const Pivot: React.FC<{ sc: SceneData }> = ({ sc }) => {
   const frame = useCurrentFrame();
-  const a2 = sc.lines.length > 1 ? sc.lines[1].from : sc.frames;
+  const a2 = sc.lines.length > 1 ? sc.lines[1].from : Math.round(sc.frames * 0.45);
   const p = interpolate(frame, [20, 70], [0, 1], { ...clamp, easing: out });
   const share = H().pivot.after_pct; // e.g. 94
   const W = 1500;
   return (
     <Scene sc={sc}>
       <div style={{ position: "absolute", left: 120, top: 96, width: 1600 }}>
-        <Eyebrow color={C.warn}>What we measured first</Eyebrow>
+        <Eyebrow color={C.warn}>Where the tokens go</Eyebrow>
         <div style={{ height: 18 }} />
-        <Swap at={0} until={a2}>
-          <Kinetic text="Our first version pointed agents at the right file." size={68} delay={4} />
-        </Swap>
-        <Swap at={a2}>
-          <Kinetic text="They found it anyway. The tokens go afterwards." size={68} accent={["afterwards."]} />
-        </Swap>
+        <Kinetic text="Finding the right file is the cheap part." size={68} delay={4} accent={["cheap"]} />
       </div>
       <div style={{ position: "absolute", left: 210, top: 470, width: W }}>
         <div style={{ display: "flex", height: 120, borderRadius: 18, overflow: "hidden", border: `1px solid ${C.line}` }}>
@@ -68,7 +63,7 @@ export const Record: React.FC<{ sc: SceneData }> = ({ sc }) => {
   return (
     <Scene sc={sc}>
       <div style={{ position: "absolute", left: 120, top: 80 }}>
-        <Eyebrow>Bearings records every run</Eyebrow>
+        <Eyebrow>HandoffDB records every run</Eyebrow>
         <div style={{ height: 14 }} />
         <Kinetic text="From its tool calls, as structure." size={64} delay={4} accent={["structure."]} />
       </div>
@@ -162,39 +157,48 @@ export const Traverse: React.FC<{ sc: SceneData }> = ({ sc }) => {
   );
 };
 
-/** Headline result: total input tokens per run, three conditions, for A (and B). */
+/** Live agents: same issue (success) first, then brand-new issues (tokens). */
 export const Results: React.FC<{ sc: SceneData }> = ({ sc }) => {
+  const frame = useCurrentFrame();
   const R = H().results;
-  const a2 = sc.lines.length > 1 ? sc.lines[1].from : sc.frames;
+  const a2 = sc.lines.length > 1 ? sc.lines[1].from : Math.round(sc.frames / 2);
   const color = (k: string) => (k === "graph" ? C.accent : k === "notes" ? C.warn : C.gray);
-  const rowsA = R.A.map((r: any) => ({ label: r.label, value: r.median_in, text: "", color: color(r.key), note: r.note }));
-  const rowsB = (R.B || []).map((r: any) => ({ label: r.label, value: r.median_in, text: "", color: color(r.key), note: r.note }));
-  const max = Math.max(...rowsA.concat(rowsB).map((r: any) => r.value)) * 1.25;
+  const rowsA = R.A.map((r: any) => ({ label: r.label, value: r.median_in, text: "", color: color(r.key), note: undefined }));
+  const max = Math.max(...rowsA.map((r: any) => r.value)) * 1.25;
   return (
     <Scene sc={sc}>
       <div style={{ position: "absolute", left: 120, top: 96, width: 1650 }}>
-        <Swap at={0} until={rowsB.length ? a2 : undefined}>
+        <Swap at={0} until={a2}>
+          <Eyebrow>{R.titleB}</Eyebrow>
+          <div style={{ height: 18 }} />
+          <Kinetic text={R.headB} size={64} delay={4} accent={R.accentB} />
+        </Swap>
+        <Swap at={a2}>
           <Eyebrow>{R.titleA}</Eyebrow>
           <div style={{ height: 18 }} />
-          <Kinetic text={R.headA} size={64} delay={4} accent={R.accentA} />
+          <Kinetic text={R.headA} size={64} accent={R.accentA} />
         </Swap>
-        {rowsB.length ? (
-          <Swap at={a2}>
-            <Eyebrow>{R.titleB}</Eyebrow>
-            <div style={{ height: 18 }} />
-            <Kinetic text={R.headB} size={64} accent={R.accentB} />
-          </Swap>
-        ) : null}
       </div>
-      <Swap at={0} until={rowsB.length ? a2 : undefined}>
-        <Bars rows={rowsA} max={max} start={20} left={120} top={420} width={1680} labelW={380} />
+      <Swap at={0} until={a2}>
+        {R.B.map((r: any, i: number) => {
+          const p = interpolate(frame, [20 + i * 8, 56 + i * 8], [0, 1], { ...clamp, easing: out });
+          const g = r.key === "graph";
+          return (
+            <div key={i} style={{ position: "absolute", left: 120, top: 400 + i * 110, width: 1680, height: 80, display: "flex", alignItems: "center", gap: 24 }}>
+              <div style={{ width: 380, textAlign: "right", fontSize: 30, color: g ? C.accent : C.text, fontWeight: g ? 700 : 500 }}>{r.label}</div>
+              <div style={{ flex: 1, height: 64, position: "relative", background: "rgba(15,23,42,0.05)", borderRadius: 14 }}>
+                <div style={{ position: "absolute", left: 0, top: 0, bottom: 0, width: `${r.succ * 100 * p}%`, background: g ? C.accent : r.key === "notes" ? "#fdba74" : C.gray, borderRadius: 14, boxShadow: g ? `0 0 30px ${C.accent}44` : undefined }} />
+                <div style={{ position: "absolute", left: `calc(${r.succ * 100 * p}% + 18px)`, top: 10, fontFamily: MONO, fontSize: 36, fontWeight: 800, color: g ? C.accent : C.dim }}>{String(Math.round(r.succ * 1000 * p) / 10)}%</div>
+              </div>
+            </div>
+          );
+        })}
+        <div style={{ position: "absolute", left: 120, top: 760, fontSize: 26, color: C.dim, width: 1680 }}>{R.subB}</div>
       </Swap>
-      {rowsB.length ? (
-        <Swap at={a2}>
-          <Bars rows={rowsB} max={max} start={a2 + 10} left={120} top={420} width={1680} labelW={380} />
-        </Swap>
-      ) : null}
-      <div style={{ position: "absolute", left: 120, top: 760, fontSize: 26, color: C.dim, width: 1680 }}>{R.subA}</div>
+      <Swap at={a2}>
+        <Bars rows={rowsA} max={max} start={a2 + 10} left={120} top={420} width={1680} labelW={380} />
+        <div style={{ position: "absolute", left: 120, top: 760, fontSize: 26, color: C.dim, width: 1680 }}>{R.subA}</div>
+      </Swap>
       <div style={{ position: "absolute", left: 120, top: 974, fontSize: 22, color: C.faint }}>{R.foot}</div>
     </Scene>
   );

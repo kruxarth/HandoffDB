@@ -1,4 +1,16 @@
-{"titleA": "A different issue · 102 new issues", "headA": "The pack costs what a cold start costs. The notes cost a third more.", "accentA": ["third", "more."],
- "titleB": "The same issue · 40 issues", "headB": "The note is cheapest. The pack lifts success.", "accentB": ["lifts", "success."],
- "subA": "Median total input tokens per run, pack and notes included. Success: every fix file and a real test file named, checked in code.",
- "foot": "DeepSeek V4.1 Flash through OpenCode, sandboxed · pre-registered · runs/handoff/results.jsonl, runs/handoff/same/results.jsonl"}
+{
+ "titleB": "Real agents \u00b7 the same issue \u00b7 40 issues",
+ "headB": "With the pack, success rises from 72.5% to 85%.",
+ "accentB": [
+  "85%."
+ ],
+ "titleA": "Real agents \u00b7 brand-new issues \u00b7 102 issues",
+ "headA": "No more than a cold start. The notes cost a third more.",
+ "accentA": [
+  "third",
+  "more."
+ ],
+ "subB": "Share of runs that named every fix file and a real test file, checked in code.",
+ "subA": "Median total input tokens per run, pack and notes included.",
+ "foot": "DeepSeek V4.1 Flash through OpenCode, sandboxed \u00b7 pre-registered \u00b7 runs/handoff/results.jsonl, runs/handoff/same/results.jsonl"
+}

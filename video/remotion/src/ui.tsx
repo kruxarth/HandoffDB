@@ -271,7 +271,33 @@ export const Stat: React.FC<{ value: number; decimals?: number; suffix?: string;
   );
 };
 
-/** Bearings mark: a compass ring with a needle. */
+/** HandoffDB mark: three linked nodes, drawn in with t (0..1), pulse travelling along edges. */
+export const Mark: React.FC<{ size: number; t?: number; pulse?: number; color?: string; opacity?: number }> = ({ size, t = 1, pulse, color = C.accent, opacity = 1 }) => {
+  const P = [[-58, -40], [58, -40], [0, 56]];
+  const cols = [C.accent, C.teal, C.warn];
+  const E = [[0, 1], [0, 2], [1, 2]];
+  return (
+    <svg width={size} height={size} viewBox="-100 -100 200 200" style={{ opacity, overflow: "visible" }}>
+      {E.map(([a, b], i) => {
+        const q = Math.max(0, Math.min(1, t * 3 - i));
+        const [x1, y1] = P[a], [x2, y2] = P[b];
+        const u = pulse === undefined ? -1 : (pulse + i / 3) % 1;
+        return (
+          <g key={i}>
+            <line x1={x1} y1={y1} x2={x1 + (x2 - x1) * q} y2={y1 + (y2 - y1) * q} stroke={color} strokeWidth={9} strokeLinecap="round" strokeOpacity={0.55} />
+            {u >= 0 && q >= 1 ? <circle cx={x1 + (x2 - x1) * u} cy={y1 + (y2 - y1) * u} r={8} fill={cols[b]} /> : null}
+          </g>
+        );
+      })}
+      {P.map(([x, y], i) => {
+        const q = Math.max(0, Math.min(1, t * 3 - i * 0.6));
+        return <circle key={i} cx={x} cy={y} r={24 * q} fill="#ffffff" stroke={cols[i]} strokeWidth={10} />;
+      })}
+    </svg>
+  );
+};
+
+/** Old compass mark (unused in the HandoffDB cut). */
 export const Compass: React.FC<{ size: number; needle?: number; ring?: number; opacity?: number; color?: string; noNeedle?: boolean }> = ({
   size,
   needle = 40,
