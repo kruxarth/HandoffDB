@@ -4,16 +4,29 @@
 
 Each agent run is recorded in self-hosted [HydraDB](https://github.com/hydra-db/hydradb) as structure, straight from its tool calls: what it opened, at which lines, which tests and docs it found, what it concluded. No model call. The next agent, on the same task or a different one near the same code, gets a small pack from a few graph traversals instead of re-exploring, or reading a pile of handoff notes.
 
-⟨HEADLINE⟩
+**What we found** (pre-registered; 426 live agent runs on 142 real Django issues; success checked in code):
+
+| Next agent's situation | Cold start | Earlier agents' handoff notes | **Bearings pack** |
+|---|---|---|---|
+| **A different issue** (102 issues): median input tokens per run | 177k | 343k | **171k** |
+| success | 68% | 69% | 68% |
+| **The same issue** (40 issues): median input tokens per run | 170k | 72k | 119k |
+| success | 72% | 75% | **85%** |
+
+- **On a different issue, the case the product is for, the pack costs what a cold start costs** (median per-issue ratio 1.01; mean +4.9k tokens [−31k, +40k]) at the same success. Handing the agent the earlier notes instead costs **31% more than cold** (+83k [+52k, +114k]) for no gain. Against the notes, the pack used **40% fewer tokens** (−78k [−116k, −41k]), but its success was one issue lower (68% vs 69%), so by our own pre-registered rule **we do not claim a saving**.
+- **On the same issue, the note wins on tokens** (0.43× cold, a real saving), as we expected. The pack saved no tokens there (0.79×, interval includes zero) but **raised success from 72% to 85%** (+12.5 points [+2.5, +25]).
+- **Without model calls**, the pack holds the fix files and a real test file **twice as often as a plain word → file table** built from the same runs (34% vs 17%, paired +17.6 points [+8.8, +27.5]), and it keeps improving as runs accumulate.
+
+**So the honest claim is narrower than "fewer tokens":** the graph does not make a cold agent cheaper. It makes handoffs scale: where a pile of notes costs a third more and grows with every session (146k tokens after 301 runs), the pack stays about 330 tokens, costs no model call to write, and on a same-task handoff it makes the next agent more often right.
 
 Everything below was measured with **DeepSeek V4.1 Flash through OpenCode**, in a network-isolated sandbox, on real SWE-bench Django issues, with success checked in code. Pre-registered in [`bench/handoff_prereg.md`](bench/handoff_prereg.md) before any run on the targets. Full tables: [`results/RESULTS.md`](results/RESULTS.md). Dashboard with the charts and a live "paste a task" box: `uv run bearings-web`.
 
 ## The four judging questions
 
-1. **Did we measure the right metrics, not a vanity number?** The primary metric is what a team pays for: **total input tokens per agent run**, summed from OpenCode's per-step usage, *including* the pack's own tokens and any notes the agent reads, paired by issue. It counts only alongside **success checked in code** (the agent must name every source file of the real fix and a test file the real fix extended), and a saving is claimed only at equal or better success. The rule, the targets and the exclusions were committed before any target run ([`bench/handoff_prereg.md`](bench/handoff_prereg.md)). The baseline is the one teams actually use, Markdown handoff notes written by the earlier agents, with the cost of writing them counted. ⟨Q1⟩ Files: `runs/handoff/results.jsonl`, `runs/handoff/same/results.jsonl`.
+1. **Did we measure the right metrics, not a vanity number?** The primary metric is what a team pays for: **total input tokens per agent run**, summed from OpenCode's per-step usage, *including* the pack's own tokens and any notes the agent reads, paired by issue. It counts only alongside **success checked in code** (the agent must name every source file of the real fix and a test file the real fix extended), and a saving is claimed only at equal or better success. The rule, the targets and the exclusions were committed before any target run ([`bench/handoff_prereg.md`](bench/handoff_prereg.md)). The baseline is the one teams actually use, Markdown handoff notes written by the earlier agents, with the cost of writing them counted. Measured this way, the pack ties a cold start on tokens and beats the notes on tokens without a success margin, so no token saving is claimed; the table above shows every condition. Files: `runs/handoff/results.jsonl`, `runs/handoff/same/results.jsonl`.
 2. **Does it keep learning over a baseline?** Yes, as runs accumulate: with the first 0, 25, 50, 100, 200 and 300 recorded runs, the pack holds the fix files and a real test file for 0%, 9%, 14%, 24%, 31% and 34% of the 102 targets, against 22% for the best plain table built from all 301 runs (paired +12.7 points [+5.9, +20.6]). File: [`results/handoff_retrieval.txt`](results/handoff_retrieval.txt).
 3. **Would it fall apart on a plain store?** On a word → file table built from the same runs, the hit rate halves (34% → 17%), and a table that also keys on code anchors reaches 22%. The difference is the run node: the graph picks the few earlier runs most specifically linked to the task and takes what *they* opened, instead of summing counts in which every run's `query.py` drowns the rest. HydraDB's traversals return exactly the in-memory reference on 102 of 102 targets. File: [`results/handoff_retrieval.txt`](results/handoff_retrieval.txt).
-4. **Does it hold up under load?** ⟨LOAD⟩ File: [`results/handoff_load.json`](results/handoff_load.json).
+4. **Does it hold up under load?** It holds up without errors, but it is not fast under heavy load. 20 concurrent clients for 60 s while a run was recorded every second: **998 packs, 0 errors**, p50 1.14 s, p95 1.91 s, 16 packs/s. HydraDB was CPU-bound (about 14 cores) on the first hop, a traversal from about 60 task entities. With 1 client p50 is 244 ms, with 5 clients 270 ms at 17.6 packs/s ([`results/handoff_load_c1.json`](results/handoff_load_c1.json), [`_c5`](results/handoff_load_c5.json)). A pack is built once per prompt, so 16/s is about 58k prompts an hour per HydraDB instance; querying fewer, rarer entities would cut the cost, but the pack design is pre-registered, so it was not changed. File: [`results/handoff_load.json`](results/handoff_load.json).
 
 ## The story in three steps
 
@@ -84,7 +97,7 @@ Earlier issues: Template changes cause dev server to reload | Make floatformat t
 - **It keeps learning:** the same 102 targets with only the first 0, 25, 50, 100, 200 and 300 recorded runs available: 0%, 9%, 14%, 24%, 31%, 34% "both". (The first version of this pack, before pre-registration, managed 6% on the test file: [`results/handoff_retrieval_v0.txt`](results/handoff_retrieval_v0.txt).)
 - **HydraDB returns exactly the in-memory reference** on 102 of 102 targets. The first version matched only 82 of 102 because `algo.MSpaths` returns simple paths only (it never returns *anchor file → run → the same file*), which the reference included; the read side now uses length-1 hops only.
 
-**Over a handoff file** ([`results/handoff_accumulation.json`](results/handoff_accumulation.json)): every note costs a model call to write (302 calls for 301 notes, one first attempt having looped into 262k output tokens: 1.68M input and 747k output tokens in all, $0.077 at list price, [`runs/handoff/notes/usage.jsonl`](runs/handoff/notes/usage.jsonl)), and they pile up. After 301 recorded runs the notes total **146k tokens** in 301 files; the pack for a new task is **334 tokens** (median over the 102 targets) and was 296–334 tokens at every point from 10 to 301 runs. ⟨LIVEADDS⟩
+**Over a handoff file** ([`results/handoff_accumulation.json`](results/handoff_accumulation.json)): every note costs a model call to write (302 calls for 301 notes, one first attempt having looped into 262k output tokens: 1.68M input and 747k output tokens in all, $0.077 at list price, [`runs/handoff/notes/usage.jsonl`](runs/handoff/notes/usage.jsonl)), and they pile up. After 301 recorded runs the notes total **146k tokens** in 301 files; the pack for a new task is **334 tokens** (median over the 102 targets) and was 296–334 tokens at every point from 10 to 301 runs. In the live runs (Experiment A), agents given the notes used 31% more input tokens than cold agents (median per-issue ratio 1.31) and took 17 steps instead of 12, for the same success; agents given the pack used 40% fewer tokens than the notes agents (ratio 0.60) in 10 steps. On the same issue (Experiment B), a single note is better than the pack on tokens: one 490-token note written for exactly this issue is hard to beat.
 
 ## Go to market
 
@@ -142,6 +155,8 @@ uv run python bench/report.py
 - **The memory is cold runs by the same model**, mistakes included. Nothing is filtered by whether a run was right, as in real use.
 - **The targets were seen once** by an earlier version of the pack, before pre-registration ([`results/handoff_retrieval_v0.txt`](results/handoff_retrieval_v0.txt)). Every later design choice was made on a separate dev set ([`results/handoff_tune_dev.txt`](results/handoff_tune_dev.txt)).
 - **Line ranges age.** They are stored as the earlier agent saw them; the pack says so. There is no pruning yet.
+- **One incident, fixed in the open.** The provider ignored `max_tokens` once and one note's first attempt looped into 262k tokens of `# ...`. It was found during Experiment A (8 notes-condition runs had that 1.2 MB file in their notes folder), quarantined in `runs/handoff/notes/degenerate/`, regenerated, and those 8 runs were rerun; the report keeps the latest row and counts the superseded ones. Its cost stays in the note-writing total.
+- **Escape attempts are logged, not hidden.** 47 of 426 runs tried something the sandbox blocks (mostly `pip install` and `find /`); the proxy allowed only the model API (every pypi and npm request was denied, `runs/handoff/netproxy.jsonl`). They are counted normally, as pre-registered.
 - **Money** is list-price arithmetic from token counts, never a measured bill.
 
 ## What we learned first (Bearings v1: a learned "where to start" pack)
