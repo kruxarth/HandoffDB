@@ -16,12 +16,12 @@ Model: `refuseless/deepseek-v4.1-flash-fast` through OpenCode, sandboxed. Paired
 |---|---|---|---|---|---|---|---|
 | Cold start (nothing) | 68% [58%, 76%] | 77% [69%, 85%] | 86% [79%, 92%] | 177,258 | 277,125 | 12 | nothing |
 | Handoff notes (Markdown files) | 69% [60%, 77%] | 76% [69%, 84%] | 87% [80%, 93%] | 343,000 | 360,174 | 17 | 284 notes on disk (median), 138,111 tokens if all read |
-| Bearings handoff pack (graph) | 68% [58%, 76%] | 76% [68%, 84%] | 85% [78%, 92%] | 171,144 | 282,062 | 10 | a pack of 390 tokens (median) |
+| HandoffDB pack (graph) | 68% [58%, 76%] | 76% [68%, 84%] | 85% [78%, 92%] | 171,144 | 282,062 | 10 | a pack of 390 tokens (median) |
 
 | Paired comparison | Δ total input tokens per run (mean, 95% CI) | median per-issue ratio | Δ success (95% CI) | verdict (pre-registered rule) |
 |---|---|---|---|---|
-| Bearings handoff pack − Cold start | +4,936 [-30,951, +40,401] | 1.01 | +0.00 [-0.06, +0.06] | tie |
-| Bearings handoff pack − Handoff notes | -78,112 [-115,666, -40,785] | 0.60 | -0.01 [-0.05, +0.04] | cheaper but less successful: no saving claimed |
+| HandoffDB pack − Cold start | +4,936 [-30,951, +40,401] | 1.01 | +0.00 [-0.06, +0.06] | tie |
+| HandoffDB pack − Handoff notes | -78,112 [-115,666, -40,785] | 0.60 | -0.01 [-0.05, +0.04] | cheaper but less successful: no saving claimed |
 | Handoff notes − Cold start | +83,048 [+52,472, +113,801] | 1.31 | +0.01 [-0.05, +0.07] | costs more tokens |
 
 ### Experiment B: the next agent, on the same issue
@@ -32,12 +32,12 @@ Model: `refuseless/deepseek-v4.1-flash-fast` through OpenCode, sandboxed. Paired
 |---|---|---|---|---|---|---|---|
 | Cold start (nothing) | 72% [57%, 85%] | 85% [72%, 95%] | 82% [70%, 92%] | 170,244 | 259,174 | 11 | nothing |
 | Handoff notes (Markdown files) | 75% [60%, 88%] | 88% [75%, 98%] | 85% [72%, 95%] | 72,344 | 134,318 | 6 | 1 notes on disk (median), 493 tokens if all read |
-| Bearings handoff pack (graph) | 85% [72%, 95%] | 90% [80%, 98%] | 92% [85%, 100%] | 118,834 | 224,973 | 8 | a pack of 232 tokens (median) |
+| HandoffDB pack (graph) | 85% [72%, 95%] | 90% [80%, 98%] | 92% [85%, 100%] | 118,834 | 224,973 | 8 | a pack of 232 tokens (median) |
 
 | Paired comparison | Δ total input tokens per run (mean, 95% CI) | median per-issue ratio | Δ success (95% CI) | verdict (pre-registered rule) |
 |---|---|---|---|---|
-| Bearings handoff pack − Cold start | -34,201 [-93,186, +24,495] | 0.79 | +0.12 [+0.03, +0.25] | tie |
-| Bearings handoff pack − Handoff notes | +90,655 [+46,976, +142,011] | 1.81 | +0.10 [+0.00, +0.23] | costs more tokens |
+| HandoffDB pack − Cold start | -34,201 [-93,186, +24,495] | 0.79 | +0.12 [+0.03, +0.25] | tie |
+| HandoffDB pack − Handoff notes | +90,655 [+46,976, +142,011] | 1.81 | +0.10 [+0.00, +0.23] | costs more tokens |
 | Handoff notes − Cold start | -124,856 [-183,164, -73,989] | 0.43 | +0.03 [-0.05, +0.12] | saves tokens |
 
 ### What the handoff notes cost to write
@@ -129,16 +129,16 @@ Test split: SWE-bench Django tasks from 2019-07-01 on (n=724). Retrieval only, n
 | Dictionary (no graph) | 724 | 0.399 [0.365, 0.435] | 0.598 [0.564, 0.633] | 0.681 [0.649, 0.714] | 0.604 [0.572, 0.637] |
 | Code anchors only | 724 | 0.378 [0.344, 0.413] | 0.506 [0.471, 0.540] | 0.525 [0.490, 0.559] | 0.460 [0.428, 0.495] |
 | Learned graph only | 724 | 0.395 [0.359, 0.430] | 0.593 [0.558, 0.627] | 0.680 [0.644, 0.713] | 0.606 [0.573, 0.639] |
-| Bearings, no second hop | 724 | 0.492 [0.456, 0.528] | 0.698 [0.666, 0.729] | 0.764 [0.732, 0.794] | 0.687 [0.657, 0.719] |
-| Bearings (graph + anchors) | 724 | 0.492 [0.454, 0.528] | 0.700 [0.667, 0.733] | 0.767 [0.735, 0.797] | 0.689 [0.659, 0.720] |
-| Bearings, frozen graph | 724 | 0.452 [0.414, 0.485] | 0.673 [0.638, 0.706] | 0.764 [0.732, 0.794] | 0.682 [0.651, 0.713] |
+| v1 pack, no second hop | 724 | 0.492 [0.456, 0.528] | 0.698 [0.666, 0.729] | 0.764 [0.732, 0.794] | 0.687 [0.657, 0.719] |
+| v1 pack (graph + anchors) | 724 | 0.492 [0.454, 0.528] | 0.700 [0.667, 0.733] | 0.767 [0.735, 0.797] | 0.689 [0.659, 0.720] |
+| v1 pack, frozen graph | 724 | 0.452 [0.414, 0.485] | 0.673 [0.638, 0.706] | 0.764 [0.732, 0.794] | 0.682 [0.651, 0.713] |
 
 | Comparison (paired, same tasks) | Δ hit@1 | Δ hit@5 |
 |---|---|---|
-| Bearings (graph + anchors) − Dictionary (no graph) (n=724) | +0.093 [+0.050, +0.131] | +0.086 [+0.057, +0.113] |
-| Bearings (graph + anchors) − Bearings, no second hop (n=724) | +0.000 [-0.006, +0.006] | +0.003 [-0.003, +0.010] |
-| Bearings (graph + anchors) − Bearings, frozen graph (n=724) | +0.040 [+0.019, +0.064] | +0.003 [-0.019, +0.025] |
-| Bearings (graph + anchors) − Keyword search (BM25) (n=724) | +0.072 [+0.029, +0.116] | +0.007 [-0.025, +0.040] |
+| v1 pack (graph + anchors) − Dictionary (no graph) (n=724) | +0.093 [+0.050, +0.131] | +0.086 [+0.057, +0.113] |
+| v1 pack (graph + anchors) − v1 pack, no second hop (n=724) | +0.000 [-0.006, +0.006] | +0.003 [-0.003, +0.010] |
+| v1 pack (graph + anchors) − v1 pack, frozen graph (n=724) | +0.040 [+0.019, +0.064] | +0.003 [-0.019, +0.025] |
+| v1 pack (graph + anchors) − Keyword search (BM25) (n=724) | +0.072 [+0.029, +0.116] | +0.007 [-0.025, +0.040] |
 | Dictionary (no graph) − Keyword search (BM25) (n=724) | -0.021 [-0.059, +0.018] | -0.079 [-0.109, -0.048] |
 
 SWE-bench Verified subset (n=199):
@@ -149,9 +149,9 @@ SWE-bench Verified subset (n=199):
 | Dictionary (no graph) | 199 | 0.432 [0.367, 0.503] | 0.613 [0.543, 0.678] | 0.704 [0.638, 0.764] | 0.660 [0.598, 0.720] |
 | Code anchors only | 199 | 0.382 [0.317, 0.452] | 0.538 [0.472, 0.608] | 0.543 [0.477, 0.613] | 0.506 [0.442, 0.574] |
 | Learned graph only | 199 | 0.382 [0.317, 0.452] | 0.583 [0.513, 0.648] | 0.693 [0.628, 0.754] | 0.645 [0.579, 0.706] |
-| Bearings, no second hop | 199 | 0.503 [0.432, 0.573] | 0.698 [0.633, 0.764] | 0.774 [0.709, 0.829] | 0.723 [0.659, 0.781] |
-| Bearings (graph + anchors) | 199 | 0.513 [0.442, 0.583] | 0.698 [0.633, 0.764] | 0.779 [0.719, 0.834] | 0.725 [0.663, 0.783] |
-| Bearings, frozen graph | 199 | 0.477 [0.407, 0.548] | 0.714 [0.648, 0.779] | 0.799 [0.739, 0.849] | 0.745 [0.685, 0.800] |
+| v1 pack, no second hop | 199 | 0.503 [0.432, 0.573] | 0.698 [0.633, 0.764] | 0.774 [0.709, 0.829] | 0.723 [0.659, 0.781] |
+| v1 pack (graph + anchors) | 199 | 0.513 [0.442, 0.583] | 0.698 [0.633, 0.764] | 0.779 [0.719, 0.834] | 0.725 [0.663, 0.783] |
+| v1 pack, frozen graph | 199 | 0.477 [0.407, 0.548] | 0.714 [0.648, 0.779] | 0.799 [0.739, 0.849] | 0.745 [0.685, 0.800] |
 
 - Query latency: Quiet machine, 18,997-event graph: whole pack p50 2148 ms (HydraDB path query 1724 ms, code anchors 202 ms). During this benchmark (three runs sharing one HydraDB): p50 2742 ms, p95 4464 ms.
 - Second hop: Adding the co-changed-file hop changed hit@5 on 6 of 724 tasks (4 better, 2 worse). Measured, and close to zero.
@@ -168,16 +168,16 @@ Test split: SWE-bench Django tasks from 2019-07-01 on (n=724). Retrieval only, n
 | Dictionary (no graph) | 724 | 0.254 [0.222, 0.286] | 0.410 [0.376, 0.445] | 0.490 [0.454, 0.528] | 0.430 [0.396, 0.464] |
 | Code anchors only | 724 | 0.378 [0.344, 0.413] | 0.506 [0.471, 0.540] | 0.525 [0.490, 0.559] | 0.460 [0.428, 0.495] |
 | Learned graph only | 724 | 0.267 [0.236, 0.298] | 0.412 [0.376, 0.445] | 0.503 [0.465, 0.537] | 0.444 [0.408, 0.475] |
-| Bearings, no second hop | 724 | 0.454 [0.420, 0.489] | 0.633 [0.599, 0.667] | 0.707 [0.674, 0.739] | 0.626 [0.595, 0.657] |
-| Bearings (graph + anchors) | 724 | 0.454 [0.420, 0.488] | 0.633 [0.599, 0.667] | 0.707 [0.675, 0.739] | 0.626 [0.596, 0.657] |
-| Bearings, frozen graph | 724 | 0.409 [0.374, 0.443] | 0.588 [0.554, 0.623] | 0.640 [0.606, 0.674] | 0.561 [0.528, 0.593] |
+| v1 pack, no second hop | 724 | 0.454 [0.420, 0.489] | 0.633 [0.599, 0.667] | 0.707 [0.674, 0.739] | 0.626 [0.595, 0.657] |
+| v1 pack (graph + anchors) | 724 | 0.454 [0.420, 0.488] | 0.633 [0.599, 0.667] | 0.707 [0.675, 0.739] | 0.626 [0.596, 0.657] |
+| v1 pack, frozen graph | 724 | 0.409 [0.374, 0.443] | 0.588 [0.554, 0.623] | 0.640 [0.606, 0.674] | 0.561 [0.528, 0.593] |
 
 | Comparison (paired, same tasks) | Δ hit@1 | Δ hit@5 |
 |---|---|---|
-| Bearings (graph + anchors) − Dictionary (no graph) (n=724) | +0.200 [+0.159, +0.240] | +0.217 [+0.178, +0.256] |
-| Bearings (graph + anchors) − Bearings, no second hop (n=724) | +0.000 [-0.004, +0.004] | +0.000 [-0.004, +0.004] |
-| Bearings (graph + anchors) − Bearings, frozen graph (n=724) | +0.046 [+0.026, +0.066] | +0.068 [+0.043, +0.091] |
-| Bearings (graph + anchors) − Keyword search (BM25) (n=724) | +0.156 [+0.112, +0.199] | +0.156 [+0.113, +0.198] |
+| v1 pack (graph + anchors) − Dictionary (no graph) (n=724) | +0.200 [+0.159, +0.240] | +0.217 [+0.178, +0.256] |
+| v1 pack (graph + anchors) − v1 pack, no second hop (n=724) | +0.000 [-0.004, +0.004] | +0.000 [-0.004, +0.004] |
+| v1 pack (graph + anchors) − v1 pack, frozen graph (n=724) | +0.046 [+0.026, +0.066] | +0.068 [+0.043, +0.091] |
+| v1 pack (graph + anchors) − Keyword search (BM25) (n=724) | +0.156 [+0.112, +0.199] | +0.156 [+0.113, +0.198] |
 | Dictionary (no graph) − Keyword search (BM25) (n=724) | -0.044 [-0.072, -0.017] | -0.061 [-0.091, -0.033] |
 
 SWE-bench Verified subset (n=199):
@@ -188,9 +188,9 @@ SWE-bench Verified subset (n=199):
 | Dictionary (no graph) | 199 | 0.241 [0.186, 0.302] | 0.392 [0.322, 0.457] | 0.482 [0.412, 0.553] | 0.444 [0.377, 0.510] |
 | Code anchors only | 199 | 0.382 [0.317, 0.452] | 0.538 [0.472, 0.608] | 0.543 [0.477, 0.613] | 0.506 [0.442, 0.574] |
 | Learned graph only | 199 | 0.246 [0.191, 0.307] | 0.397 [0.332, 0.467] | 0.492 [0.422, 0.558] | 0.450 [0.380, 0.514] |
-| Bearings, no second hop | 199 | 0.462 [0.397, 0.533] | 0.633 [0.563, 0.698] | 0.704 [0.638, 0.769] | 0.650 [0.587, 0.713] |
-| Bearings (graph + anchors) | 199 | 0.457 [0.387, 0.528] | 0.633 [0.563, 0.698] | 0.704 [0.638, 0.769] | 0.650 [0.587, 0.713] |
-| Bearings, frozen graph | 199 | 0.417 [0.352, 0.487] | 0.613 [0.548, 0.683] | 0.683 [0.618, 0.749] | 0.632 [0.568, 0.695] |
+| v1 pack, no second hop | 199 | 0.462 [0.397, 0.533] | 0.633 [0.563, 0.698] | 0.704 [0.638, 0.769] | 0.650 [0.587, 0.713] |
+| v1 pack (graph + anchors) | 199 | 0.457 [0.387, 0.528] | 0.633 [0.563, 0.698] | 0.704 [0.638, 0.769] | 0.650 [0.587, 0.713] |
+| v1 pack, frozen graph | 199 | 0.417 [0.352, 0.487] | 0.613 [0.548, 0.683] | 0.683 [0.618, 0.749] | 0.632 [0.568, 0.695] |
 
 - Query latency: Quiet machine, 18,997-event graph: whole pack p50 2148 ms (HydraDB path query 1724 ms, code anchors 202 ms). During this benchmark (three runs sharing one HydraDB): p50 820 ms, p95 1241 ms.
 - Second hop: Adding the co-changed-file hop changed hit@5 on 2 of 724 tasks (1 better, 1 worse). Measured, and close to zero.
@@ -210,18 +210,18 @@ Measured on the dev split (graph only): for each gold source file, is it linked 
 
 The agent (DeepSeek V4.1 Flash through OpenCode) reads the issue, explores a history-free snapshot of the repo at the issue's commit, and names the files it would edit. Success is checked in code against the real fix. Token counts are OpenCode's per-step usage, summed, and include the context pack. Packs come from a graph built only from events before 2022-07-01; tasks are SWE-bench Verified issues from after it.
 
-Model: `deepseek/deepseek-flash` via OpenCode 1.18.35, step cap 25, sandboxed (no network except the model API). Paired tasks (a counted run in no memory, dictionary and Bearings): 40. Code anchors in prompt ran on 1 task(s) before it was dropped to stay within budget; too few to report. Runs excluded (rate-limited or the agent never started): 0 of 121. Timeouts counted as failures: 0. Runs with a command flagged by the escape check (`find /`, `pip`, a URL in a command): 5; the sandbox has no network and sees only the snapshot, so they are counted normally.
+Model: `deepseek/deepseek-flash` via OpenCode 1.18.35, step cap 25, sandboxed (no network except the model API). Paired tasks (a counted run in no memory, dictionary and the v1 pack): 40. Code anchors in prompt ran on 1 task(s) before it was dropped to stay within budget; too few to report. Runs excluded (rate-limited or the agent never started): 0 of 121. Timeouts counted as failures: 0. Runs with a command flagged by the escape check (`find /`, `pip`, a URL in a command): 5; the sandbox has no network and sees only the snapshot, so they are counted normally.
 
 | Condition | success (all gold files named) | hit (≥1 gold file) | total input tokens, median [IQR] | tokens until first real-fix file opened, median | uncached input | output+reasoning | tool calls | wall s |
 |---|---|---|---|---|---|---|---|---|
 | No memory | 0.925 [0.850, 1.000] | 1.000 [1.000, 1.000] | 76,626 [45,256–329,248] | 6,928 (0 never) | 8,006 | 3,037 | 10 | 36 |
 | Dictionary pack in prompt | 0.950 [0.875, 1.000] | 1.000 [1.000, 1.000] | 112,149 [32,738–309,220] | 6,809 (0 never) | 6,894 | 3,675 | 10 | 37 |
-| Bearings pack in prompt | 0.950 [0.875, 1.000] | 1.000 [1.000, 1.000] | 79,749 [44,686–339,426] | 7,061 (0 never) | 7,980 | 3,486 | 10 | 35 |
+| v1 pack in prompt | 0.950 [0.875, 1.000] | 1.000 [1.000, 1.000] | 79,749 [44,686–339,426] | 7,061 (0 never) | 7,980 | 3,486 | 10 | 35 |
 
 | Paired difference vs no memory | Δ success | Δ total input tokens (mean, 95% CI) | median per-task ratio | Δ tokens until first real-fix file (mean, 95% CI) | median per-task ratio |
 |---|---|---|---|---|---|
 | Dictionary pack in prompt | +0.025 [+0.000, +0.075] | -2,623 [-40,155, +32,245] | 0.94 | -4,530 [-11,936, -123] | 1.01 |
-| Bearings pack in prompt | +0.025 [+0.000, +0.075] | +20,210 [-20,282, +60,766] | 1.03 | -5,425 [-13,438, -807] | 1.06 |
+| v1 pack in prompt | +0.025 [+0.000, +0.075] | +20,210 [-20,282, +60,766] | 1.03 | -5,425 [-13,438, -807] | 1.06 |
 
 ## Claude Code demo (a few tasks, not a statistic)
 
@@ -229,13 +229,13 @@ Headless Claude Code (`claude -p`, sonnet) fixing the issue end to end. Usage is
 
 | Task | Side | total input | vs without | uncached input | cache write | cache read | output | turns | tool calls | right files | list-price arithmetic |
 |---|---|---|---|---|---|---|---|---|---|---|---|
-| django__django-15863 | Without Bearings | 108,493 |  | 6 | 13,647 | 94,840 | 705 | 4 | 3 | True | $0.07 |
-| django__django-15863 | Without Bearings (rerun) | 142,809 | +32% | 8 | 13,220 | 129,581 | 1,034 | 5 | 4 | True | $0.08 |
-| django__django-15863 | Bearings v1 via MCP tool | 185,137 | +71% | 12 | 14,971 | 170,154 | 1,348 | 7 | 6 | True | $0.09 |
-| django__django-15863 | Bearings v1 via prompt hook | 144,424 | +33% | 8 | 13,374 | 131,042 | 777 | 5 | 4 | True | $0.07 |
-| django__django-15863 | Bearings v2 via hooks (graph + code anchors) | 144,292 | +33% | 8 | 13,328 | 130,956 | 776 | 5 | 4 | True | $0.07 |
-| django__django-16560 | Without Bearings | 253,968 |  | 12 | 21,630 | 232,326 | 2,632 | 6 | 5 | True | $0.14 |
-| django__django-16560 | Without Bearings (rerun) | 304,542 | +20% | 14 | 24,168 | 280,360 | 3,579 | 7 | 6 | True | $0.16 |
-| django__django-16560 | Bearings v1 via MCP tool | 295,771 | +16% | 16 | 25,516 | 270,239 | 2,991 | 8 | 7 | True | $0.16 |
-| django__django-16560 | Bearings v1 via prompt hook | 316,110 | +24% | 14 | 25,212 | 290,884 | 3,173 | 8 | 7 | True | $0.16 |
-| django__django-16560 | Bearings v2 via hooks (graph + code anchors) | 408,458 | +61% | 18 | 28,261 | 380,179 | 5,474 | 11 | 10 | True | $0.21 |
+| django__django-15863 | No pack | 108,493 |  | 6 | 13,647 | 94,840 | 705 | 4 | 3 | True | $0.07 |
+| django__django-15863 | No pack (rerun) | 142,809 | +32% | 8 | 13,220 | 129,581 | 1,034 | 5 | 4 | True | $0.08 |
+| django__django-15863 | v1 pack via MCP tool | 185,137 | +71% | 12 | 14,971 | 170,154 | 1,348 | 7 | 6 | True | $0.09 |
+| django__django-15863 | v1 pack via prompt hook | 144,424 | +33% | 8 | 13,374 | 131,042 | 777 | 5 | 4 | True | $0.07 |
+| django__django-15863 | HandoffDB v2 via hooks (graph + code anchors) | 144,292 | +33% | 8 | 13,328 | 130,956 | 776 | 5 | 4 | True | $0.07 |
+| django__django-16560 | No pack | 253,968 |  | 12 | 21,630 | 232,326 | 2,632 | 6 | 5 | True | $0.14 |
+| django__django-16560 | No pack (rerun) | 304,542 | +20% | 14 | 24,168 | 280,360 | 3,579 | 7 | 6 | True | $0.16 |
+| django__django-16560 | v1 pack via MCP tool | 295,771 | +16% | 16 | 25,516 | 270,239 | 2,991 | 8 | 7 | True | $0.16 |
+| django__django-16560 | v1 pack via prompt hook | 316,110 | +24% | 14 | 25,212 | 290,884 | 3,173 | 8 | 7 | True | $0.16 |
+| django__django-16560 | HandoffDB v2 via hooks (graph + code anchors) | 408,458 | +61% | 18 | 28,261 | 380,179 | 5,474 | 11 | 10 | True | $0.21 |

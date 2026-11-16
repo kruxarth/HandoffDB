@@ -1,4 +1,4 @@
-"""Bearings handoff graph: what earlier agent runs opened, found and concluded,
+"""HandoffDB handoff graph: what earlier agent runs opened, found and concluded,
 recorded as structure in HydraDB from their tool calls (no model call), and
 read back for the next agent as a small pack from a few traversals.
 
@@ -446,7 +446,7 @@ def render(pack: dict, info: dict | None = None) -> str:
         return s
     n = pack["n_runs"]
     out = [f"Handoff from {n} earlier agent run{'s' if n != 1 else ''} on this repository that worked on issues near this code "
-           "(Bearings). What they opened and concluded; line numbers are from their checkouts and may have shifted. "
+           "(HandoffDB). What they opened and concluded; line numbers are from their checkouts and may have shifted. "
            "Start from these; search wider only if they do not fit."]
     if pack["source"]:
         out.append("Source files:")

@@ -15,6 +15,9 @@ dependencies = [
 ]
 
 [project.scripts]
+handoffdb = "bearings.cli:main"
+handoffdb-web = "bearings.web:main"
+handoffdb-mcp = "bearings.mcp_server:main"
 bearings = "bearings.cli:main"
 bearings-mcp = "bearings.mcp_server:main"
 bearings-web = "bearings.web:main"

@@ -1,4 +1,4 @@
-"""Bearings dashboard: result charts plus a "try a task" view.
+"""HandoffDB dashboard: result charts plus a "try a task" view.
 
   uv run bearings-web            # http://127.0.0.1:8765  (scope: $BEARINGS_TEAM/$BEARINGS_REPO)
 

@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Bearings · handoffs between coding agents, as a graph</title>
+<title>HandoffDB · handoffs between coding agents, as a graph</title>
 <style>
 :root{
   color-scheme:light;
@@ -126,14 +126,14 @@ footer{color:var(--muted);font-size:13px;padding:40px 0 60px}
 </head>
 <body>
 <header class="top"><div class="wrap">
-  <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M12 3v3M12 18v3M3 12h3M18 12h3"/><path d="M14.8 9.2l-4.2 1.4-1.4 4.2 4.2-1.4z" fill="var(--accent)"/></svg>Bearings</div>
+  <div class="brand"><svg viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2.2" stroke-linecap="round"><path d="M6 7l6 10M18 7l-6 10M6 7h12"/><circle cx="6" cy="7" r="2.6" fill="var(--accent)"/><circle cx="18" cy="7" r="2.6" fill="var(--accent)"/><circle cx="12" cy="17" r="2.6" fill="var(--accent)"/></svg>HandoffDB</div>
   <nav><a href="#hand">Handoff results</a><a href="#htry">Try it</a><a href="#first">What we learned first</a><a href="#method">Method</a></nav>
   <button class="theme" id="theme">Theme</button>
 </div></header>
 
 <main class="wrap">
   <div class="hero">
-    <h1>Every agent starts cold. Bearings hands it what earlier agents already worked out.</h1>
+    <h1>Every agent starts cold. HandoffDB hands it what earlier agents already worked out.</h1>
     <p class="lede" id="lede">Each agent run is recorded in self-hosted HydraDB as structure, straight from its tool calls: what it opened, at which lines, which tests it found, what it concluded. No model call. The next agent, on the same task or a different one near the same code, gets a small pack from a few graph traversals instead of re-exploring or reading a pile of handoff notes.</p>
     <div class="pills" id="pills"></div>
     <div class="kpis" id="kpis"></div>
@@ -173,7 +173,7 @@ footer{color:var(--muted);font-size:13px;padding:40px 0 60px}
   </section>
 
   <div id="first" style="scroll-margin-top:64px;padding-top:40px"><h2 style="font-size:30px;letter-spacing:-.6px;margin:0">What we learned first</h2>
-    <p class="intro" style="color:var(--text-2);max-width:820px">Bearings began as a learned "where to start" pack. Retrieval beat keyword search, but live agents saved nothing: they open the right file in their first step or two anyway, and 93–96% of tokens are spent afterwards. That is why it was rebuilt around handoffs. The original results follow.</p></div>
+    <p class="intro" style="color:var(--text-2);max-width:820px">The project began as a learned "where to start" pack. Retrieval beat keyword search, but live agents saved nothing: they open the right file in their first step or two anyway, and 93–96% of tokens are spent afterwards. That is why it was rebuilt around handoffs. The original results follow.</p></div>
 
   <section id="try">
     <h2>Try a task (first version)</h2>
@@ -233,7 +233,7 @@ footer{color:var(--muted);font-size:13px;padding:40px 0 60px}
 
   <section id="claude">
     <h2>Claude Code: one task at a time</h2>
-    <p class="intro">Headless Claude Code fixing a real issue end to end, with and without Bearings. A handful of examples, not a statistic, and a different model from the measurements above. Usage is Claude Code's own report.</p>
+    <p class="intro">Headless Claude Code fixing a real issue end to end, with and without a pack. A handful of examples, not a statistic, and a different model from the measurements above. Usage is Claude Code's own report.</p>
     <div class="card"><div id="demo"></div></div>
   </section>
 
@@ -410,7 +410,7 @@ function segmented(el, items, cur, onPick){
   $('#hintro').innerHTML = H.intro || '';
   if(H.warn) $('#hwarn').innerHTML = `<div class="warn">${H.warn}</div>`;
   const CC = {cold:'var(--s5)', notes:'var(--s2)', graph:'var(--s1)'};
-  const LB = {cold:'Cold start', notes:'Handoff notes', graph:'Bearings pack'};
+  const LB = {cold:'Cold start', notes:'Handoff notes', graph:'HandoffDB pack'};
   const exps = [['A','A · a different issue'],['B','B · the same issue']].filter(e=>H[e[0]] && H[e[0]].n);
   if(!exps.length){ $('#hintro').innerHTML += ' <b>Runs in progress.</b>'; return; }
   let cur = exps[0][0];
@@ -421,7 +421,7 @@ function segmented(el, items, cur, onPick){
     $('#htokcap').textContent = `Median over ${E.n} paired issues, line = interquartile range. Includes the pack and any notes the agent read.`;
     dotWhisker($('#htok'), cs.map(c=>({label:LB[c], m:E.conds[c].median_in, lo:E.conds[c].q1, hi:E.conds[c].q3, color:CC[c], bold:c==='graph', n:E.n})), {min:0,max:tk[4],ticks:tk,fmt:kfmt});
     dotWhisker($('#hsucc'), cs.map(c=>({label:LB[c], m:E.conds[c].succ[0], lo:E.conds[c].succ[1], hi:E.conds[c].succ[2], color:CC[c], bold:c==='graph', n:E.n})));
-    const pr = [['graph-cold','Bearings pack − cold'],['graph-notes','Bearings pack − notes'],['notes-cold','Notes − cold']].filter(p=>E[p[0]]);
+    const pr = [['graph-cold','HandoffDB pack − cold'],['graph-notes','HandoffDB pack − notes'],['notes-cold','Notes − cold']].filter(p=>E[p[0]]);
     $('#hdiff').innerHTML = `<table><tr><th>Comparison</th><th class="num">Δ tokens per run</th><th class="num">median ratio</th><th class="num">Δ success</th><th>Verdict</th></tr>`+
       pr.map(([k,l])=>{const d=E[k]; const good=d.verdict==='saves tokens';
         return `<tr class="${k.startsWith('graph')&&good?'hl':''}"><td>${l}</td><td class="num">${d.dtok[0]>=0?'+':''}${num(d.dtok[0])} <span class="ci">[${num(d.dtok[1])}, ${num(d.dtok[2])}]</span></td><td class="num">${d.ratio.toFixed(2)}×</td>

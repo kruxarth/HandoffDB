@@ -21,10 +21,10 @@ from summarize import CONDS, ci, paired_diff  # noqa: E402
 import report_handoff  # noqa: E402
 
 RES = ROOT / "results"
-SIDE = {"without": "Without Bearings", "without-2": "Without Bearings (rerun)", "with": "Bearings v1 via MCP tool",
-        "hook-v1": "Bearings v1 via prompt hook", "hook": "Bearings v2 via hooks (graph + code anchors)"}
-LABEL = {"bm25": "Keyword search (BM25)", "dict": "Dictionary (no graph)", "bearings-1": "Bearings, one hop",
-         "bearings": "Bearings, full", "frozen": "Frozen graph"}
+SIDE = {"without": "No pack", "without-2": "No pack (rerun)", "with": "v1 pack via MCP tool",
+        "hook-v1": "v1 pack via prompt hook", "hook": "HandoffDB v2 via hooks (graph + code anchors)"}
+LABEL = {"bm25": "Keyword search (BM25)", "dict": "Dictionary (no graph)", "bearings-1": "v1 pack, one hop",
+         "bearings": "v1 pack, full", "frozen": "Frozen graph"}
 COLOR = {"bearings": "--series-1", "dict": "--series-2", "bearings-1": "--series-3", "frozen": "--series-4",
          "bm25": "--series-5"}
 METRICS = ("hit@1", "hit@3", "hit@5", "recall@5")
@@ -166,7 +166,7 @@ def svg_bars(groups: list[tuple[str, list[tuple[str, float, float, float]]]], ci
 
 
 L2_LAB = {"none": "No memory", "dict": "Dictionary pack in prompt", "anchors": "Code anchors in prompt",
-          "bearings": "Bearings pack in prompt", "bearings-mcp": "Bearings via MCP tool (v1)"}
+          "bearings": "v1 pack in prompt", "bearings-mcp": "v1 pack via MCP tool"}
 L2_ORDER = ["none", "dict", "anchors", "bearings", "bearings-mcp"]
 
 
@@ -198,7 +198,7 @@ def level2() -> tuple[str, dict]:
     escapes = sum(1 for r in valid if r.get("outside_access") and r["id"] in ids)
     model = valid[0]["model"] if valid else "?"
     out = [f"Model: `{model}` via OpenCode 1.18.35, step cap 25, sandboxed (no network except the model API). "
-           f"Paired tasks (a counted run in no memory, dictionary and Bearings): {len(ids)}."
+           f"Paired tasks (a counted run in no memory, dictionary and the v1 pack): {len(ids)}."
            + "".join(f" {L2_LAB[c]} ran on {n} task(s) before it was dropped to stay within budget; too few to report." for c, n in dropped.items())
            + f" Runs excluded (rate-limited or the agent never "
            f"started): {excluded} of {len(rs)}. Timeouts counted as failures: {timeouts}. Runs with a command flagged by the "
@@ -264,8 +264,8 @@ def reach_section() -> str:
 
 
 L1_ORDER = ["bearings", "bearings-1", "graph", "anchors", "bm25", "dict", "frozen"]
-LABEL.update({"anchors": "Code anchors only", "graph": "Learned graph only", "bearings": "Bearings (graph + anchors)",
-              "bearings-1": "Bearings, no second hop", "frozen": "Bearings, frozen graph"})
+LABEL.update({"anchors": "Code anchors only", "graph": "Learned graph only", "bearings": "v1 pack (graph + anchors)",
+              "bearings-1": "v1 pack, no second hop", "frozen": "v1 pack, frozen graph"})
 COLORS = {"bearings": "s1", "bm25": "s2", "graph": "s3", "frozen": "s4", "dict": "s5", "anchors": "s7", "bearings-1": "s6",
           "l2:none": "s4", "l2:dict": "s5", "l2:anchors": "s7", "l2:bearings": "s1", "l2:bearings-mcp": "s3"}
 SEED_TITLE = {"history": "Seeded from history", "tasks": "Empty start"}
@@ -392,7 +392,7 @@ def handoff_dash(h: dict) -> dict:
                     f"for a real Django issue. Before it, {mem.get('n', '?')} cold runs on earlier issues were recorded. "
                     "<b>A</b>: the next agent works on a <em>different</em> issue (102 SWE-bench issues from July 2022, each "
                     "seeing only runs on issues dated before it). <b>B</b>: a second agent on the <em>same</em> issue. "
-                    "Notes = the earlier agents' Markdown handoff notes on disk; pack = the Bearings pack in the prompt. "
+                    "Notes = the earlier agents' Markdown handoff notes on disk; pack = the HandoffDB pack in the prompt. "
                     "Token counts are OpenCode's own usage reports and include the pack and any notes read.")
     if A.get("n"):
         out["warn"] = (f"Excluded (rate-limited or never started): {A['excluded']} of {A['total_runs']} runs in A, "
@@ -471,7 +471,7 @@ def dashboard(data: dict, l2: dict) -> None:
     data["pills"] = ["Self-hosted HydraDB (open source)", "Recorded from tool calls, no model call",
                      "A few length-1 traversals per pack", "Pre-registered, every number from committed files"]
     data["l1_intro"] = (f"Every SWE-bench task on Django ({sum(1 for _ in open(ROOT / 'data/derived/tasks.jsonl'))} issues, 2015–2023) "
-                        "replayed in date order. For each issue Bearings suggests five files using only what it learned "
+                        "replayed in date order. For each issue the v1 pack suggests five files using only what it learned "
                         "<em>before</em> that issue, then learns from the real fix. Scored on the 724 issues from 2019-07 on; "
                         "tuning used only the earlier 126. <b>The graph learns from the dataset's own real fixes</b>, as a team's "
                         "graph would learn from its merged work.")
@@ -506,7 +506,7 @@ def dashboard(data: dict, l2: dict) -> None:
         "<b>Live agents.</b> One run per task and condition, so small differences are noise; intervals are shown. "
         "The agent runs in a sandbox with no network except the model API, after earlier runs were caught fetching the real "
         "fix from GitHub and reading other checkouts. Those runs were discarded.",
-        "<b>Claude Code.</b> A few end-to-end examples with a different model. Delivered through an MCP tool, Bearings cost "
+        "<b>Claude Code.</b> A few end-to-end examples with a different model. Delivered through an MCP tool, the v1 pack cost "
         "extra turns and more tokens; that is why it now injects the pack through a prompt hook and learns through a stop hook.",
         "<b>Money.</b> Any dollar figure is list-price arithmetic from token counts, not a measured bill.",
     ]

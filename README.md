@@ -1,12 +1,14 @@
-# Bearings
+# HandoffDB
 
-**Every coding agent starts cold. Bearings hands it what earlier agents on the same repository already worked out, as a graph in HydraDB.**
+*Handoffs between coding agents, as a graph on HydraDB.*
+
+**Every coding agent starts cold. HandoffDB hands it what earlier agents on the same repository already worked out, as a graph in HydraDB.**
 
 Each agent run is recorded in self-hosted [HydraDB](https://github.com/hydra-db/hydradb) as structure, straight from its tool calls: what it opened, at which lines, which tests and docs it found, what it concluded. No model call. The next agent, on the same task or a different one near the same code, gets a small pack from a few graph traversals instead of re-exploring, or reading a pile of handoff notes.
 
 **What we found** (pre-registered; 426 live agent runs on 142 real Django issues; success checked in code):
 
-| Next agent's situation | Cold start | Earlier agents' handoff notes | **Bearings pack** |
+| Next agent's situation | Cold start | Earlier agents' handoff notes | **HandoffDB pack** |
 |---|---|---|---|
 | **A different issue** (102 issues): median input tokens per run | 177k | 343k | **171k** |
 | success | 68% | 69% | 68% |
@@ -19,7 +21,7 @@ Each agent run is recorded in self-hosted [HydraDB](https://github.com/hydra-db/
 
 **So the honest claim is narrower than "fewer tokens":** the graph does not make a cold agent cheaper. It makes handoffs scale: where a pile of notes costs a third more and grows with every session (146k tokens after 301 runs), the pack stays about 330 tokens, costs no model call to write, and on a same-task handoff it makes the next agent more often right.
 
-Everything below was measured with **DeepSeek V4.1 Flash through OpenCode**, in a network-isolated sandbox, on real SWE-bench Django issues, with success checked in code. Pre-registered in [`bench/handoff_prereg.md`](bench/handoff_prereg.md) before any run on the targets. Full tables: [`results/RESULTS.md`](results/RESULTS.md). Dashboard with the charts and a live "paste a task" box: `uv run bearings-web`.
+Everything below was measured with **DeepSeek V4.1 Flash through OpenCode**, in a network-isolated sandbox, on real SWE-bench Django issues, with success checked in code. Pre-registered in [`bench/handoff_prereg.md`](bench/handoff_prereg.md) before any run on the targets. Full tables: [`results/RESULTS.md`](results/RESULTS.md). Dashboard with the charts and a live "paste a task" box: `uv run handoffdb-web`.
 
 ## The four judging questions
 
@@ -31,8 +33,8 @@ Everything below was measured with **DeepSeek V4.1 Flash through OpenCode**, in 
 ## The story in three steps
 
 1. **We measured where agent tokens go.** In 120 logged agent runs on 40 real issues (Level 2 below), the agent opened a file of the real fix within its first step or two in every condition, and **93–96% of tokens were spent afterwards**: on neighbouring source files (21–31%), hunting tests and docs (25–31%), and reading the fix file again (18–23%) ([`results/level2_decompose.txt`](results/level2_decompose.txt)).
-2. **Our first product aimed at the wrong 5%.** Bearings v1 was a learned "where to start" pack. Its retrieval was good (it ranked the real fix first 49.2% of the time against 42.0% for keyword search, on 724 issues), but live agents saved nothing: median 76.6k input tokens without it, 79.7k with it.
-3. **We rebuilt it for the rest.** The tokens go to work an earlier agent has often already done: which neighbouring files matter, where the tests live, what the fix looked like. So Bearings now records that work, and hands it on.
+2. **So pointing an agent at the right file is not enough.** An earlier "where to start" pack of ours ranked the right file well but saved live agents nothing (details at the end).
+3. **We rebuilt it for the rest.** The tokens go to work an earlier agent has often already done: which neighbouring files matter, where the tests live, what the fix looked like. So HandoffDB records that work, and hands it on.
 
 ## How it works
 
@@ -62,7 +64,7 @@ YIELD path RETURN path
 A real pack, for SWE-bench `django__django-15863` (floatformat drops precision for `Decimal`), built only from runs on issues dated before it. This one is chosen as an example where the pack held the fix: the real fix changed `django/template/defaultfilters.py` and extended `tests/template_tests/filter_tests/test_floatformat.py`. Across all 102 targets the pack holds both 34% of the time (below).
 
 ```
-Handoff from 5 earlier agent runs on this repository that worked on issues near this code (Bearings). What they opened and concluded; line numbers are from their checkouts and may have shifted. Start from these; search wider only if they do not fit.
+Handoff from 5 earlier agent runs on this repository that worked on issues near this code (HandoffDB). What they opened and concluded; line numbers are from their checkouts and may have shifted. Start from these; search wider only if they do not fit.
 Source files:
   django/template/base.py  opened by 3 earlier runs (lines 850-950, 990-1095, 1035-1074); 1 concluded their fix belonged here
   django/template/autoreload.py  opened by 2 earlier runs (lines 1-200); 2 concluded their fix belonged here
@@ -79,7 +81,7 @@ Docs they checked:
 Earlier issues: Template changes cause dev server to reload | Make floatformat template filter independent of USE_L10N and allow forcing unlocalized for | Django 3.2.4+ autoreload breaks on empty string in TEMPLATES DIRS.
 ```
 
-**Delivery.** In Claude Code, two hooks: `Stop` records the session from its transcript (`bearings handoff-stop`, no agent turn, no model call) and `UserPromptSubmit` injects the pack (`bearings handoff-hook`). `bearings handoff-hooks-config` prints the settings block. Tenant and subtenant scopes map to team and repository, so every agent on a team reads and writes one graph per repo.
+**Delivery.** In Claude Code, two hooks: `Stop` records the session from its transcript (`handoffdb handoff-stop`, no agent turn, no model call) and `UserPromptSubmit` injects the pack (`handoffdb handoff-hook`). `handoffdb handoff-hooks-config` prints the settings block. Tenant and subtenant scopes map to team and repository, so every agent on a team reads and writes one graph per repo.
 
 ## What the graph adds, as measured
 
@@ -87,7 +89,7 @@ Earlier issues: Template changes cause dev server to reload | Make floatformat t
 
 | | every fix file | a real test file | both |
 |---|---|---|---|
-| **Bearings graph** (entities and code anchors → runs → files) | **51%** [42, 61] | **43%** [33, 53] | **34%** [25, 44] |
+| **HandoffDB graph** (entities and code anchors → runs → files) | **51%** [42, 61] | **43%** [33, 53] | **34%** [25, 44] |
 | Plain word → file table | 36% [26, 45] | 28% [21, 37] | 17% [10, 24] |
 | Plain word + code-anchor → file table | 47% [37, 57] | 32% [24, 41] | 22% [14, 29] |
 
@@ -112,7 +114,7 @@ Requirements: Linux or macOS, Docker, [uv](https://docs.astral.sh/uv/), git. The
 
 ```bash
 git clone https://github.com/hydra-db/hydradb.git          # next to this repo
-git clone https://github.com/kruxarth/bearings-hydradb.git bearings && cd bearings
+git clone https://github.com/kruxarth/bearings-hydradb.git handoffdb && cd handoffdb
 uv sync
 scripts/start_hydradb.sh                                   # builds and starts HydraDB (data in .hydradb/)
 ```
@@ -120,10 +122,10 @@ scripts/start_hydradb.sh                                   # builds and starts H
 Connect Claude Code: print the hooks block and paste it into your repository's `.claude/settings.json`. Every finished session is recorded; every new prompt gets the pack.
 
 ```bash
-uv run bearings --team myteam --repo myrepo handoff-hooks-config
+uv run handoffdb --team myteam --repo myrepo handoff-hooks-config
 ```
 
-By hand: `bearings handoff-record <transcript.jsonl> "<task>"` records a session, `bearings handoff-pack "<task>"` prints the pack. Dashboard: `uv run bearings-web` (http://127.0.0.1:8765).
+By hand: `handoffdb handoff-record <transcript.jsonl> "<task>"` records a session, `handoffdb handoff-pack "<task>"` prints the pack. Dashboard: `uv run handoffdb-web` (http://127.0.0.1:8765). The Python package is still `src/bearings/`, the project's working name; the old `bearings` commands work too.
 
 ## Reproducing the numbers
 
@@ -159,17 +161,17 @@ uv run python bench/report.py
 - **Escape attempts are logged, not hidden.** 47 of 426 runs tried something the sandbox blocks (mostly `pip install` and `find /`); the proxy allowed only the model API (every pypi and npm request was denied, `runs/handoff/netproxy.jsonl`). They are counted normally, as pre-registered.
 - **Money** is list-price arithmetic from token counts, never a measured bill.
 
-## What we learned first (Bearings v1: a learned "where to start" pack)
+## Earlier version: a learned "where to start" pack
 
-Bearings started as a learned context layer: each finished task wrote its entities and the files its fix changed into HydraDB, and a new task got a ranked "where to start" pack from one weighted `algo.MSpaths` query plus code anchors. The full write-up of that version, its tables and its Claude Code demo are in [`results/RESULTS.md`](results/RESULTS.md) (second half) and the git history of this README.
+The project started as a learned context layer: each finished task wrote its entities and the files its fix changed into HydraDB, and a new task got a ranked "where to start" pack from one weighted `algo.MSpaths` query plus code anchors. The full write-up of that version, its tables and its Claude Code demo are in [`results/RESULTS.md`](results/RESULTS.md) (second half) and the git history of this README.
 
-- **Retrieval worked (Level 1).** All 850 SWE-bench Django issues replayed in date order, each answered only from what came before it, scored on the 724 from 2019-07 on. Seeded from Django's history, Bearings ranked the real fix first **49.2%** of the time against **42.0%** for keyword search (BM25), +7.2 points [+2.9, +11.6], and tied it at top 5 (76.7% vs 76.0%). From an empty graph it reached 70.7% top-5 against 55.1%, and beat the same graph frozen at the start by 6.8 points: learning as tasks arrive was real.
-- **Live agents saved nothing (Level 2).** 40 SWE-bench Verified issues, OpenCode with DeepSeek V4.1 Flash, sandboxed: median total input 76.6k tokens without a pack, 79.7k with the Bearings pack, 112.1k with a dictionary pack; success 92.5% / 95.0% / 95.0%. Flat within noise.
+- **Retrieval worked (Level 1).** All 850 SWE-bench Django issues replayed in date order, each answered only from what came before it, scored on the 724 from 2019-07 on. Seeded from Django's history, it ranked the real fix first **49.2%** of the time against **42.0%** for keyword search (BM25), +7.2 points [+2.9, +11.6], and tied it at top 5 (76.7% vs 76.0%). From an empty graph it reached 70.7% top-5 against 55.1%, and beat the same graph frozen at the start by 6.8 points: learning as tasks arrive was real.
+- **Live agents saved nothing (Level 2).** 40 SWE-bench Verified issues, OpenCode with DeepSeek V4.1 Flash, sandboxed: median total input 76.6k tokens without a pack, 79.7k with the v1 pack, 112.1k with a dictionary pack; success 92.5% / 95.0% / 95.0%. Flat within noise.
 - **Why** ([`results/level2_decompose.txt`](results/level2_decompose.txt), from those 120 logs, no model calls): the agent opened a real-fix file within its first step or two in every condition, at about 7k tokens. 93–96% of tokens came after that. An oracle pack holding the real fix was pre-registered to test the ceiling ([`bench/oracle_prereg.md`](bench/oracle_prereg.md)); it was cut short by the free tier's limit after 3 of 10 issues and is reported as incomplete in [`results/oracle_test.txt`](results/oracle_test.txt).
-- **Dropped without spending agent runs:** vague-report retrieval, where keyword search beat Bearings on the same 40 issues ([`results/vague_check.txt`](results/vague_check.txt)).
+- **Dropped without spending agent runs:** vague-report retrieval, where keyword search beat the v1 pack on the same 40 issues ([`results/vague_check.txt`](results/vague_check.txt)).
 - **Claude Code demo** (two issues, sonnet, not a statistic): v1 and v2 both cost more tokens than running without them (+16% to +71%), within ±20–30% run-to-run noise; Sonnet went straight to the named function.
 - **Leaks found and closed** along the way, all contaminated runs discarded: `git log --all` in worktrees exposed future fixes (now single-commit snapshots, `scripts/snapshot.sh`); agents read other checkouts (now a bubblewrap sandbox, `scripts/sandbox_opencode.sh`); agents fetched the upstream fix with `curl` and web search (now no network except an allow-list proxy to the model API, `scripts/netproxy.py`, every attempt logged).
 
 ## Licence
 
-Bearings is MIT licensed (see `LICENSE`). HydraDB is licensed under the Elastic License 2.0 and is used here unmodified, self-hosted, built from its public repository.
+HandoffDB is MIT licensed (see `LICENSE`). HydraDB is licensed under the Elastic License 2.0 and is used here unmodified, self-hosted, built from its public repository.

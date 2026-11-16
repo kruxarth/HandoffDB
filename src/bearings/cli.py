@@ -1,4 +1,4 @@
-"""Bearings command line.
+"""HandoffDB command line.
 
   bearings import-history <repo-path> [--team T] [--repo R] [--since 2015-01-01] [--github owner/name]
   bearings pack "<task text>" [--team T] [--repo R]
@@ -6,10 +6,10 @@
   bearings stats [--team T] [--repo R]
   bearings hook | hook-stop          Claude Code hooks (see `bearings hooks-config`)
   bearings hooks-config              print the .claude/settings.json hooks block
-  bearings handoff-pack "<task>"     what earlier agent runs on this repo opened and concluded
-  bearings handoff-record <transcript.jsonl> "<task>"   record a finished session into the handoff graph
-  bearings handoff-hook | handoff-stop   Claude Code hooks for the handoff graph
-  bearings handoff-hooks-config      print the hooks block for the handoff graph
+  handoffdb handoff-pack "<task>"     what earlier agent runs on this repo opened and concluded
+  handoffdb handoff-record <transcript.jsonl> "<task>"   record a finished session into the handoff graph
+  handoffdb handoff-hook | handoff-stop   Claude Code hooks for the handoff graph
+  handoffdb handoff-hooks-config      print the hooks block for the handoff graph
 
 The pack combines the learned graph with code anchors from the current checkout
 (the git work tree of the working directory; --no-code to disable).
@@ -49,7 +49,7 @@ def _load_session(sid: str) -> dict | None:
 
 
 def main() -> None:
-    ap = argparse.ArgumentParser(prog="bearings")
+    ap = argparse.ArgumentParser(prog="handoffdb")
     ap.add_argument("--team", default=os.environ.get("BEARINGS_TEAM", "default-team"))
     ap.add_argument("--repo", default=os.environ.get("BEARINGS_REPO", Path.cwd().name))
     sub = ap.add_subparsers(dest="cmd", required=True)
@@ -226,7 +226,7 @@ def _handoff(args) -> None:
                 if txt:
                     print(json.dumps({"hookSpecificOutput": {"hookEventName": "UserPromptSubmit", "additionalContext": txt}}))
         except Exception as exc:  # noqa: BLE001
-            print(f"bearings handoff hook skipped: {exc}", file=sys.stderr)
+            print(f"handoffdb hook skipped: {exc}", file=sys.stderr)
     elif args.cmd == "handoff-stop":
         # No model call: the record is the session's own tool calls.
         try:
@@ -237,12 +237,12 @@ def _handoff(args) -> None:
                 task = _first_prompt(tp)
                 if task:
                     out = _record_session(args, tp, task, "cc:" + event.get("session_id", tp.stem)[:36], repo)
-                    print(f"bearings: recorded session ({out['files']} files)", file=sys.stderr)
+                    print(f"handoffdb: recorded session ({out['files']} files)", file=sys.stderr)
         except Exception as exc:  # noqa: BLE001
-            print(f"bearings handoff stop hook skipped: {exc}", file=sys.stderr)
+            print(f"handoffdb stop hook skipped: {exc}", file=sys.stderr)
     elif args.cmd == "handoff-hooks-config":
         here = Path(__file__).resolve().parents[2]
-        run = f"BEARINGS_TEAM={args.team} BEARINGS_REPO={args.repo} uv run --quiet --directory {here} bearings"
+        run = f"BEARINGS_TEAM={args.team} BEARINGS_REPO={args.repo} uv run --quiet --directory {here} handoffdb"
         print(json.dumps({"hooks": {
             "UserPromptSubmit": [{"hooks": [{"type": "command", "command": f"{run} handoff-hook"}]}],
             "Stop": [{"hooks": [{"type": "command", "command": f"{run} handoff-stop"}]}]}}, indent=2))

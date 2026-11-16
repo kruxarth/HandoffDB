@@ -13,7 +13,7 @@ from summarize import ci, paired_diff
 ROOT = Path(__file__).resolve().parents[1]
 RUNS = ROOT / "runs" / "handoff"
 RES = ROOT / "results"
-LAB = {"cold": "Cold start (nothing)", "notes": "Handoff notes (Markdown files)", "graph": "Bearings handoff pack (graph)"}
+LAB = {"cold": "Cold start (nothing)", "notes": "Handoff notes (Markdown files)", "graph": "HandoffDB pack (graph)"}
 ORDER = ("cold", "notes", "graph")
 
 
