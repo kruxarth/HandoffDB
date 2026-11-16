@@ -1,0 +1,50 @@
+Handoff graph, retrieval without model calls. Recorded runs: 301 (261 memory runs 2021-01-01..2022-07-01, 40 Level 2 runs).
+Targets: 102 SWE-bench Django issues from 2022-07-01 with no recorded run whose fix extends an existing test file; each uses only runs on issues dated before it.
+NOTE: an earlier version of this table was looked at on these same targets before pre-registration (results/handoff_retrieval_v0.txt); the pack design was then fixed on the dev set only.
+HydraDB pack equals the in-memory reference on 102/102 targets.
+Pack size: median 334 tokens (characters / 4).
+
+all targets (n=102): share of targets where the pack holds ...
+                                             every fix file (top 5)   a real test file (top 3)                 both
+  Graph (final)                                   0.51 [0.42, 0.61]          0.43 [0.33, 0.53]    0.34 [0.25, 0.44]
+    - without code anchors                        0.31 [0.23, 0.40]          0.30 [0.22, 0.39]    0.19 [0.12, 0.26]
+    - without task entities                       0.42 [0.32, 0.52]          0.30 [0.22, 0.39]    0.26 [0.19, 0.35]
+    - tests ranked directly (no hop 3)            0.51 [0.42, 0.61]          0.42 [0.32, 0.52]    0.33 [0.25, 0.42]
+    - without hot-file discount                   0.50 [0.40, 0.60]          0.46 [0.37, 0.56]    0.34 [0.25, 0.43]
+    - tests ranked directly only                  0.51 [0.42, 0.61]          0.42 [0.32, 0.52]    0.33 [0.25, 0.42]
+  Plain word -> file table                        0.36 [0.26, 0.45]          0.28 [0.21, 0.37]    0.17 [0.10, 0.24]
+  Plain word+anchor -> file table                 0.47 [0.37, 0.57]          0.32 [0.24, 0.41]    0.22 [0.14, 0.29]
+  Graph, first 0 recorded runs                    0.00 [0.00, 0.00]          0.00 [0.00, 0.00]    0.00 [0.00, 0.00]
+  Graph, first 25 recorded runs                   0.26 [0.19, 0.35]          0.12 [0.06, 0.19]    0.09 [0.04, 0.15]
+  Graph, first 50 recorded runs                   0.32 [0.24, 0.41]          0.18 [0.11, 0.25]    0.14 [0.07, 0.21]
+  Graph, first 100 recorded runs                  0.48 [0.38, 0.58]          0.28 [0.20, 0.37]    0.24 [0.16, 0.31]
+  Graph, first 200 recorded runs                  0.50 [0.40, 0.60]          0.40 [0.30, 0.50]    0.31 [0.23, 0.40]
+  Graph, first 300 recorded runs                  0.51 [0.42, 0.61]          0.43 [0.33, 0.53]    0.34 [0.25, 0.44]
+  paired, both: graph - dictionary = +0.176 [+0.088, +0.275]
+  paired, both: graph - table_anchor = +0.127 [+0.059, +0.206]
+  paired, test: graph - table_anchor = +0.108 [+0.029, +0.186]
+  paired, src: graph - table_anchor = +0.039 [-0.039, +0.118]
+  paired, test: graph - no_test_hop = +0.010 [-0.039, +0.059]
+
+targets whose fix files an earlier run opened (n=95): share of targets where the pack holds ...
+                                             every fix file (top 5)   a real test file (top 3)                 both
+  Graph (final)                                   0.55 [0.44, 0.65]          0.45 [0.36, 0.56]    0.37 [0.27, 0.47]
+    - without code anchors                        0.34 [0.24, 0.43]          0.32 [0.22, 0.41]    0.20 [0.13, 0.28]
+    - without task entities                       0.45 [0.36, 0.56]          0.33 [0.23, 0.42]    0.28 [0.20, 0.38]
+    - tests ranked directly (no hop 3)            0.55 [0.44, 0.65]          0.44 [0.35, 0.55]    0.36 [0.26, 0.46]
+    - without hot-file discount                   0.54 [0.44, 0.64]          0.49 [0.39, 0.60]    0.37 [0.27, 0.46]
+    - tests ranked directly only                  0.55 [0.44, 0.65]          0.44 [0.35, 0.55]    0.36 [0.26, 0.46]
+  Plain word -> file table                        0.39 [0.29, 0.48]          0.29 [0.21, 0.39]    0.18 [0.11, 0.25]
+  Plain word+anchor -> file table                 0.51 [0.40, 0.60]          0.34 [0.24, 0.43]    0.23 [0.15, 0.33]
+  Graph, first 0 recorded runs                    0.00 [0.00, 0.00]          0.00 [0.00, 0.00]    0.00 [0.00, 0.00]
+  Graph, first 25 recorded runs                   0.28 [0.19, 0.38]          0.13 [0.06, 0.20]    0.09 [0.04, 0.16]
+  Graph, first 50 recorded runs                   0.35 [0.25, 0.44]          0.19 [0.12, 0.27]    0.15 [0.08, 0.22]
+  Graph, first 100 recorded runs                  0.52 [0.42, 0.62]          0.29 [0.21, 0.39]    0.25 [0.17, 0.35]
+  Graph, first 200 recorded runs                  0.54 [0.43, 0.64]          0.42 [0.33, 0.53]    0.34 [0.25, 0.44]
+  Graph, first 300 recorded runs                  0.55 [0.44, 0.65]          0.45 [0.36, 0.56]    0.37 [0.27, 0.47]
+  paired, both: graph - dictionary = +0.189 [+0.095, +0.284]
+  paired, both: graph - table_anchor = +0.137 [+0.063, +0.221]
+  paired, test: graph - table_anchor = +0.116 [+0.032, +0.200]
+  paired, src: graph - table_anchor = +0.042 [-0.042, +0.126]
+  paired, test: graph - no_test_hop = +0.011 [-0.042, +0.063]
+
