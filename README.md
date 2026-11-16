@@ -114,7 +114,7 @@ Requirements: Linux or macOS, Docker, [uv](https://docs.astral.sh/uv/), git. The
 
 ```bash
 git clone https://github.com/hydra-db/hydradb.git          # next to this repo
-git clone https://github.com/kruxarth/bearings-hydradb.git handoffdb && cd handoffdb
+git clone https://github.com/kruxarth/HandoffDB.git handoffdb && cd handoffdb
 uv sync
 scripts/start_hydradb.sh                                   # builds and starts HydraDB (data in .hydradb/)
 ```
