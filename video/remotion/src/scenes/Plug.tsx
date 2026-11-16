@@ -16,7 +16,7 @@ const Step: React.FC<{ n: string; title: string; sub: string; delay: number; hoo
           alignItems: "center",
           justifyContent: "center",
           background: hook ? C.accent : C.panel2,
-          color: hook ? C.bg : C.dim,
+          color: hook ? "#ffffff" : C.dim,
           fontFamily: MONO,
           fontSize: 24,
           fontWeight: 700,

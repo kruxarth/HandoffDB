@@ -70,7 +70,7 @@ export const Live: React.FC<{ sc: SceneData }> = ({ sc }) => {
   const L = data.live;
   const conds = L.stats.conds;
   const why = Math.round(sc.frames * 0.42);
-  const rows: Row[] = L.rows.map((r: Row) => ({ ...r, color: r.label === "Bearings" ? C.accent : r.label === "No memory" ? C.gray : "#4b5260", note: undefined }));
+  const rows: Row[] = L.rows.map((r: Row) => ({ ...r, color: r.label === "Bearings" ? C.accent : r.label === "No memory" ? C.gray : "#cbd5e1", note: undefined }));
   const fg = ["none", "dict", "bearings"].map((k) => conds[k].first_gold);
   const w = interpolate(frame, [why, why + 20], [0, 1], { ...clamp, easing: out });
   return (
@@ -94,7 +94,7 @@ export const Live: React.FC<{ sc: SceneData }> = ({ sc }) => {
           border: `1px solid ${C.warn}44`,
           opacity: w,
           translate: `0px ${(1 - w) * 30}px`,
-          boxShadow: "0 30px 70px rgba(0,0,0,0.45)",
+          boxShadow: "0 30px 70px rgba(15,23,42,0.12)",
         }}
       >
         <div style={{ fontFamily: MONO, fontSize: 22, color: C.warn, letterSpacing: "0.12em" }}>WHY</div>
@@ -125,7 +125,7 @@ export const Claude: React.FC<{ sc: SceneData }> = ({ sc }) => {
   const rows: Row[] = data.claude.rows.map((r: Row) => ({
     ...r,
     label: r.label.split(", ").slice(1).join(", ").replace("without Bearings", "without").replace("without, second run", "without, rerun"),
-    color: r.label.includes("with Bearings") ? C.accent : r.label.includes("second") ? "#4b5260" : C.gray,
+    color: r.label.includes("with Bearings") ? C.accent : r.label.includes("second") ? "#cbd5e1" : C.gray,
   }));
   const tasks = Array.from(new Set(data.claude.rows.map((r: Row) => r.label.split(", ")[0]))) as string[];
   const w = interpolate(frame, [win, win + 22], [0, 1], { ...clamp, easing: out });

@@ -46,7 +46,18 @@ Model: `refuseless/deepseek-v4.1-flash-fast` through OpenCode, sandboxed. Paired
 
 ### Accumulation
 
-With 299 earlier runs, the notes a new agent would face total 145,402 tokens; the pack for the same issue is 392 tokens. Rows: `runs/handoff/results.jsonl` (`n_prior`, `note_tokens_on_disk`, `pack_tokens`).
+| recorded runs | handoff notes (files) | notes, total tokens | pack, median tokens (102 targets) |
+|---|---|---|---|
+| 10 | 10 | 4,696 | 296 |
+| 25 | 25 | 11,950 | 300 |
+| 50 | 50 | 24,403 | 302 |
+| 100 | 100 | 48,725 | 323 |
+| 150 | 150 | 73,023 | 332 |
+| 200 | 200 | 97,338 | 330 |
+| 250 | 250 | 122,374 | 334 |
+| 301 | 301 | 146,325 | 334 |
+
+File: `results/handoff_accumulation.json`.
 
 ### Retrieval without model calls
 

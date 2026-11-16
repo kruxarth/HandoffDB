@@ -1,72 +1,87 @@
 [
- {
-  "id": "01",
-  "scene": "problem",
-  "text": "Every time a coding agent starts a task, it explores the repository from scratch. Every search and every file it opens is paid for in tokens."
- },
- {
-  "id": "02",
-  "scene": "problem",
-  "text": "And most of that exploration repeats what a teammate's agent already found last week."
- },
- {
-  "id": "02b",
-  "scene": "problem",
-  "text": "When the session ends, everything it learned about where things live is thrown away."
- },
- {
-  "id": "h01",
-  "scene": "pivot",
-  "text": "Our first version pointed agents at the right file. On real issues, they found it in a step or two anyway."
- },
- {
-  "id": "h02",
-  "scene": "pivot",
-  "text": "So we measured where the tokens go. Almost all of them are spent after the file is open: on neighbouring code, on hunting for tests, and on reading it again."
- },
- {
-  "id": "h03",
-  "scene": "record",
-  "text": "So we rebuilt Bearings around handoffs. Every agent run is recorded in HydraDB as structure, straight from its tool calls: what it opened, at which lines, which tests it found, and what it concluded."
- },
- {
-  "id": "h04",
-  "scene": "record",
-  "text": "Recording it takes no model call."
- },
- {
-  "id": "h05",
-  "scene": "traverse",
-  "text": "When the next agent starts, its task reaches the earlier runs that worked near the same code, then the files they opened, and the tests they found."
- },
- {
-  "id": "h06",
-  "scene": "traverse",
-  "text": "It all comes back as one small pack."
- },
- {
-  "id": "h07",
-  "scene": "results",
-  "text": "RESULTS_A"
- },
- {
-  "id": "h08",
-  "scene": "results",
-  "text": "RESULTS_B"
- },
- {
-  "id": "h09",
-  "scene": "pile",
-  "text": "The obvious alternative is a handoff note. Each one costs a model call to write, and they pile up. After a few hundred runs, a new agent faces a stack of notes, while the pack stays the same size."
- },
- {
-  "id": "13",
-  "scene": "team",
-  "text": "It is built for teams that share a repository. What one person's agent learns, every agent on the team starts from."
- },
- {
-  "id": "14",
-  "scene": "end",
-  "text": "Bearings. Your agents start where your team left off."
- }
+  {
+    "id": "01",
+    "scene": "problem",
+    "text": "Every time a coding agent starts a task, it explores the repository from scratch. Every search and every file it opens is paid for in tokens."
+  },
+  {
+    "id": "02",
+    "scene": "problem",
+    "text": "And most of that exploration repeats what a teammate's agent already found last week."
+  },
+  {
+    "id": "02b",
+    "scene": "problem",
+    "text": "When the session ends, everything it learned about where things live is thrown away."
+  },
+  {
+    "id": "h01",
+    "scene": "pivot",
+    "text": "Our first version pointed agents at the right file. On real issues, they found it in a step or two anyway."
+  },
+  {
+    "id": "h02",
+    "scene": "pivot",
+    "text": "So we measured where the tokens go. Almost all of them are spent after the file is open: on neighbouring code, on hunting for tests, and on reading it again."
+  },
+  {
+    "id": "h03",
+    "scene": "record",
+    "text": "So we rebuilt Bearings around handoffs. Every agent run is recorded in HydraDB as structure, straight from its tool calls: what it opened, at which lines, which tests it found, and what it concluded."
+  },
+  {
+    "id": "h04",
+    "scene": "record",
+    "text": "Recording it takes no model call."
+  },
+  {
+    "id": "h05",
+    "scene": "traverse",
+    "text": "When the next agent starts, its task reaches the earlier runs that worked near the same code, then the files they opened, and the tests they found."
+  },
+  {
+    "id": "h06",
+    "scene": "traverse",
+    "text": "It all comes back as one small pack."
+  },
+  {
+    "id": "h07",
+    "scene": "results",
+    "text": "On a new issue, the next agent with the pack cost about the same as one starting cold. Handing it the earlier notes instead cost about a third more."
+  },
+  {
+    "id": "h08",
+    "scene": "results",
+    "text": "On the same issue, the note was cheapest. The pack saved no tokens there, but it raised success from about seven in ten to more than eight in ten."
+  },
+  {
+    "id": "h10",
+    "scene": "store",
+    "text": "Would a plain store do the same? We built the obvious one from the same runs: a table from words to files. The graph's pack held every fix file and a real test about a third of the time. The table, about one time in five."
+  },
+  {
+    "id": "h11",
+    "scene": "store",
+    "text": "And it keeps learning. With no runs recorded it finds nothing. Every batch of runs it records makes the next pack better."
+  },
+  {
+    "id": "h12",
+    "scene": "store",
+    "text": "Under load, twenty agents asked for packs at once while new runs were being recorded. Every pack came back, with no errors, most in about a second."
+  },
+  {
+    "id": "h09",
+    "scene": "pile",
+    "text": "The obvious alternative is a handoff note. Each one costs a model call to write, and they pile up. After a few hundred runs, a new agent faces a stack of notes, while the pack stays the same size."
+  },
+  {
+    "id": "13",
+    "scene": "team",
+    "text": "It is built for teams that share a repository. What one person's agent learns, every agent on the team starts from."
+  },
+  {
+    "id": "14",
+    "scene": "end",
+    "text": "Bearings. Your agents start where your team left off."
+  }
 ]

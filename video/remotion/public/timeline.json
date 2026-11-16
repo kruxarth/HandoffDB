@@ -1,0 +1,188 @@
+{
+ "fps": 30,
+ "frames": 4711,
+ "scenes": [
+  {
+   "name": "problem",
+   "lines": [
+    {
+     "id": "01",
+     "text": "Every time a coding agent starts a task, it explores the repository from scratch. Every search and every file it opens is paid for in tokens.",
+     "from": 15,
+     "frames": 237,
+     "src": "audio/01.wav"
+    },
+    {
+     "id": "02",
+     "text": "And most of that exploration repeats what a teammate's agent already found last week.",
+     "from": 269,
+     "frames": 136,
+     "src": "audio/02.wav"
+    },
+    {
+     "id": "02b",
+     "text": "When the session ends, everything it learned about where things live is thrown away.",
+     "from": 421,
+     "frames": 135,
+     "src": "audio/02b.wav"
+    }
+   ],
+   "frames": 583,
+   "start": 0
+  },
+  {
+   "name": "pivot",
+   "lines": [
+    {
+     "id": "h01",
+     "text": "Our first version pointed agents at the right file. On real issues, they found it in a step or two anyway.",
+     "from": 15,
+     "frames": 174,
+     "src": "audio/h01.wav"
+    },
+    {
+     "id": "h02",
+     "text": "So we measured where the tokens go. Almost all of them are spent after the file is open: on neighbouring code, on hunting for tests, and on reading it again.",
+     "from": 205,
+     "frames": 255,
+     "src": "audio/h02.wav"
+    }
+   ],
+   "frames": 487,
+   "start": 583
+  },
+  {
+   "name": "record",
+   "lines": [
+    {
+     "id": "h03",
+     "text": "So we rebuilt Bearings around handoffs. Every agent run is recorded in HydraDB as structure, straight from its tool calls: what it opened, at which lines, which tests it found, and what it concluded.",
+     "from": 15,
+     "frames": 334,
+     "src": "audio/h03.wav"
+    },
+    {
+     "id": "h04",
+     "text": "Recording it takes no model call.",
+     "from": 365,
+     "frames": 67,
+     "src": "audio/h04.wav"
+    }
+   ],
+   "frames": 459,
+   "start": 1070
+  },
+  {
+   "name": "traverse",
+   "lines": [
+    {
+     "id": "h05",
+     "text": "When the next agent starts, its task reaches the earlier runs that worked near the same code, then the files they opened, and the tests they found.",
+     "from": 15,
+     "frames": 300,
+     "src": "audio/h05.wav"
+    },
+    {
+     "id": "h06",
+     "text": "It all comes back as one small pack.",
+     "from": 331,
+     "frames": 89,
+     "src": "audio/h06.wav"
+    }
+   ],
+   "frames": 447,
+   "start": 1529
+  },
+  {
+   "name": "results",
+   "lines": [
+    {
+     "id": "h07",
+     "text": "On a new issue, the next agent with the pack cost about the same as one starting cold. Handing it the earlier notes instead cost about a third more.",
+     "from": 15,
+     "frames": 322,
+     "src": "audio/h07.wav"
+    },
+    {
+     "id": "h08",
+     "text": "On the same issue, the note was cheapest. The pack saved no tokens there, but it raised success from about seven in ten to more than eight in ten.",
+     "from": 354,
+     "frames": 322,
+     "src": "audio/h08.wav"
+    }
+   ],
+   "frames": 703,
+   "start": 1976
+  },
+  {
+   "name": "store",
+   "lines": [
+    {
+     "id": "h10",
+     "text": "Would a plain store do the same? We built the obvious one from the same runs: a table from words to files. The graph's pack held every fix file and a real test about a third of the time. The table, about one time in five.",
+     "from": 15,
+     "frames": 511,
+     "src": "audio/h10.wav"
+    },
+    {
+     "id": "h11",
+     "text": "And it keeps learning. With no runs recorded it finds nothing. Every batch of runs it records makes the next pack better.",
+     "from": 543,
+     "frames": 244,
+     "src": "audio/h11.wav"
+    },
+    {
+     "id": "h12",
+     "text": "Under load, twenty agents asked for packs at once while new runs were being recorded. Every pack came back, with no errors, most in about a second.",
+     "from": 804,
+     "frames": 300,
+     "src": "audio/h12.wav"
+    }
+   ],
+   "frames": 1131,
+   "start": 2679
+  },
+  {
+   "name": "pile",
+   "lines": [
+    {
+     "id": "h09",
+     "text": "The obvious alternative is a handoff note. Each one costs a model call to write, and they pile up. After a few hundred runs, a new agent faces a stack of notes, while the pack stays the same size.",
+     "from": 15,
+     "frames": 433,
+     "src": "audio/h09.wav"
+    }
+   ],
+   "frames": 475,
+   "start": 3810
+  },
+  {
+   "name": "team",
+   "lines": [
+    {
+     "id": "13",
+     "text": "It is built for teams that share a repository. What one person's agent learns, every agent on the team starts from.",
+     "from": 15,
+     "frames": 188,
+     "src": "audio/13.wav"
+    }
+   ],
+   "frames": 230,
+   "start": 4285
+  },
+  {
+   "name": "end",
+   "lines": [
+    {
+     "id": "14",
+     "text": "Bearings. Your agents start where your team left off.",
+     "from": 15,
+     "frames": 85,
+     "src": "audio/14.wav"
+    }
+   ],
+   "frames": 196,
+   "start": 4515
+  }
+ ]
+}

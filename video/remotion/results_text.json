@@ -1,0 +1,4 @@
+{"titleA": "A different issue · 102 new issues", "headA": "The pack costs what a cold start costs. The notes cost a third more.", "accentA": ["third", "more."],
+ "titleB": "The same issue · 40 issues", "headB": "The note is cheapest. The pack lifts success.", "accentB": ["lifts", "success."],
+ "subA": "Median total input tokens per run, pack and notes included. Success: every fix file and a real test file named, checked in code.",
+ "foot": "DeepSeek V4.1 Flash through OpenCode, sandboxed · pre-registered · runs/handoff/results.jsonl, runs/handoff/same/results.jsonl"}

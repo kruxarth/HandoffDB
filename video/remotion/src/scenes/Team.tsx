@@ -29,7 +29,7 @@ export const Team: React.FC<{ sc: SceneData }> = ({ sc }) => {
           const [x1, y1, x2, y2] = i === 0 ? [a.x, a.y, HUB.x, HUB.y] : [HUB.x, HUB.y, a.x, a.y];
           return (
             <g key={i}>
-              <line x1={a.x} y1={a.y} x2={HUB.x} y2={HUB.y} stroke="rgba(255,255,255,0.1)" strokeWidth={2} />
+              <line x1={a.x} y1={a.y} x2={HUB.x} y2={HUB.y} stroke="rgba(15,23,42,0.1)" strokeWidth={2} />
               <line x1={x1} y1={y1} x2={x1 + (x2 - x1) * p} y2={y1 + (y2 - y1) * p} stroke={C.accent} strokeWidth={4} strokeLinecap="round" />
               {p > 0 && p < 1 ? <circle cx={x1 + (x2 - x1) * p} cy={y1 + (y2 - y1) * p} r={10} fill={C.accent} /> : null}
             </g>
@@ -70,7 +70,7 @@ export const Team: React.FC<{ sc: SceneData }> = ({ sc }) => {
               borderRadius: 20,
               background: C.panel2,
               border: `1.5px solid ${lit ? C.accent : C.line}`,
-              boxShadow: "0 30px 60px rgba(0,0,0,0.5)",
+              boxShadow: "0 30px 60px rgba(15,23,42,0.12)",
               textAlign: "center",
               minWidth: 260,
             }}

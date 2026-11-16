@@ -3,7 +3,7 @@ import { Easing, interpolate, useCurrentFrame } from "remotion";
 import { C, MONO, Scene, SceneData, Kinetic, Eyebrow, Stat, at, clamp, data } from "../ui";
 
 const pct = (x: number) => Math.round(x * 100);
-const AMBER = "#d9a536";
+const AMBER = "#eab308";
 
 /** Rolling top-5 hit rate over the task stream, empty start (bench/report.py rep.curve). */
 const Chart: React.FC<{ start: number; frozenAt: number }> = ({ start, frozenAt }) => {
@@ -30,7 +30,7 @@ const Chart: React.FC<{ start: number; frozenAt: number }> = ({ start, frozenAt 
     <svg width={W} height={H} style={{ position: "absolute", left: 80, top: 400, overflow: "visible" }}>
       {[0.2, 0.3, 0.4, 0.5, 0.6, 0.7, 0.8].map((y) => (
         <g key={y}>
-          <line x1={L} x2={W - R} y1={sy(y)} y2={sy(y)} stroke="rgba(255,255,255,0.07)" />
+          <line x1={L} x2={W - R} y1={sy(y)} y2={sy(y)} stroke="rgba(15,23,42,0.07)" />
           <text x={L - 16} y={sy(y) + 7} textAnchor="end" fill={C.faint} fontFamily={MONO} fontSize={20}>
             {Math.round(y * 100)}%
           </text>

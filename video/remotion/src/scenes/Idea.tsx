@@ -7,8 +7,8 @@ type N = { kind: string; label: string; x: number; y: number };
 const KIND: Record<string, { tag: string; color: string }> = {
   task: { tag: "past fix", color: C.text },
   term: { tag: "word / symbol", color: C.accent },
-  file: { tag: "file", color: "#9fd0ff" },
-  test: { tag: "test", color: "#b9f0c8" },
+  file: { tag: "file", color: "#0ea5e9" },
+  test: { tag: "test", color: "#16a34a" },
 };
 
 // graph coordinates come from video/build.py (x 170–1460, y 140–520); map onto the stage
@@ -42,7 +42,7 @@ const Node: React.FC<{ n: N; delay: number }> = ({ n, delay }) => {
           border: `1.5px solid ${k.color}66`,
           color: k.color,
           whiteSpace: "nowrap",
-          boxShadow: `0 20px 50px rgba(0,0,0,0.5), 0 0 30px ${k.color}22`,
+          boxShadow: `0 20px 50px rgba(15,23,42,0.12), 0 0 30px ${k.color}22`,
         }}
       >
         {label}
@@ -83,7 +83,7 @@ export const Idea: React.FC<{ sc: SceneData }> = ({ sc }) => {
           const o = cloud * (0.25 + 0.5 * random(`o${i}`)) * interpolate(frame, [a5 + i * 0.6, a5 + 20 + i * 0.6], [0, 1], clamp);
           return (
             <g key={i} opacity={o}>
-              <line x1={x} y1={y} x2={x2} y2={y2} stroke="rgba(111,177,255,0.18)" strokeWidth={1} />
+              <line x1={x} y1={y} x2={x2} y2={y2} stroke="rgba(2,132,199,0.18)" strokeWidth={1} />
               <circle cx={x} cy={y} r={3 + random(`r${i}`) * 3} fill={C.accent} opacity={0.6} />
             </g>
           );
@@ -140,7 +140,7 @@ export const Idea: React.FC<{ sc: SceneData }> = ({ sc }) => {
             borderRadius: 28,
             background: "rgba(9,11,16,0.82)",
             border: `1px solid ${C.line}`,
-            boxShadow: "0 40px 90px rgba(0,0,0,0.6)",
+            boxShadow: "0 40px 90px rgba(15,23,42,0.12)",
           }}
         >
           <div style={{ fontSize: 60, fontWeight: 750, letterSpacing: "-0.03em" }}>

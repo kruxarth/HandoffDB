@@ -150,7 +150,7 @@ footer{color:var(--muted);font-size:13px;padding:40px 0 60px}
     </div>
     <div class="card" style="margin-top:16px"><h3>Paired comparisons</h3><p class="cap">Same issues. A saving is claimed only if the interval is below zero at equal or better success (rule fixed before the runs in <code>bench/handoff_prereg.md</code>).</p><div id="hdiff"></div></div>
     <div class="grid2" style="margin-top:16px">
-      <div class="card"><h3>Notes pile up, the pack does not</h3><p class="cap">Experiment A targets: tokens of all the earlier handoff notes a new agent would face, against the size of its pack, by how many runs came before it.</p><div class="legend"><span><i style="background:var(--s2)"></i>all earlier notes</span><span><i style="background:var(--s1)"></i>graph pack</span></div><div id="hacc"></div></div>
+      <div class="card"><h3>Notes pile up, the pack does not</h3><p class="cap">Total tokens of the earlier runs' handoff notes a new agent would face, against the median pack over the 102 targets built from the same runs.</p><div class="legend"><span><i style="background:var(--s2)"></i>all earlier notes</span><span><i style="background:var(--s1)"></i>graph pack</span></div><div id="hacc"></div></div>
       <div class="card"><h3>Retrieval as runs accumulate</h3><p class="cap" id="hcurvecap">Share of the 102 targets where the pack holds every fix file and a real test file, by how many recorded runs the graph has. No model calls.</p><div id="hcurve"></div></div>
     </div>
     <div class="grid2" style="margin-top:16px" id="hfacts"></div>
@@ -430,7 +430,7 @@ function segmented(el, items, cur, onPick){
   }
   segmented($('#hSeg'), exps, cur, k=>{cur=k;render();}); render();
   // accumulation
-  const acc = (H.accumulation||[]).filter(a=>a.pack_tokens!=null);
+  const acc = (H.accumulation||[]).map(a=>({n_prior:a.runs, notes_tokens:a.notes_tokens, pack_tokens:a.pack_tokens_median}));
   if(acc.length){ const el=$('#hacc');
     const draw=()=>{ track(el, draw); const W=Math.max(320,el.clientWidth||480),Hh=280,L=52,R=14,T=10,B=38;
       const x1=Math.max(...acc.map(a=>a.n_prior)), y1=Math.max(...acc.map(a=>a.notes_tokens))*1.05;
@@ -438,7 +438,7 @@ function segmented(el, items, cur, onPick){
       let s=`<svg class="chart" width="${W}" height="${Hh}" viewBox="0 0 ${W} ${Hh}">`;
       for(let i=0;i<=4;i++){const y=y1*i/4; s+=`<line class="grid" x1="${L}" x2="${W-R}" y1="${sy(y)}" y2="${sy(y)}"/><text x="${L-8}" y="${sy(y)+4}" text-anchor="end">${kfmt(y)}</text>`;}
       for(let i=0;i<=4;i++){const x=Math.round(x1*i/4); s+=`<text x="${sx(x)}" y="${Hh-B+18}" text-anchor="middle">${x}</text>`;}
-      s+=`<text class="axis-title" x="${(L+W-R)/2}" y="${Hh-4}" text-anchor="middle">earlier runs available to the target</text>`;
+      s+=`<text class="axis-title" x="${(L+W-R)/2}" y="${Hh-4}" text-anchor="middle">recorded runs</text>`;
       s+=`<polyline fill="none" stroke="var(--s2)" stroke-width="2.4" points="${acc.map(a=>sx(a.n_prior)+','+sy(a.notes_tokens)).join(' ')}"/>`;
       s+=`<polyline fill="none" stroke="var(--s1)" stroke-width="2.4" points="${acc.map(a=>sx(a.n_prior)+','+sy(a.pack_tokens)).join(' ')}"/>`;
       const last=acc[acc.length-1]; s+=`<text x="${sx(last.n_prior)-4}" y="${sy(last.notes_tokens)-8}" text-anchor="end" style="fill:var(--text);font-weight:600">${kfmt(last.notes_tokens)} tokens of notes</text>`;

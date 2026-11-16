@@ -21,7 +21,7 @@ const Strip: React.FC<{ start: number; dur: number; top: number }> = ({ start, d
   return (
     <div style={{ position: "absolute", left: 0, top, width: 1920, height: 300 }}>
       <svg width={1920} height={230}>
-        <rect x={L} y={40} width={xs(nDev) - L} height={120} fill="rgba(255,255,255,0.03)" rx={10} />
+        <rect x={L} y={40} width={xs(nDev) - L} height={120} fill="rgba(15,23,42,0.03)" rx={10} />
         {r.bearings.map((v: number, i: number) => {
           const on = i < cursor;
           const age = cursor - i;
@@ -33,7 +33,7 @@ const Strip: React.FC<{ start: number; dur: number; top: number }> = ({ start, d
               width={Math.max(1.2, W / n - 0.6)}
               height={v ? 96 : 40}
               rx={0.8}
-              fill={v ? C.accent : "rgba(255,255,255,0.25)"}
+              fill={v ? C.accent : "rgba(15,23,42,0.25)"}
               opacity={on ? Math.min(1, 0.35 + age / 20) : 0.06}
             />
           );

@@ -13,6 +13,7 @@ import { Side } from "./scenes/Side";
 import { Live, Claude, Limits } from "./scenes/Honest";
 import { Team, End } from "./scenes/Team";
 import { Pivot, Record, Traverse, Results, Pile } from "./scenes/Handoff";
+import { Store } from "./scenes/Store";
 
 export const SCENES: Record<string, React.FC<{ sc: SceneData }>> = {
   problem: Problem,
@@ -21,6 +22,7 @@ export const SCENES: Record<string, React.FC<{ sc: SceneData }>> = {
   traverse: Traverse,
   results: Results,
   pile: Pile,
+  store: Store,
   idea: Idea,
   query: Query,
   learn: Learn,
@@ -43,18 +45,18 @@ const Background: React.FC = () => {
     <AbsoluteFill style={{ background: C.bg }}>
       <AbsoluteFill
         style={{
-          background: `radial-gradient(1200px 800px at ${70 + 8 * Math.sin(frame / 240)}% ${10 + 6 * Math.cos(frame / 300)}%, rgba(111,177,255,0.11), transparent 60%), radial-gradient(900px 700px at 0% 100%, rgba(111,177,255,0.05), transparent 60%)`,
+          background: `radial-gradient(1200px 800px at ${70 + 8 * Math.sin(frame / 240)}% ${10 + 6 * Math.cos(frame / 300)}%, rgba(20,184,166,0.16), transparent 60%), radial-gradient(900px 700px at 0% 100%, rgba(249,115,22,0.12), transparent 60%), radial-gradient(700px 600px at 50% 50%, rgba(2,132,199,0.06), transparent 70%)`,
         }}
       />
       <AbsoluteFill
         style={{
-          backgroundImage: "radial-gradient(rgba(255,255,255,0.05) 1.2px, transparent 1.2px)",
+          backgroundImage: "radial-gradient(rgba(15,23,42,0.05) 1.2px, transparent 1.2px)",
           backgroundSize: "36px 36px",
           maskImage: "linear-gradient(180deg, rgba(0,0,0,0.9), rgba(0,0,0,0.2))",
         }}
       />
       <div style={{ position: "absolute", right: -260, bottom: -300, opacity: 0.08 }}>
-        <Compass size={1000} ring={frame / 12} noNeedle color="#ffffff" />
+        <Compass size={1000} ring={frame / 12} noNeedle color="#0f172a" />
       </div>
       <div style={{ position: "absolute", right: 80, top: 70, display: "flex", alignItems: "center", gap: 14, opacity: 0.75 * fadeMark, fontFamily: SANS }}>
         <Compass size={40} needle={40} />

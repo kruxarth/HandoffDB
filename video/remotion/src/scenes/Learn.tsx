@@ -20,7 +20,7 @@ const Box: React.FC<{ x: number; y: number; title: string; sub: string; color: s
         borderRadius: 20,
         background: C.panel2,
         border: `1.5px solid ${color}77`,
-        boxShadow: `0 30px 60px rgba(0,0,0,0.5), 0 0 40px ${color}22`,
+        boxShadow: `0 30px 60px rgba(15,23,42,0.12), 0 0 40px ${color}22`,
         textAlign: "center",
         minWidth: 320,
       }}

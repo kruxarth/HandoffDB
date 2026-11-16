@@ -159,13 +159,12 @@ def section() -> tuple[list[str], dict]:
                f"{nc['completion_total']:,} output tokens in total (median {nc['prompt_median']:,.0f} in, "
                f"{nc['completion_median']:,.0f} out per note; a note is {nc['note_tokens_median']:,.0f} tokens). "
                f"List-price arithmetic: ${nc['usd_list']:.3f}. The graph's recorder makes no model call.", ""]
-    acc = accumulation(A)
+    accf = RES / "handoff_accumulation.json"
+    acc = json.loads(accf.read_text()) if accf.exists() else []
     if acc:
-        big = acc[-1]
-        md += ["### Accumulation", "",
-               f"With {big['n_prior']} earlier runs, the notes a new agent would face total {big['notes_tokens']:,} tokens; "
-               f"the pack for the same issue is {big['pack_tokens'] or 0:,} tokens. Rows: `runs/handoff/results.jsonl` "
-               "(`n_prior`, `note_tokens_on_disk`, `pack_tokens`).", ""]
+        md += ["### Accumulation", "", "| recorded runs | handoff notes (files) | notes, total tokens | pack, median tokens (102 targets) |",
+               "|---|---|---|---|"] + [f"| {a['runs']} | {a['notes_files']} | {a['notes_tokens']:,} | {a['pack_tokens_median']} |" for a in acc] + \
+              ["", "File: `results/handoff_accumulation.json`.", ""]
     if retr:
         md += ["### Retrieval without model calls", "", "```", retr.strip(), "```", ""]
     if load:

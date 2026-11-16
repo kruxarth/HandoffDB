@@ -19,18 +19,22 @@ export const SANS = inter.fontFamily;
 export const MONO = mono.fontFamily;
 
 export const C = {
-  bg: "#090b10",
-  panel: "#11151d",
-  panel2: "#161b25",
-  line: "rgba(255,255,255,0.09)",
-  text: "#eef1f6",
-  dim: "#8f98a8",
-  faint: "#5b6372",
-  accent: "#6fb1ff",
-  accentSoft: "rgba(111,177,255,0.16)",
-  warn: "#f2a65a",
-  warnSoft: "rgba(242,166,90,0.16)",
-  gray: "#7d8594",
+  bg: "#fbf8f2",
+  panel: "#ffffff",
+  panel2: "#ffffff",
+  line: "rgba(15,23,42,0.10)",
+  text: "#111827",
+  dim: "#475569",
+  faint: "#8b95a7",
+  accent: "#0284c7",
+  accentSoft: "rgba(2,132,199,0.12)",
+  warn: "#f97316",
+  warnSoft: "rgba(249,115,22,0.13)",
+  gray: "#94a3b8",
+  teal: "#14b8a6",
+  green: "#16a34a",
+  yellow: "#eab308",
+  pink: "#ec4899",
 };
 
 export type Line = { id: string; text: string; from: number; frames: number; src: string };
@@ -170,7 +174,7 @@ export const Window: React.FC<{
         background: `linear-gradient(180deg, ${C.panel2}, ${C.panel})`,
         border: `1px solid ${C.line}`,
         borderRadius: 22,
-        boxShadow: `0 40px 90px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,255,255,0.02), 0 0 ${60 * glow}px rgba(111,177,255,${0.35 * glow})`,
+        boxShadow: `0 40px 90px rgba(15,23,42,0.12), 0 0 0 1px rgba(15,23,42,0.02), 0 0 ${60 * glow}px rgba(2,132,199,${0.35 * glow})`,
         overflow: "hidden",
         opacity: s,
         translate: `0px ${(1 - s) * 50}px`,
@@ -186,11 +190,11 @@ export const Window: React.FC<{
           gap: 10,
           padding: "0 22px",
           borderBottom: `1px solid ${C.line}`,
-          background: "rgba(255,255,255,0.02)",
+          background: "rgba(15,23,42,0.02)",
         }}
       >
         {[0, 1, 2].map((i) => (
-          <div key={i} style={{ width: 13, height: 13, borderRadius: 7, background: "rgba(255,255,255,0.14)" }} />
+          <div key={i} style={{ width: 13, height: 13, borderRadius: 7, background: "rgba(15,23,42,0.14)" }} />
         ))}
         <div style={{ marginLeft: 14, fontFamily: MONO, fontSize: 21, color: C.dim, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis", flex: 1 }}>
           {title}
@@ -252,7 +256,7 @@ export const Stat: React.FC<{ value: number; decimals?: number; suffix?: string;
         border: `1px solid ${C.line}`,
         borderRadius: 24,
         padding: "30px 36px",
-        boxShadow: "0 30px 70px rgba(0,0,0,0.45)",
+        boxShadow: "0 30px 70px rgba(15,23,42,0.12)",
         opacity: s,
         translate: `0px ${(1 - s) * 40}px`,
         ...style,
@@ -278,7 +282,7 @@ export const Compass: React.FC<{ size: number; needle?: number; ring?: number; o
 }) => (
   <svg width={size} height={size} viewBox="-100 -100 200 200" style={{ opacity, overflow: "visible" }}>
     <g style={{ rotate: `${ring}deg` }}>
-      <circle r={92} fill="none" stroke="rgba(255,255,255,0.22)" strokeWidth={2.5} />
+      <circle r={92} fill="none" stroke="rgba(15,23,42,0.22)" strokeWidth={2.5} />
       {Array.from({ length: 72 }).map((_, i) => {
         const major = i % 18 === 0;
         const r1 = major ? 76 : i % 6 === 0 ? 82 : 86;
@@ -290,7 +294,7 @@ export const Compass: React.FC<{ size: number; needle?: number; ring?: number; o
             y1={-Math.cos(a) * r1}
             x2={Math.sin(a) * 92}
             y2={-Math.cos(a) * 92}
-            stroke={major ? color : "rgba(255,255,255,0.3)"}
+            stroke={major ? color : "rgba(15,23,42,0.3)"}
             strokeWidth={major ? 3.5 : 1.6}
           />
         );
@@ -298,7 +302,7 @@ export const Compass: React.FC<{ size: number; needle?: number; ring?: number; o
     </g>
     <g style={{ rotate: `${needle}deg`, display: noNeedle ? "none" : undefined }}>
       <path d="M0,-66 L11,0 L0,8 L-11,0 Z" fill={color} />
-      <path d="M0,66 L11,0 L0,-8 L-11,0 Z" fill="rgba(255,255,255,0.28)" />
+      <path d="M0,66 L11,0 L0,-8 L-11,0 Z" fill="rgba(15,23,42,0.28)" />
       <circle r={7} fill={C.bg} stroke={color} strokeWidth={3} />
     </g>
   </svg>

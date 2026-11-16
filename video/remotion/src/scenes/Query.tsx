@@ -61,8 +61,8 @@ const Pack: React.FC<{ start: number; anchorAt: number }> = ({ start, anchorAt }
             <span
               key={j}
               style={{
-                color: s.anchor ? C.bg : s.file ? C.accent : s.dim ? C.dim : C.text,
-                background: s.anchor ? `rgba(111,177,255,${0.25 + 0.75 * glow})` : undefined,
+                color: s.anchor ? "#ffffff" : s.file ? C.accent : s.dim ? C.dim : C.text,
+                background: s.anchor ? `rgba(2,132,199,${0.25 + 0.75 * glow})` : undefined,
                 borderRadius: 6,
                 padding: s.anchor ? "1px 6px" : undefined,
                 fontWeight: s.anchor ? 700 : 400,
@@ -109,7 +109,7 @@ const Route: React.FC<{ start: number }> = ({ start }) => {
               key={k}
               d={d}
               fill="none"
-              stroke={best ? C.accent : "rgba(255,255,255,0.35)"}
+              stroke={best ? C.accent : "rgba(15,23,42,0.35)"}
               strokeWidth={best ? 2 + Math.log(e.n + 1) * 1.6 : 1.5 + Math.log(e.n + 1) * 0.7}
               pathLength={1}
               strokeDasharray={1}
@@ -131,7 +131,7 @@ const Route: React.FC<{ start: number }> = ({ start }) => {
           return (
             <g key={f.path} opacity={o}>
               <rect x={FX} y={fy(j) - 30} width={230} height={60} rx={14} fill={j === 0 ? C.accent : C.panel2} stroke={j === 0 ? C.accent : C.line} />
-              <text x={FX + 115} y={fy(j) + 8} textAnchor="middle" fill={j === 0 ? C.bg : C.text} fontFamily={MONO} fontSize={19} fontWeight={j === 0 ? 700 : 400}>
+              <text x={FX + 115} y={fy(j) + 8} textAnchor="middle" fill={j === 0 ? "#ffffff" : C.text} fontFamily={MONO} fontSize={19} fontWeight={j === 0 ? 700 : 400}>
                 {short(f.path)}
               </text>
             </g>
@@ -164,7 +164,7 @@ export const Query: React.FC<{ sc: SceneData }> = ({ sc }) => {
           border: `1px solid ${C.line}`,
           opacity: s,
           translate: `0px ${(1 - s) * 30}px`,
-          boxShadow: "0 30px 70px rgba(0,0,0,0.45)",
+          boxShadow: "0 30px 70px rgba(15,23,42,0.12)",
         }}
       >
         <div style={{ fontFamily: MONO, fontSize: 21, color: C.faint, marginBottom: 10 }}>SWE-bench django__django-15916 · the graph never saw it</div>

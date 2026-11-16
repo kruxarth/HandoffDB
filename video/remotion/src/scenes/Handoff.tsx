@@ -27,7 +27,7 @@ export const Pivot: React.FC<{ sc: SceneData }> = ({ sc }) => {
       </div>
       <div style={{ position: "absolute", left: 210, top: 470, width: W }}>
         <div style={{ display: "flex", height: 120, borderRadius: 18, overflow: "hidden", border: `1px solid ${C.line}` }}>
-          <div style={{ width: `${(100 - share) * p}%`, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, fontWeight: 700, color: C.bg, whiteSpace: "nowrap" }}>
+          <div style={{ width: `${(100 - share) * p}%`, background: C.accent, display: "flex", alignItems: "center", justifyContent: "center", fontSize: 28, fontWeight: 700, color: "#ffffff", whiteSpace: "nowrap" }}>
             {p > 0.6 ? `${100 - share}%` : ""}
           </div>
           <div style={{ flex: 1, background: `repeating-linear-gradient(135deg, ${C.warnSoft}, ${C.warnSoft} 14px, rgba(242,166,90,0.08) 14px, rgba(242,166,90,0.08) 28px)`, display: "flex", alignItems: "center", paddingLeft: 40, fontSize: 34, fontWeight: 700, color: C.warn, opacity: p }}>
@@ -61,7 +61,7 @@ export const Record: React.FC<{ sc: SceneData }> = ({ sc }) => {
   const calls: string[] = R.calls;
   const shown = Math.max(0, Math.min(calls.length, Math.floor((frame - 20) / per) + 1));
   const reads: { f: string; lines: string; concluded?: boolean }[] = R.reads;
-  const RX = 1290, RY = 560;
+  const RX = 1150, RY = 560;
   const fy = (i: number) => 250 + i * (560 / Math.max(1, reads.length - 1));
   const a2 = sc.lines.length > 1 ? sc.lines[1].from : Math.round(sc.frames * 0.5);
   const noModel = interpolate(frame, [a2, a2 + 18], [0, 1], { ...clamp, easing: out });
@@ -84,10 +84,10 @@ export const Record: React.FC<{ sc: SceneData }> = ({ sc }) => {
         {reads.map((r, i) => {
           const st = 30 + i * 10;
           const p = interpolate(frame, [st, st + 24], [0, 1], { ...clamp, easing: out });
-          const x2 = 1600, y2 = fy(i);
+          const x2 = 1380, y2 = fy(i);
           return (
             <g key={i} opacity={p}>
-              <line x1={RX} y1={RY} x2={RX + (x2 - RX) * p} y2={RY + (y2 - RY) * p} stroke={r.concluded ? C.accent : "rgba(255,255,255,0.35)"} strokeWidth={r.concluded ? 4 : 2} />
+              <line x1={RX} y1={RY} x2={RX + (x2 - RX) * p} y2={RY + (y2 - RY) * p} stroke={r.concluded ? C.accent : "rgba(15,23,42,0.35)"} strokeWidth={r.concluded ? 4 : 2} />
               <circle cx={x2} cy={y2} r={9} fill={r.concluded ? C.accent : C.gray} />
             </g>
           );
@@ -98,7 +98,7 @@ export const Record: React.FC<{ sc: SceneData }> = ({ sc }) => {
       {reads.map((r, i) => {
         const p = interpolate(frame, [40 + i * 10, 60 + i * 10], [0, 1], clamp);
         return (
-          <div key={i} style={{ position: "absolute", left: 1624, top: fy(i) - 22, opacity: p, fontFamily: MONO, fontSize: 21, whiteSpace: "nowrap", lineHeight: 1.15 }}>
+          <div key={i} style={{ position: "absolute", left: 1404, top: fy(i) - 22, maxWidth: 480, overflow: "hidden", opacity: p, fontFamily: MONO, fontSize: 21, whiteSpace: "nowrap", lineHeight: 1.15 }}>
             <div style={{ color: r.concluded ? C.accent : C.text }}>{short(r.f)}</div>
             <div style={{ color: C.faint, fontSize: 17 }}>{r.concluded ? "concluded: fix here" : r.lines ? `lines ${r.lines}` : r.f.startsWith("tests/") ? "test file" : "opened"}</div>
           </div>
@@ -155,7 +155,7 @@ export const Traverse: React.FC<{ sc: SceneData }> = ({ sc }) => {
         </svg>
       </div>
       <Window title={`handoff pack · ${P.id}`} delay={a2 - 10} style={{ left: 260, top: 280, width: 1400, height: 660, opacity: show }} bodyStyle={{ padding: "22px 30px" }}
-        right={<div style={{ fontFamily: MONO, fontSize: 20, color: C.accent }}>{fmt(P.tokens)} tokens · {P.ms} ms</div>}>
+        right={<div style={{ fontFamily: MONO, fontSize: 20, color: C.accent }}>{fmt(P.tokens)} tokens</div>}>
         <div style={{ fontFamily: MONO, fontSize: 20, lineHeight: "34px", whiteSpace: "pre-wrap", color: C.text }}>{P.text.slice(0, Math.floor(typed))}</div>
       </Window>
     </Scene>
@@ -203,7 +203,7 @@ export const Results: React.FC<{ sc: SceneData }> = ({ sc }) => {
 /** Notes pile up; the pack stays small. */
 export const Pile: React.FC<{ sc: SceneData }> = ({ sc }) => {
   const frame = useCurrentFrame();
-  const acc: { n_prior: number; notes_tokens: number; pack_tokens: number }[] = H().acc;
+  const acc: { n_prior: number; notes_tokens: number; pack_tokens: number }[] = H().acc.map((a: any) => ({ n_prior: a.runs, notes_tokens: a.notes_tokens, pack_tokens: a.pack_tokens_median }));
   const L = 200, T = 330, W = 1400, Ht = 520;
   const x1 = Math.max(...acc.map((a) => a.n_prior));
   const y1 = Math.max(...acc.map((a) => a.notes_tokens)) * 1.08;
@@ -222,7 +222,7 @@ export const Pile: React.FC<{ sc: SceneData }> = ({ sc }) => {
       <svg style={{ position: "absolute", inset: 0 }} width={1920} height={1080}>
         {[0, 0.25, 0.5, 0.75, 1].map((f, i) => (
           <g key={i}>
-            <line x1={L} x2={L + W} y1={sy(y1 * f)} y2={sy(y1 * f)} stroke="rgba(255,255,255,0.07)" />
+            <line x1={L} x2={L + W} y1={sy(y1 * f)} y2={sy(y1 * f)} stroke="rgba(15,23,42,0.07)" />
             <text x={L - 16} y={sy(y1 * f) + 8} fill={C.faint} fontSize={22} textAnchor="end" fontFamily={MONO}>{Math.round((y1 * f) / 1000)}k</text>
           </g>
         ))}
@@ -231,7 +231,7 @@ export const Pile: React.FC<{ sc: SceneData }> = ({ sc }) => {
         <text x={L + W / 2} y={T + Ht + 60} fill={C.dim} fontSize={24} textAnchor="middle">earlier agent runs on the repository</text>
       </svg>
       <div style={{ position: "absolute", left: sx(last.n_prior) - 520, top: sy(last.notes_tokens) - 70, width: 500, textAlign: "right", fontSize: 30, fontWeight: 700, color: C.warn }}>
-        {fmt(last.notes_tokens)} tokens of notes
+        {fmt(last.notes_tokens)} tokens of notes · {last.n_prior} files
       </div>
       <div style={{ position: "absolute", left: sx(last.n_prior) - 520, top: sy(last.pack_tokens) - 64, width: 500, textAlign: "right", fontSize: 30, fontWeight: 700, color: C.accent }}>
         a {fmt(last.pack_tokens)}-token pack

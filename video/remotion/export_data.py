@@ -69,7 +69,7 @@ def handoff() -> dict:
     g.reset()
     # a real pack from Experiment A (first target whose graph run succeeded), rebuilt live for timing
     rows = [json.loads(x) for x in open(H.RUNS / "results.jsonl")] if (H.RUNS / "results.jsonl").exists() else []
-    gr = next((r for r in rows if r["condition"] == "graph" and r["success"] and r["pack"]), None)
+    gr = next((r for r in rows if r["condition"] == "graph" and r["id"] == "django__django-15863"), None)
     pack = {}
     if gr:
         t = next(t for t in H.pool(runs) if t["id"] == gr["id"])
@@ -88,9 +88,20 @@ def handoff() -> dict:
         return [{"key": c, "label": lab[c], "median_in": E["conds"][c]["median_in"],
                  "note": f"{E['conds'][c]['succ'][0]:.0%} success"} for c in ("cold", "notes", "graph") if c in E["conds"]]
     acc = RH.accumulation(A)
-    return {"pivot": pivot, "record": {"issue": pick["issue"].replace("django__", ""), "calls": calls[:24], "reads": reads},
-            "record_ms": rec_ms, "pack": pack, "A": A, "B": B, "acc": [a for a in acc if a["pack_tokens"] is not None],
-            "acc_foot": "Experiment A targets: all earlier handoff notes on disk vs the pack in the prompt (runs/handoff/results.jsonl)",
+    import re
+    txt = (rep.RES / "handoff_retrieval.txt").read_text().split("targets whose fix files")[0]
+    both = lambda name: float(re.search(re.escape(name) + r"\s+\S+ \[[^]]*\]\s+\S+ \[[^]]*\]\s+(\S+)", txt).group(1))
+    curve = [[int(m.group(1)), float(m.group(2))] for m in re.finditer(r"Graph, first (\d+) recorded runs\s+\S+ \[[^]]*\]\s+\S+ \[[^]]*\]\s+(\S+)", txt)]
+    ld = json.load(open(rep.RES / "handoff_load.json"))
+    store = {"bars": [{"label": "Plain word → file table", "v": both("Plain word -> file table")},
+                      {"label": "Word + code anchor table", "v": both("Plain word+anchor -> file table")},
+                      {"label": "Bearings graph", "v": both("Graph (final)")}],
+             "curve": curve,
+             "load": {k: ld[k] for k in ("clients", "requests", "errors", "p50_ms", "p95_ms", "rps", "runs_recorded_during_test")},
+             "foot": "Share of 102 later issues where the pack holds every fix file and a real test file, no model calls (results/handoff_retrieval.txt, handoff_load.json)"}
+    return {"store": store, "pivot": pivot, "record": {"issue": pick["issue"].replace("django__", ""), "calls": calls[:24], "reads": reads},
+            "record_ms": rec_ms, "pack": pack, "A": A, "B": B, "acc": json.load(open(rep.RES / "handoff_accumulation.json")),
+            "acc_foot": "Total size of the earlier runs' handoff notes vs the median pack over 102 targets built from the same runs (results/handoff_accumulation.json)",
             "results": {"A": bars(A) if A.get("n") else [], "B": bars(B) if B.get("n") else []}}
 
 
