@@ -25,7 +25,7 @@ alt=$(pwd -P | cut -d/ -f1-3)
 [[ "$alt" == "$HOME" ]] && alt=""
 if [[ "${1:-}" == "--scrub" ]]; then
   for pfx in "$HOME" $alt; do
-    grep -rlF "$pfx" results runs/level2 runs/handoff 2>/dev/null | while read -r f; do sed -i "s#$pfx#<home>#g" "$f"; done
+    grep -rlF "$pfx" results runs/level2 runs/handoff 2>/dev/null | while read -r f; do sed -i "s#$pfx#<home>#g" "$f"; done || true
   done
 fi
 n=0
