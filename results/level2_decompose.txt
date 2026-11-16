@@ -1,0 +1,20 @@
+Level 2 token decomposition: 40 issues x 3 conditions, existing runs, no model calls.
+Tokens = input + cache read per step (the context re-read each step), split evenly over that step's tool calls.
+
+Median tokens per run, by phase (before = until a real-fix file is first touched; after = the rest):
+condition      total   before     after  after share  steps  files touched after
+none          76,626    6,928    66,190         93%      8                    5
+dict         112,149    6,809   105,528         95%      8                    4
+bearings      79,749    7,061    71,072         96%      7                    5
+
+Share of all tokens by kind of tool call (pooled over runs):
+condition    search     read      run    other   answer
+none            46%      40%       1%       2%      11%
+dict            47%      39%       1%       2%      11%
+bearings        48%      40%       1%       0%      11%
+
+File reads: how much of a file per read (sed -n ranges, read-tool limits, whole-file cat):
+condition   reads  whole file  median lines  >200 lines
+none          350          8%            80          8%
+dict          344          6%            70          5%
+bearings      433          7%            71          4%

@@ -43,7 +43,7 @@ MODEL = os.environ.get("L2_MODEL", "opencode/deepseek-v4.1-flash-free")
 BALANCE_FLOOR = 0.05  # USD: stop starting new runs below this DeepSeek balance
 CUTOFF = "2022-07-01"  # graph/dictionary learn from events before this; sample from after
 SCOPE = ("bench", "django-l2")
-RUNS = ROOT / "runs" / "level2"
+RUNS = Path(os.environ["L2_RUNS"]) if os.environ.get("L2_RUNS") else ROOT / "runs" / "level2"
 WORK = ROOT / "runs" / "tmp"
 STEP_CAP = 25
 MCP_PORT = 8766
@@ -77,6 +77,8 @@ EXTRA = {
     "dict": "\nFiles that past fixes with similar wording changed (from a word-to-file table built from this repo's history; may be wrong):\n{pack}\n",
     "anchors": "\nWhere identifiers named in the issue are defined in this checkout (from git grep; may be wrong):\n{pack}\n",
     "bearings": "\n{pack}\n",
+    # ceiling test (bench/oracle_prereg.md): Bearings' format, filled from the real fix
+    "oracle": "\n{pack}\n",
     # v1 delivery, kept for comparison: the agent pulls the pack through an MCP tool
     "bearings-mcp": "\nA Bearings MCP tool is available. Call bearings_get_context_pack with the issue text before you start exploring; it returns where past work on this repo landed.\n",
 }
@@ -115,6 +117,43 @@ def build_graph() -> None:
             print(f"{i + 1}/{len(evs)} ({time.time() - t0:.0f}s)", flush=True)
     eng.flush()
     print(f"built {SCOPE[0]}/{SCOPE[1]} from {len(evs)} events before {CUTOFF} in {time.time() - t0:.0f}s")
+
+
+_GOLD = None
+
+
+def oracle_pack(tid: str) -> str:
+    """The real fix rendered as a Bearings pack: changed source files with the
+    pre-fix line range of each hunk, and the test module from the test patch."""
+    global _GOLD
+    if _GOLD is None:
+        import pyarrow.parquet as pq
+        rows = pq.read_table(ROOT / "data/raw/full.parquet", columns=["instance_id", "patch", "test_patch"]).to_pylist()
+        _GOLD = {r["instance_id"]: (r["patch"], r["test_patch"]) for r in rows}
+    patch, test_patch = _GOLD[tid]
+    files, cur = [], None
+    for line in patch.splitlines():
+        m = re.match(r"^diff --git a/(\S+) b/", line)
+        if m:
+            cur = [m.group(1), []]
+            files.append(cur)
+        m = re.match(r"^@@ -(\d+)(?:,(\d+))? ", line)
+        if m and cur:
+            a, n = int(m.group(1)), int(m.group(2) or 1)
+            cur[1].append(f"lines {a}-{a + max(n, 1) - 1}")
+    files = [f for f in files if is_source(f[0])]
+    mods = []
+    for t in re.findall(r"^diff --git a/tests/([^/\s]+)/", test_patch, re.M):
+        if t not in mods:
+            mods.append(t)
+    lines = ["Bearings context pack: where past work on this repo landed, and where the task's identifiers "
+             "are defined in this checkout. Read the listed lines first; search wider only if they do not fit.",
+             "Start in:"]
+    for i, (f, hunks) in enumerate(files, 1):
+        lines.append(f"  {i}. {f}  " + ", ".join(hunks[:4]))
+    if mods:
+        lines.append("Verify with: ./tests/runtests.py " + " ".join(mods))
+    return "\n".join(lines)
 
 
 def sample(n: int, seed: int = 0) -> list[dict]:
@@ -307,7 +346,7 @@ def run_one(task: dict, cond: str, dic: DictBaseline | None, rep: int = 0) -> di
     out_dir = RUNS / cond
     out_dir.mkdir(parents=True, exist_ok=True)
     ev_path = out_dir / f"{task['id']}.r{rep}.jsonl"
-    wt = WORK / f"wt-{cond}-{task['id']}"
+    wt = WORK / f"wt-{cond}-{task['id']}-r{rep}"
     subprocess.run([str(ROOT / "scripts/snapshot.sh"), str(ROOT / "data/repos/django"), task["base_commit"], str(wt)],
                    check=True)
     extra = EXTRA[cond]
@@ -321,6 +360,9 @@ def run_one(task: dict, cond: str, dic: DictBaseline | None, rep: int = 0) -> di
         pack_text = "\n".join(f"  {f}  defines " + ", ".join(f"{n} (line {ln})" for ln, n in sorted(where[f])[:3])
                               for f, _ in top)
         extra = extra.format(pack=pack_text or "  (none)")
+    elif cond == "oracle":
+        pack_text = oracle_pack(task["id"])
+        extra = extra.format(pack=pack_text)
     elif cond == "bearings":
         # pushed into the prompt (like the Claude Code hook): no tool lookup, no extra turn
         with _pack_lock:
@@ -336,7 +378,7 @@ def run_one(task: dict, cond: str, dic: DictBaseline | None, rep: int = 0) -> di
         with _start_lock:  # stagger starts: concurrent opencode launches lock its sqlite db
             time.sleep(5)
         t0 = time.time()
-        data_dir = WORK / f"ocdata-{cond}-{task['id']}"
+        data_dir = WORK / f"ocdata-{cond}-{task['id']}-r{rep}"
         subprocess.run(["rm", "-rf", str(data_dir)])
         with open(ev_path, "w") as fo, open(ev_path.with_suffix(".err"), "w") as fe:
             proc = subprocess.Popen([str(ROOT / "scripts/sandbox_opencode.sh"), str(wt), str(cfg_path), str(data_dir), str(NET), "--",
@@ -392,12 +434,14 @@ def main() -> None:
     r.add_argument("--seed", type=int, default=0)
     r.add_argument("--skip-done", action="store_true")
     r.add_argument("--parallel", type=int, default=3)
+    r.add_argument("--stride", type=int, default=1, help="take every Nth sampled task (fixed rule)")
+    r.add_argument("--reps", type=int, default=1)
     args = ap.parse_args()
     if args.cmd == "build-graph":
         build_graph()
         return
     RUNS.mkdir(parents=True, exist_ok=True)
-    tasks = [t for t in load("tasks.jsonl") if t["id"] == args.only] if args.only else sample(args.tasks, args.seed)
+    tasks = [t for t in load("tasks.jsonl") if t["id"] == args.only] if args.only else sample(args.tasks, args.seed)[::args.stride]
     conds = args.conditions.split(",")
     dic = DictBaseline()
     if "dict" in conds:
@@ -409,7 +453,7 @@ def main() -> None:
             r0 = json.loads(line)
             if not r0["rate_limited"] and r0["answered"]:
                 done.add((r0["id"], r0["condition"]))
-    jobs = [(t, c) for t in tasks for c in conds if (t["id"], c) not in done]
+    jobs = [(t, c, k) for t in tasks for k in range(args.reps) for c in conds if (t["id"], c) not in done]
     mcp_proc = start_mcp() if "bearings-mcp" in conds else None
     net_procs = start_net("bearings-mcp" in conds)
     global AUTH
@@ -420,15 +464,15 @@ def main() -> None:
     stop = {"low": False}
 
     def job(tc):
-        t, c = tc
+        t, c, k = tc
         if MODEL.startswith("deepseek/"):
             bal = deepseek_balance()
             if bal is not None and bal < BALANCE_FLOOR or stop["low"]:
                 stop["low"] = True
                 print(f"skip {t['id']} {c}: DeepSeek balance {bal} below floor {BALANCE_FLOOR}", flush=True)
                 return None
-        row = run_one(t, c, dic)
-        print(f"{t['id']} {c}: hit={row['hit']} all={row['all']} files={row['files']} "
+        row = run_one(t, c, dic, rep=k)
+        print(f"{t['id']} {c} r{k}: hit={row['hit']} all={row['all']} files={row['files']} "
               f"in={row['total_input']} out={row['tokens']['output']} tools={row['tool_calls']} "
               f"{row['wall_s']}s exit={row['exit']} rl={row['rate_limited']}", flush=True)
 
