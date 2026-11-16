@@ -1,0 +1,1 @@
+timestamp=2026-11-16T07:47:48.901Z level=WARN run=d2f4386f message="background dependency install failed" dir=<home>/.config/opencode error="Cause([Fail(NpmInstallFailedError (cause: rF: 403 Forbidden - GET https://registry.npmjs.org/@opencode-ai%2fplugin))])"

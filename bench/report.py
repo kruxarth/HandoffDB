@@ -401,7 +401,7 @@ def handoff_dash(h: dict) -> dict:
     facts = []
     if nc:
         facts.append({"title": "Notes cost a model call each; the graph does not",
-                      "text": f"{nc['n']} notes took {nc['prompt_total']:,} input and {nc['completion_total']:,} output tokens to write "
+                      "text": f"{nc['n']} note-writing calls took {nc['prompt_total']:,} input and {nc['completion_total']:,} output tokens to write "
                               f"(list-price arithmetic ${nc['usd_list']:.3f}). The recorder reads tool calls only."})
     ld = h.get("load") or {}
     if ld:
@@ -409,6 +409,30 @@ def handoff_dash(h: dict) -> dict:
                       "text": f"{ld['clients']} clients for {ld['seconds']} s while runs were being recorded: {ld['requests']:,} packs, "
                               f"{ld['errors']} errors, p50 {ld['p50_ms']} ms, p95 {ld['p95_ms']} ms."})
     out["facts"] = facts
+    # hero tiles: the handoff results (the v1 tiles move down with the v1 sections)
+    k = []
+    for key, E, lab in (("A", A, "Different issue"), ("B", B, "Same issue")):
+        d = E.get("graph-cold")
+        if d:
+            g, c = E["conds"]["graph"], E["conds"]["cold"]
+            k.append({"label": f"{lab}: tokens vs cold start", "value": f"{d['ratio']:.2f}×",
+                      "delta": d["verdict"], "dir": "up" if d["verdict"] == "saves tokens" else "flat" if d["verdict"] == "tie" else "down",
+                      "sub": f"median per-issue ratio · success {g['succ'][0]:.0%} vs {c['succ'][0]:.0%} · {E['n']} issues"})
+    rt = (ROOT / "results" / "handoff_retrieval.txt")
+    if rt.exists():
+        import re as _re
+        t = rt.read_text()
+        m = _re.search(r"Graph \(final\)\s+\S+ \[[^]]+\]\s+\S+ \[[^]]+\]\s+(\S+) \[", t)
+        m2 = _re.search(r"Plain word\+anchor -> file table\s+\S+ \[[^]]+\]\s+\S+ \[[^]]+\]\s+(\S+) \[", t)
+        if m and m2:
+            k.append({"label": "Pack holds fix files and test", "value": f"{float(m.group(1)):.0%}", "delta": "",
+                      "dir": "flat", "sub": f"vs {float(m2.group(1)):.0%} for a plain table from the same runs · 102 targets, no model calls"})
+    acc = ROOT / "results" / "handoff_accumulation.json"
+    if acc.exists():
+        a = json.loads(acc.read_text())[-1]
+        k.append({"label": "Notes pile up, the pack does not", "value": f"{a['pack_tokens_median']} tokens", "delta": "", "dir": "flat",
+                  "sub": f"median pack after {a['runs']} runs, vs {a['notes_tokens'] // 1000}k tokens of handoff notes"})
+    out["kpis"] = k[:4]
     return out
 
 
@@ -443,7 +467,9 @@ def dashboard(data: dict, l2: dict) -> None:
         q = json.loads((RES / "latency.json").read_text())
         k.append({"label": "Context pack latency", "value": f"{q['context_pack_ms']['p50']:.0f} ms", "delta": "", "dir": "flat",
                   "sub": f"median on a laptop · HydraDB path query {q['hydradb_path_query_ms']['p50']:.0f} ms"})
-    data["kpis"] = k
+    data["kpis"] = data["handoff"].get("kpis") or k
+    data["pills"] = ["Self-hosted HydraDB (open source)", "Recorded from tool calls, no model call",
+                     "A few length-1 traversals per pack", "Pre-registered, every number from committed files"]
     data["l1_intro"] = (f"Every SWE-bench task on Django ({sum(1 for _ in open(ROOT / 'data/derived/tasks.jsonl'))} issues, 2015–2023) "
                         "replayed in date order. For each issue Bearings suggests five files using only what it learned "
                         "<em>before</em> that issue, then learns from the real fix. Scored on the 724 issues from 2019-07 on; "

@@ -11,7 +11,8 @@
 set -euo pipefail
 snap=$1; cfg=$2; data=$3; net=$4; shift 4; [[ "${1:-}" == "--" ]] && shift
 mkdir -p "$data/share" "$data/state" "$data/cache"
-cp -r "$HOME/.cache/opencode/." "$data/cache/" 2>/dev/null || true
+# copy only what opencode needs offline (models list, version); not the plugin packages
+for f in models.json version bin; do [ -e "$HOME/.cache/opencode/$f" ] && cp -r "$HOME/.cache/opencode/$f" "$data/cache/"; done; true
 # optional: credentials for the model provider only ($OC_AUTH: an auth.json with just that entry)
 if [[ -n "${OC_AUTH:-}" ]]; then install -m 600 "$OC_AUTH" "$data/share/auth.json"; fi
 args=(

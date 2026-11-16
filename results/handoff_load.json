@@ -1,0 +1,17 @@
+{
+ "clients": 20,
+ "seconds": 60,
+ "wall_s": 61.0,
+ "requests": 998,
+ "errors": 0,
+ "error_samples": [],
+ "p50_ms": 1141.5,
+ "p95_ms": 1907.3,
+ "p99_ms": 2841.8,
+ "rps": 16.4,
+ "runs_recorded_during_test": 60,
+ "write_every_s": 1.0,
+ "graph_runs_at_start": 150,
+ "empty_packs": 0,
+ "calls_per_pack": "4 length-1 algo.MSpaths traversals in 3 rounds (hop 1: entities and anchors in parallel; hop 2; file frequencies)"
+}

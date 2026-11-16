@@ -155,7 +155,7 @@ def section() -> tuple[list[str], dict]:
            "### Experiment B: the next agent, on the same issue", "", table(B), ""]
     if nc:
         md += ["### What the handoff notes cost to write", "",
-               f"{nc['n']} notes, one model call each (`{nc['model']}`): {nc['prompt_total']:,} input and "
+               f"{nc['n']} model calls (`{nc['model']}`), one per note, plus any retries (one first attempt looped and was regenerated; both count): {nc['prompt_total']:,} input and "
                f"{nc['completion_total']:,} output tokens in total (median {nc['prompt_median']:,.0f} in, "
                f"{nc['completion_median']:,.0f} out per note; a note is {nc['note_tokens_median']:,.0f} tokens). "
                f"List-price arithmetic: ${nc['usd_list']:.3f}. The graph's recorder makes no model call.", ""]
